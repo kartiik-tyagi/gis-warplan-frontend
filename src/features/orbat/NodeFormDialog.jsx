@@ -75,7 +75,7 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
           <SearchSelect
             required
             size="small"
-            label="Node type"
+            label="Node Type"
             options={choices}
             value={choices.some((item) => String(item.id) === String(typeId)) ? typeId : ''}
             disabled={Boolean(initial?.nodeTypeId) || !choices.length}

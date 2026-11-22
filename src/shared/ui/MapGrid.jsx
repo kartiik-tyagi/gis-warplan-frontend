@@ -89,7 +89,8 @@ export function MapGrid({ onReadout }) {
                   }}
                   getOptionLabel={(item) => item.name}
                   getOptionValue={(item) => item.id}
-                  sx={{ flex: 1, minWidth: 0 }}
+                  fullWidth={false}
+                  sx={{ flex: 1, minWidth: 0, width: 'auto' }}
                 />
                 <Typography variant="caption" sx={{ flexShrink: 0 }}>
                   Zoom

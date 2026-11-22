@@ -25,7 +25,7 @@ export function selectableThemes(themes, holderKind, holderId) {
 export function holderLabel(theme) {
   if (!theme || theme.holderKind === 'FREE') return 'Free'
   if (theme.loginTheme) return 'APEX · login'
-  if (theme.holderKind === 'SIDE') return `Team ${theme.holderName}`
+  if (theme.holderKind === 'SIDE') return `Side ${theme.holderName}`
   if (theme.holderKind === 'USER') return theme.holderName
   return 'In use'
 }

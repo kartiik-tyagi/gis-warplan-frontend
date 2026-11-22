@@ -65,7 +65,7 @@ function ThemesList() {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
-        A theme is allotted to one team or one user. Members of a team display the team theme until a user override is
+        A theme is allotted to one side or one user. Members of a side display the side theme until a user override is
         allotted. APEX&apos;s theme is the login theme.
       </Typography>
 
@@ -85,10 +85,10 @@ function ThemesList() {
             No themes yet
           </Typography>
           <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create a theme, then allot it from Teams or Users.
+            Create a theme, then allot it from Sides or Users.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/themes/new')}>
-            New theme
+            New Theme
           </Button>
         </Box>
       ) : (
@@ -141,7 +141,7 @@ function ThemesList() {
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Remove theme"
+        title="Remove Theme"
         message={deleting ? `Remove “${deleting.name}”? Only free themes can be removed.` : ''}
         confirmLabel="Remove"
         busy={busyDelete}
@@ -214,7 +214,7 @@ function ThemeEditor() {
       if (isNew) {
         const created = await post('/themes', body)
         logger.info('theme.created', { id: created.id, name: body.name })
-        push('Theme created. Allot it from Teams or Users.', 'success')
+        push('Theme created. Allot it from Sides or Users.', 'success')
         await refreshSession().catch(() => {})
         navigate(`/standard/themes/${created.id}`, { replace: true })
       } else {
@@ -257,7 +257,7 @@ function ThemeEditor() {
           {defaultTheme ? <Chip size="small" color="primary" label="Default" /> : null}
         </Stack>
       ) : null}
-      <TextField label="Theme name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
+      <TextField label="Theme Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
       <TextField
         label="Description"
         value={description}
@@ -268,10 +268,10 @@ function ThemeEditor() {
       />
       <FormControlLabel
         control={<Checkbox checked={defaultTheme} onChange={(event) => setDefaultTheme(event.target.checked)} />}
-        label="Default theme"
+        label="Default Theme"
       />
       <Typography variant="body2" color="text.secondary">
-        Allotment is managed from Teams and Users. Free themes can be removed; allotted themes cannot.
+        Allotment is managed from Sides and Users. Free themes can be removed; allotted themes cannot.
       </Typography>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button onClick={() => navigate('/standard/themes')} disabled={busy || busyDelete}>
@@ -298,7 +298,7 @@ function ThemeEditor() {
       </Stack>
       <ConfirmDialog
         open={deleting}
-        title="Remove theme"
+        title="Remove Theme"
         message="Remove this theme? Only free themes can be removed."
         confirmLabel="Remove"
         busy={busyDelete}
@@ -315,11 +315,11 @@ export function ThemesListPage() {
   const navigate = useNavigate()
   return (
     <ExerciseLayout
-      kicker="Standard data"
+      kicker="Standard Data"
       title="Themes"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/themes/new')}>
-          New theme
+          New Theme
         </Button>
       }
     >
@@ -332,7 +332,7 @@ export function ThemeEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard data" title={isNew ? 'New theme' : 'Edit theme'}>
+    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Theme' : 'Edit Theme'}>
       <ThemeEditor />
     </ExerciseLayout>
   )

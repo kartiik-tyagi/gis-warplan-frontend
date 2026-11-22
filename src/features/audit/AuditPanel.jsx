@@ -154,7 +154,7 @@ export function AuditPanel() {
         ))}
         <SearchSelect
           size="small"
-          label="Page size"
+          label="Page Size"
           options={SIZES.map((option) => ({ id: option, name: String(option) }))}
           value={size}
           onChange={(id) => {
@@ -163,8 +163,8 @@ export function AuditPanel() {
           }}
           getOptionLabel={(option) => option.name}
           getOptionValue={(option) => option.id}
-          sx={{ width: { xs: '100%', sm: 140 } }}
           fullWidth={false}
+          sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }}
         />
         <Button type="submit" size="small" variant="contained" sx={{ mt: { sm: 0.5 } }}>Filter</Button>
         <Button size="small" onClick={clear} sx={{ mt: { sm: 0.5 } }}>Clear</Button>

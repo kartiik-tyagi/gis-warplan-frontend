@@ -17,7 +17,6 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
-import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import MyLocationOutlinedIcon from '@mui/icons-material/MyLocationOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined'
@@ -29,6 +28,7 @@ import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
+import { ExerciseLayout } from '../scenario/ExerciseLayout'
 
 const EMPTY_SERVER = { code: '', name: '', wmsUrl: '', wfsUrl: '', restUrl: '', workspaceDefault: '', enabled: true, defaultServer: false }
 const EMPTY_LAYER = {
@@ -46,7 +46,7 @@ const VIEW_NUMBER = [['centerLon', 'Center longitude'], ['centerLat', 'Center la
 const TABS = [
   { id: 'servers', label: 'Servers', icon: StorageOutlinedIcon },
   { id: 'layers', label: 'Layers', icon: LayersOutlinedIcon },
-  { id: 'view', label: 'Home view', icon: MyLocationOutlinedIcon },
+  { id: 'view', label: 'Home View', icon: MyLocationOutlinedIcon },
 ]
 
 const toNumber = (value) => (value === '' || value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value))
@@ -209,8 +209,10 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: 'stretch' }}>
       <Box
         sx={{
-          width: { md: 240 },
-          flexShrink: 0,
+          flex: { xs: '1 1 auto', md: '0 1 18rem' },
+          width: { xs: '100%', md: 'auto' },
+          minWidth: { md: '14rem' },
+          maxWidth: { md: '24rem' },
           display: 'flex',
           flexDirection: 'column',
           gap: 1.25,
@@ -224,7 +226,7 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
           onClick={() => select(null)}
           sx={{ textTransform: 'none', justifyContent: 'flex-start', fontWeight: 600 }}
         >
-          New {name}
+          New {name.charAt(0).toUpperCase() + name.slice(1)}
         </Button>
         <List
           dense
@@ -303,9 +305,8 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
         <Stack spacing={1.75}>
           <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
             <Typography variant="subtitle1" sx={{ fontWeight: 650, flex: 1, minWidth: 0 }}>
-              {selectedId === 'new' ? `New ${name}` : `Edit ${name}`}
+              {selectedId === 'new' ? `New ${name.charAt(0).toUpperCase() + name.slice(1)}` : `Edit ${name.charAt(0).toUpperCase() + name.slice(1)}`}
             </Typography>
-            {selectedId !== 'new' ? <Chip size="small" variant="outlined" label={`ID ${selectedId}`} /> : null}
           </Stack>
           <Divider />
           {message ? <Alert severity="error">{message}</Alert> : null}
@@ -367,7 +368,7 @@ function ServersTab() {
   return (
     <ResourceLayout
       resource={resource}
-      title="GIS servers"
+      title="GIS Servers"
       name="server"
       primary={(item) => item.name || item.code}
       secondary={(item) => item.code}
@@ -390,7 +391,7 @@ function ServersTab() {
       <SectionLabel>Options</SectionLabel>
       <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
         <Flag name="enabled" label="Enabled" form={form} onChange={change} />
-        <Flag name="defaultServer" label="Default server" form={form} onChange={change} />
+        <Flag name="defaultServer" label="Default Server" form={form} onChange={change} />
       </Stack>
       {form.defaultServer ? (
         <Chip size="small" color="primary" variant="outlined" label="This is the default GIS server" sx={{ alignSelf: 'flex-start' }} />
@@ -432,7 +433,7 @@ function LayersTab({ servers }) {
         <SearchSelect
           size="small"
           required
-          label="GIS server"
+          label="GIS Server"
           options={servers}
           value={form.gisServerId}
           onChange={(id) => change('gisServerId', id)}
@@ -448,7 +449,7 @@ function LayersTab({ servers }) {
       <SectionLabel>Display</SectionLabel>
       <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
         {LAYER_NUMBER.map(([name, label]) => (
-          <Field key={name} name={name} label={label} type="number" form={form} errors={errors} onChange={change} sx={{ width: 160 }} />
+          <Field key={name} name={name} label={label} type="number" form={form} errors={errors} onChange={change} sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }} />
         ))}
       </Stack>
       <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
@@ -522,12 +523,12 @@ function ViewDefaultsTab({ servers }) {
         borderColor: 'divider',
         bgcolor: 'background.paper',
         p: { xs: 1.75, sm: 2.25 },
-        maxWidth: 560,
+        maxWidth: '100%',
       }}
     >
       <Stack spacing={1.75}>
         <Typography variant="subtitle1" sx={{ fontWeight: 650 }}>
-          Home view
+          Home View
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Centre, zoom, and default server used when the map opens or when Home extent is pressed.
@@ -537,13 +538,13 @@ function ViewDefaultsTab({ servers }) {
         <SectionLabel>Centre and zoom</SectionLabel>
         <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
           {VIEW_NUMBER.map(([name, label]) => (
-            <Field key={name} name={name} label={label} type="number" form={form} errors={errors} onChange={change} sx={{ width: 150 }} />
+            <Field key={name} name={name} label={label} type="number" form={form} errors={errors} onChange={change} sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }} />
           ))}
         </Stack>
         <SectionLabel>Default server</SectionLabel>
         <SearchSelect
           size="small"
-          label="Default GIS server"
+          label="Default GIS Server"
           clearLabel="None"
           options={servers}
           value={form.defaultGisServerId}
@@ -562,7 +563,7 @@ function ViewDefaultsTab({ servers }) {
           onClick={save}
           sx={{ textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}
         >
-          {busy ? 'Saving…' : 'Save home view'}
+          {busy ? 'Saving…' : 'Save Home View'}
         </Button>
       </Stack>
     </Box>
@@ -586,34 +587,15 @@ export function MapAdminPanel() {
 
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: 2,
-            display: 'grid',
-            placeItems: 'center',
-            bgcolor: 'action.hover',
-            color: 'primary.main',
-            flexShrink: 0,
-          }}
-        >
-          <MapOutlinedIcon fontSize="small" />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 650, lineHeight: 1.3 }}>
-            Map catalog
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
-            GeoServer endpoints, WMS layers, and the map home view.
-          </Typography>
-        </Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+        <Typography variant="body2" color="text.secondary">
+          GeoServer endpoints, WMS layers, and the map home view.
+        </Typography>
         <Chip
           size="small"
           variant="outlined"
           label={`${servers.length} server${servers.length === 1 ? '' : 's'}`}
-          sx={{ flexShrink: 0 }}
+          sx={{ alignSelf: 'flex-start', flexShrink: 0 }}
         />
       </Stack>
 
@@ -660,6 +642,14 @@ export function MapAdminPanel() {
       {tab === 'layers' ? <LayersTab servers={servers} /> : null}
       {tab === 'view' ? <ViewDefaultsTab servers={servers} /> : null}
     </Stack>
+  )
+}
+
+export function MapCatalogPage() {
+  return (
+    <ExerciseLayout kicker="Map" title="Map Catalog">
+      <MapAdminPanel />
+    </ExerciseLayout>
   )
 }
 

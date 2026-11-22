@@ -7,13 +7,11 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
   Menu,
   MenuItem,
   Stack,
   Tab,
   Tabs,
-  TextField,
   Typography,
 } from '@mui/material'
 import { FunctionalityCodes, hasFunctionality } from '../../shared/auth/functionalityCodes'
@@ -28,7 +26,7 @@ import { useDirectoryStore } from '../directory/useDirectoryStore'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
 import * as api from './orbatApi'
-import { AllianceDialog, ForceDialog, MarkAsUserDialog, NodeNameDialog, ReplicaDialog } from './OrbatDialogs'
+import { ForceDialog, MarkAsUserDialog, NodeNameDialog, PlayingSideDialog } from './OrbatDialogs'
 import { asTheme } from '../admin/themeChoices'
 import { NodeFormDialog } from './NodeFormDialog'
 import { childAllowed } from './nodeRules'
@@ -40,7 +38,7 @@ import { swatchForColour, themeFromEntity } from '../../shared/api/mappers'
 import { createAppTheme } from '../../shared/theme/createAppTheme'
 import { IconField } from '../../shared/ui/IconPicker'
 import { OrbatTree } from './OrbatTree'
-import { addChild, descendantIds, indexNodes, nodesOf, pathTo, removeSubtree, reparent, sameNodes, updateNode } from './orbatDoc'
+import { addChild, descendantIds, indexNodes, nodesOf, removeSubtree, reparent, sameNodes, updateNode } from './orbatDoc'
 
 function Caption({ children }) {
   return (
@@ -54,76 +52,12 @@ function statusOf(record) {
   return record?.metadata?.status === 'finalized' ? 'finalized' : 'draft'
 }
 
-function NodeDetails({ node, nodes, nodeTypes, sidesById, markedUser, editable, canMark, canHold, onChange, onAdd, onDelete, onMark, onUpdate, onHold }) {
-  const [name, setName] = useState(node?.name || '')
-  useEffect(() => {
-    setName(node?.name || '')
-  }, [node?.id, node?.name])
-  if (!node) return <Caption>Select a node to see its details.</Caption>
-  const parent = nodes.find((item) => item.id === node.parentId)
-  const path = pathTo(nodes, node.id).map((item) => item.name).join(' / ')
-  const kids = nodes.filter((item) => item.parentId === node.id).length
-  const commitName = () => {
-    const next = name.trim()
-    if (!next) setName(node.name)
-    else if (next !== node.name) onChange({ name: next })
-  }
-  return (
-    <Stack spacing={1.25}>
-      <Typography variant="subtitle2">Details</Typography>
-      <TextField
-        size="small"
-        label="Name"
-        value={name}
-        disabled={!editable}
-        onChange={(event) => setName(event.target.value)}
-        onBlur={commitName}
-        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-      />
-      <SearchSelect
-        size="small"
-        label="Node type"
-        clearLabel="None"
-        options={[...nodeTypes.values()]}
-        value={node.nodeTypeId ?? ''}
-        disabled={!editable}
-        onChange={(id) => onChange({ nodeTypeId: id === '' ? null : id })}
-        getOptionLabel={(type) => type.name}
-        getOptionValue={(type) => type.id}
-      />
-      <Box>
-        <Caption>Home side</Caption>
-        <Typography variant="body2">{sidesById.get(node.homeSideId)?.name || `Side ${node.homeSideId}`}</Typography>
-      </Box>
-      <Box>
-        <Caption>Position</Caption>
-        <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>{path}</Typography>
-        <Caption>{parent ? `Under ${parent.name}` : 'Root'} · {kids} {kids === 1 ? 'child' : 'children'}</Caption>
-      </Box>
-      {node.sourceNodeId ? (
-        <Box>
-          <Caption>Copied from standard node</Caption>
-          <Typography variant="caption" sx={{ wordBreak: 'break-all' }}>{node.sourceNodeId}</Typography>
-        </Box>
-      ) : null}
-      {markedUser ? (
-        <Box>
-          <Caption>Marked as user</Caption>
-          <Typography variant="body2">{markedUser.name}</Typography>
-        </Box>
-      ) : null}
-      <Divider />
-      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
-        {editable ? <Button size="small" onClick={onAdd}>Add child</Button> : null}
-        {editable && node.parentId ? <Button size="small" color="error" onClick={onDelete}>Delete</Button> : null}
-        {canMark && !markedUser ? <Button size="small" onClick={onMark}>Mark as user</Button> : null}
-        {canMark && markedUser ? <Button size="small" onClick={onUpdate}>Update user</Button> : null}
-        {canHold && node.sourceNodeId ? (
-          <Button size="small" onClick={onHold}>{node.participationHeld ? 'Allow user' : 'Deactivate user'}</Button>
-        ) : null}
-      </Stack>
-    </Stack>
-  )
+/** Shares the row and wraps to the full width on a narrow panel. */
+const fieldGrow = {
+  flex: { xs: '1 1 100%', sm: '1 1 12rem' },
+  minWidth: { xs: '100%', sm: '12rem' },
+  maxWidth: '100%',
+  width: 'auto',
 }
 
 function ForceFields({ side, themes, onSave }) {
@@ -143,7 +77,7 @@ function ForceFields({ side, themes, onSave }) {
       <Caption>This root is the side. Colour, icon and theme save immediately. Rename the root, then Save the tree, to rename the side.</Caption>
       <SearchSelect
         size="small"
-        label="Map colour"
+        label="Map Colour"
         options={swatchId === 'custom' ? [{ id: 'custom', name: side.colour || 'Current colour' }, ...swatches] : swatches}
         value={swatchId}
         onChange={setSwatchId}
@@ -691,7 +625,6 @@ export default function OrbatPanel() {
   if (!showStandard && !showPlaying) return <Caption>Your role does not include ORBAT.</Caption>
   if (!sides && !loadError) return <LoadingState label="Opening ORBAT" />
 
-  const replicaSides = freeCountries
   const delNode = dialog?.kind === 'delete' ? index.byId.get(dialog.id) : null
   const delCount = delNode ? descendantIds(nodes, delNode.id).size : 0
 
@@ -720,13 +653,13 @@ export default function OrbatPanel() {
             onChange={(id) => guard(() => setSideId(id))}
             getOptionLabel={(side) => side.name}
             getOptionValue={(side) => String(side.id)}
-            sx={{ minWidth: 200 }}
+            sx={fieldGrow}
           />
           {canCreateForce ? (
-            <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'force' })}>New side</Button>
+            <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'force' })}>New Side</Button>
           ) : null}
           {standard === null && canStandard ? (
-            <Button size="small" variant="outlined" onClick={createStandard} disabled={saving}>Create standard ORBAT</Button>
+            <Button size="small" variant="outlined" onClick={createStandard} disabled={saving}>Create Standard ORBAT</Button>
           ) : null}
         </Stack>
       ) : (
@@ -739,10 +672,10 @@ export default function OrbatPanel() {
             value={scenarioId}
             onChange={(id) => guard(() => setScenarioId(id))}
             disabled={!scenarios.length}
-            helperText={!scenarios.length ? 'Needs Manage scenario' : undefined}
+            helperText={!scenarios.length ? 'Needs Manage Scenario' : undefined}
             getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
             getOptionValue={(item) => item.id}
-            sx={{ minWidth: 170 }}
+            sx={fieldGrow}
           />
           <SearchSelect
             size="small"
@@ -755,7 +688,7 @@ export default function OrbatPanel() {
             helperText={scenarioId && !games.length ? 'No games' : undefined}
             getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
             getOptionValue={(item) => item.id}
-            sx={{ minWidth: 150 }}
+            sx={fieldGrow}
           />
           <SearchSelect
             size="small"
@@ -765,12 +698,13 @@ export default function OrbatPanel() {
             value={orbatId}
             onChange={(id) => guard(() => setOrbatId(id))}
             disabled={!orbats.length}
-            getOptionLabel={(item) => `${item.name}${item.metadata?.alliance ? ' (alliance)' : ''} · ${statusOf(item)}`}
+            getOptionLabel={(item) => `${item.name}${item.metadata?.alliance ? ' (alliance)' : ''}`}
             getOptionValue={(item) => String(item.id)}
-            sx={{ minWidth: 190 }}
+            sx={fieldGrow}
           />
-          {canPlaying ? <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'replica' })} disabled={!gameId}>Replica</Button> : null}
-          {canAlliance ? <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'alliance' })} disabled={!gameId}>Alliance</Button> : null}
+          {canPlaying || canAlliance ? (
+            <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'playing-side' })} disabled={!gameId}>New Side</Button>
+          ) : null}
         </Stack>
       )}
 
@@ -787,7 +721,6 @@ export default function OrbatPanel() {
           <Chip size="small" label={`v${record.version}`} variant="outlined" />
           {tab === 'playing' ? <Chip size="small" label={status} color={status === 'finalized' ? 'success' : 'default'} /> : null}
           {dirty ? <Chip size="small" label="Unsaved" color="warning" /> : null}
-          {tab === 'playing' && status === 'finalized' ? <Caption>Re-edit to change it. If this game is active, its users are signed out until you finalize again.</Caption> : null}
           <Box sx={{ flex: 1 }} />
           {editable ? (
             <>
@@ -819,17 +752,17 @@ export default function OrbatPanel() {
                 : 'Choose a side.'
             : !gameId
               ? 'Choose a scenario and a game.'
-              : 'This game has no playing ORBAT yet. Replicate a standard ORBAT or create an alliance.'}
+              : 'This game has no playing ORBAT yet. Add a side.'}
         </Caption>
       ) : null}
 
       {record && !loading ? (
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ minHeight: 240, alignItems: 'stretch' }}>
-        <Box sx={{ flex: 1, minWidth: 0, minHeight: 240, maxHeight: { md: 'calc(100vh - 280px)' }, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ minWidth: 0, minHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
           {nodes.length ? (
             <OrbatTree
               nodes={nodes}
               nodeTypes={nodeTypes}
+              sidesById={sidesById}
               selectedId={selectedId}
               onSelect={setSelectedId}
               expanded={expanded}
@@ -845,25 +778,6 @@ export default function OrbatPanel() {
             <Box sx={{ p: 2 }}><Caption>This ORBAT has no nodes.</Caption></Box>
           )}
         </Box>
-        <Box sx={{ width: { md: 280 }, flexShrink: 0 }}>
-          <NodeDetails
-            node={index.byId.get(selectedId)}
-            nodes={nodes}
-            nodeTypes={nodeTypes}
-            sidesById={sidesById}
-            markedUser={userByNode.get(selectedId) || null}
-            editable={editable}
-            canMark={tab === 'standard' && canMark}
-            canHold={tab === 'playing' && editable}
-            onChange={(patch) => selectedId && setNodes((current) => updateNode(current, selectedId, patch))}
-            onAdd={() => selectedId && openAdd(selectedId)}
-            onDelete={() => selectedId && openDelete(selectedId)}
-            onMark={() => selectedId && openMark(selectedId)}
-            onUpdate={() => selectedId && openUpdate(selectedId)}
-            onHold={() => selectedId && toggleHold(selectedId)}
-          />
-        </Box>
-        </Stack>
       ) : null}
 
       <Menu
@@ -872,21 +786,21 @@ export default function OrbatPanel() {
         anchorReference="anchorPosition"
         anchorPosition={menu ? { top: menu.y, left: menu.x } : undefined}
       >
-        {editable && menuNode?.parentId == null && tab === 'standard' ? <MenuItem onClick={() => { closeMenu(); setDialog({ kind: 'side' }) }}>Edit side</MenuItem> : null}
-        {editable ? <MenuItem onClick={() => { closeMenu(); openAdd(menu.id) }}>Add</MenuItem> : null}
-        {editable && menuNode?.parentId ? <MenuItem onClick={() => { closeMenu(); setDialog({ kind: 'edit', id: menu.id }) }}>Edit</MenuItem> : null}
+        {editable && menuNode?.parentId == null && tab === 'standard' ? <MenuItem onClick={() => { closeMenu(); setDialog({ kind: 'side' }) }}>Edit Side</MenuItem> : null}
+        {editable ? <MenuItem onClick={() => { closeMenu(); openAdd(menu.id) }}>Add Child</MenuItem> : null}
+        {editable ? <MenuItem onClick={() => { closeMenu(); setDialog({ kind: 'edit', id: menu.id }) }}>Edit</MenuItem> : null}
         {editable && menuNode?.parentId ? <MenuItem onClick={() => { closeMenu(); openDelete(menu.id) }}>Delete</MenuItem> : null}
-        {tab === 'standard' && canMark && menu && !markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openMark(menu.id) }}>Mark as user</MenuItem> : null}
-        {tab === 'standard' && canMark && menu && markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openUpdate(menu.id) }}>Update user</MenuItem> : null}
+        {tab === 'standard' && canMark && menu && !markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openMark(menu.id) }}>Mark as User</MenuItem> : null}
+        {tab === 'standard' && canMark && menu && markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openUpdate(menu.id) }}>Update User</MenuItem> : null}
         {tab === 'playing' && editable && menuNode?.sourceNodeId ? (
-          <MenuItem onClick={() => toggleHold(menu.id)}>{menuNode.participationHeld ? 'Allow user' : 'Deactivate user'}</MenuItem>
+          <MenuItem onClick={() => toggleHold(menu.id)}>{menuNode.participationHeld ? 'Allow User' : 'Deactivate User'}</MenuItem>
         ) : null}
         {!editable && !(tab === 'standard' && canMark) ? <MenuItem disabled>Read only</MenuItem> : null}
       </Menu>
 
       <NodeFormDialog
         open={dialog?.kind === 'add' || dialog?.kind === 'edit'}
-        title={dialog?.kind === 'edit' ? 'Edit node' : `Add under ${index.byId.get(dialog?.id)?.name || ''}`}
+        title={dialog?.kind === 'edit' ? 'Edit Node' : `Add under ${index.byId.get(dialog?.id)?.name || ''}`}
         types={[...nodeTypes.values()]}
         parent={dialog?.kind === 'add' ? index.byId.get(dialog?.id) : index.byId.get(index.byId.get(dialog?.id)?.parentId)}
         initial={dialog?.kind === 'edit' ? index.byId.get(dialog?.id) : null}
@@ -904,7 +818,7 @@ export default function OrbatPanel() {
       </Dialog>
       <ConfirmDialog
         open={dialog?.kind === 'delete'}
-        title="Delete node"
+        title="Delete Node"
         message={delNode ? `Delete ${delNode.name}${delCount ? ` and its ${delCount} descendant${delCount === 1 ? '' : 's'}` : ''}? Nothing is kept until you save.` : ''}
         confirmLabel="Delete"
         onClose={() => setDialog(null)}
@@ -939,11 +853,19 @@ export default function OrbatPanel() {
         onHold={(id) => toggleHold(id)}
       />
       <ForceDialog open={dialog?.kind === 'force'} themes={themes} onClose={() => setDialog(null)} onSubmit={createForce} />
-      <ReplicaDialog open={dialog?.kind === 'replica'} sides={replicaSides} onClose={() => setDialog(null)} onSubmit={replicate} />
-      <AllianceDialog open={dialog?.kind === 'alliance'} sides={freeCountries} themes={themes} onClose={() => setDialog(null)} onSubmit={createAlliance} />
+      <PlayingSideDialog
+        open={dialog?.kind === 'playing-side'}
+        sides={freeCountries}
+        themes={themes}
+        allowSingle={canPlaying}
+        allowAlliance={canAlliance}
+        onClose={() => setDialog(null)}
+        onSingle={replicate}
+        onAlliance={createAlliance}
+      />
       <ConfirmDialog
         open={dialog?.kind === 'finalize'}
-        title="Finalize playing ORBAT"
+        title="Finalize Playing ORBAT"
         message={`Save ${record?.name || 'this ORBAT'} and mark it finalized? If this game is active, its users can sign in. If the game is not active, they stay signed out.`}
         confirmLabel="Finalize"
         busy={saving}
@@ -953,7 +875,7 @@ export default function OrbatPanel() {
       />
       <ConfirmDialog
         open={dialog?.kind === 'reopen'}
-        title="Re-edit playing ORBAT"
+        title="Re-edit Playing ORBAT"
         message={`Return ${record?.name || 'this ORBAT'} to draft? The game stays as it is. If the game is active, users on this ORBAT are signed out until you finalize it again.`}
         confirmLabel="Re-edit"
         busy={saving}
@@ -963,7 +885,7 @@ export default function OrbatPanel() {
       />
       <ConfirmDialog
         open={dialog?.kind === 'delete-orbat'}
-        title="Delete playing ORBAT"
+        title="Delete Playing ORBAT"
         message={`Delete ${record?.name || 'this ORBAT'} from the game? Users assigned to it are unassigned.`}
         confirmLabel="Delete"
         onClose={() => setDialog(null)}
@@ -971,7 +893,7 @@ export default function OrbatPanel() {
       />
       <ConfirmDialog
         open={Boolean(discard)}
-        title="Discard changes"
+        title="Discard Changes"
         message="This ORBAT has unsaved changes. Discard them?"
         confirmLabel="Discard"
         onClose={() => setDiscard(null)}

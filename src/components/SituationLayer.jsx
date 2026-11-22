@@ -15,7 +15,7 @@ import { useOrbatPicture } from '../features/orbat/useOrbatPicture'
 import { useSituation } from '../features/situation/useSituation'
 import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
 
-/** Side id -> that team's theme. Sides and themes are already returned to any signed-in user. */
+/** Side id -> that side's theme. Sides and themes are already returned to any signed-in user. */
 function useTeamIconThemes() {
   const [rows, setRows] = useState({ sides: [], themes: [] })
   useEffect(() => {
@@ -114,7 +114,7 @@ export function SituationLayer({ map }) {
   const viewerTheme = useTheme()
   const teamThemes = useTeamIconThemes()
   const orbats = useSituation((state) => state.orbats)
-  const editingId = useOrbatPicture((state) => (state.active ? state.editingId : null))
+  const editorOpen = useOrbatPicture((state) => state.active)
   const [iconsReady, setIconsReady] = useState(0)
 
   useEffect(() => {
@@ -168,10 +168,12 @@ export function SituationLayer({ map }) {
     const source = layer.get('situationSource')
     if (!source) return
     source.clear()
-    const skip = editingId == null ? null : Number(editingId)
-    const shown = orbats.filter((orbat) => skip == null || Number(orbat.playingOrbatId) !== skip)
+    if (editorOpen) {
+      useSituation.getState().clearHover()
+      return
+    }
     const placed = []
-    shown.forEach((orbat) => {
+    orbats.forEach((orbat) => {
       const byId = new Map((orbat.nodes || []).map((node) => [node.id, node]))
       ;(orbat.nodes || []).forEach((node) => {
         if (finite(node.latitude) == null || finite(node.longitude) == null) return
@@ -244,7 +246,7 @@ export function SituationLayer({ map }) {
         }),
       })
     })
-  }, [map, orbats, editingId, iconsReady, teamThemes, viewerTheme])
+  }, [map, orbats, editorOpen, iconsReady, teamThemes, viewerTheme])
 
   return <HoverCard />
 }

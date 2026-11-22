@@ -163,7 +163,7 @@ function GameList() {
         helperText={!scenarios.length ? 'Create a scenario first' : undefined}
         getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
         getOptionValue={(item) => String(item.id)}
-        sx={{ maxWidth: 420 }}
+        sx={{ width: '100%', maxWidth: { xs: '100%', md: '36rem' } }}
       />
 
       {!scenarios.length ? (
@@ -192,7 +192,7 @@ function GameList() {
             startIcon={<AddIcon />}
             onClick={() => navigate(`/exercise/games/new?scenarioId=${scenarioId}`)}
           >
-            New game
+            New Game
           </Button>
         </Box>
       ) : (
@@ -416,10 +416,11 @@ function GameEditor() {
           disabled={!isNew || !scenarios.length}
           getOptionLabel={(item) => item.name}
           getOptionValue={(item) => String(item.id)}
-          sx={{ minWidth: { sm: 260 }, flex: 1 }}
+          fullWidth={false}
+          sx={{ flex: { xs: '1 1 100%', sm: '1 1 12rem' }, minWidth: { xs: '100%', sm: '12rem' }, maxWidth: '100%', width: 'auto' }}
         />
         <TextField
-          label="Game name"
+          label="Game Name"
           value={form.name}
           onChange={(event) => change('name', event.target.value)}
           error={Boolean(errors.name)}
@@ -433,7 +434,7 @@ function GameEditor() {
 
       <TextField
         type="datetime-local"
-        label="Date and time"
+        label="Date and Time"
         value={form.dateTime ? toLocalInput(form.dateTime) : ''}
         onChange={(event) => change('dateTime', event.target.value)}
         error={Boolean(errors.dateTime)}
@@ -469,7 +470,7 @@ function GameEditor() {
         />
       </Stack>
       <SearchSelect
-        label="Moon phase"
+        label="Moon Phase"
         clearLabel="None"
         options={phases}
         value={form.moonphases}
@@ -549,7 +550,7 @@ function GameEditor() {
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Delete this game?"
+        title="Delete This Game?"
         message="Playing ORBATs and alliances for this game are removed. The active game cannot be deleted."
         confirmLabel="Delete"
         busy={busy}
@@ -567,7 +568,7 @@ export function GameListPage() {
   return (
     <ExerciseLayout
       kicker="Exercise"
-      title="Game management"
+      title="Game Management"
       actions={
         <Button
           variant="contained"
@@ -575,7 +576,7 @@ export function GameListPage() {
           disabled={!scenarioId}
           onClick={() => navigate(`/exercise/games/new${scenarioId ? `?scenarioId=${scenarioId}` : ''}`)}
         >
-          New game
+          New Game
         </Button>
       }
     >
@@ -588,7 +589,7 @@ export function GameEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Exercise" title={isNew ? 'New game' : 'Edit game'}>
+    <ExerciseLayout kicker="Exercise" title={isNew ? 'New Game' : 'Edit Game'}>
       <GameEditor />
     </ExerciseLayout>
   )

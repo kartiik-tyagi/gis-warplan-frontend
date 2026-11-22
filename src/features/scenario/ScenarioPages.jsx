@@ -127,7 +127,7 @@ function ScenarioList() {
             Create the first scenario to open games against it.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')}>
-            New scenario
+            New Scenario
           </Button>
         </Box>
       ) : (
@@ -215,7 +215,7 @@ function ScenarioList() {
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Delete this scenario?"
+        title="Delete This Scenario?"
         message={
           deleting
             ? `“${deleting.name}” and its games will be removed. The active scenario cannot be deleted.`
@@ -262,7 +262,7 @@ function ScenarioPreview() {
         <Typography variant="h5" sx={{ flex: 1, fontWeight: 600, color: 'text.primary' }}>
           {row.name}
         </Typography>
-        {row.active ? <Chip color="success" label="Active exercise" /> : null}
+        {row.active ? <Chip color="success" label="Active Exercise" /> : null}
       </Stack>
 
       {[
@@ -427,7 +427,7 @@ function ScenarioEditor() {
       {message ? <Alert severity="error">{message}</Alert> : null}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
         <TextField
-          label="Scenario name"
+          label="Scenario Name"
           value={form.name}
           onChange={(event) => change('name', event.target.value)}
           error={Boolean(errors.name)}
@@ -436,11 +436,11 @@ function ScenarioEditor() {
           required
           sx={{ flex: 1 }}
         />
-        {active ? <Chip color="success" label="Active exercise" /> : null}
+        {active ? <Chip color="success" label="Active Exercise" /> : null}
       </Stack>
 
       <RichTextEditor
-        label="General idea"
+        label="General Idea"
         value={form.generalIdea}
         onChange={(html) => change('generalIdea', html)}
         placeholder="Strategic intent for this scenario…"
@@ -449,7 +449,7 @@ function ScenarioEditor() {
         minHeight={120}
       />
       <RichTextEditor
-        label="Opening narrative"
+        label="Opening Narrative"
         value={form.openingNarrative}
         onChange={(html) => change('openingNarrative', html)}
         placeholder="How the exercise begins…"
@@ -458,7 +458,7 @@ function ScenarioEditor() {
         minHeight={180}
       />
       <RichTextEditor
-        label="Special idea"
+        label="Special Idea"
         value={form.specialIdea}
         onChange={(html) => change('specialIdea', html)}
         placeholder="Constraints, surprises, and special instructions…"
@@ -535,7 +535,7 @@ function ScenarioEditor() {
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Delete this scenario?"
+        title="Delete This Scenario?"
         message="Games and playing forces under it are removed. The active scenario cannot be deleted."
         confirmLabel="Delete"
         busy={busy}
@@ -551,10 +551,10 @@ export function ScenarioListPage() {
   return (
     <ExerciseLayout
       kicker="Exercise"
-      title="Scenario management"
+      title="Scenario Management"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')}>
-          New scenario
+          New Scenario
         </Button>
       }
     >
@@ -565,7 +565,7 @@ export function ScenarioListPage() {
 
 export function ScenarioPreviewPage() {
   return (
-    <ExerciseLayout kicker="Exercise" title="Scenario preview">
+    <ExerciseLayout kicker="Exercise" title="Scenario Preview">
       <ScenarioPreview />
     </ExerciseLayout>
   )
@@ -575,7 +575,7 @@ export function ScenarioEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Exercise" title={isNew ? 'New scenario' : 'Edit scenario'}>
+    <ExerciseLayout kicker="Exercise" title={isNew ? 'New Scenario' : 'Edit Scenario'}>
       <ScenarioEditor />
     </ExerciseLayout>
   )

@@ -117,7 +117,7 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
         <DialogTitle>Theme</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            This becomes the login theme. A theme already allotted to a team or to another user is not listed.
+            This becomes the login theme. A theme already allotted to a side or to another user is not listed.
           </Typography>
           <SearchSelect
             label="Theme"
@@ -134,10 +134,10 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
         </DialogActions>
       </Dialog>
       <Dialog open={passwordOpen} onClose={() => setPasswordOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Change password</DialogTitle>
+        <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
-          <TextField fullWidth margin="dense" type="password" label="Current password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-          <TextField fullWidth margin="dense" type="password" label="New password" value={nextPassword} onChange={(event) => setNextPassword(event.target.value)} />
+          <TextField fullWidth margin="dense" type="password" label="Current Password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+          <TextField fullWidth margin="dense" type="password" label="New Password" value={nextPassword} onChange={(event) => setNextPassword(event.target.value)} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPasswordOpen(false)}>Cancel</Button>

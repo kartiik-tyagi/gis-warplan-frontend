@@ -8,6 +8,8 @@ import {
   DialogTitle,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
 import { IconField } from '../../shared/ui/IconPicker'
@@ -69,7 +71,7 @@ export function NodeNameDialog({ open, title, submitLabel = 'Save', initialName 
       <TextField autoFocus required label="Name" value={name} onChange={(event) => setName(event.target.value)} slotProps={{ htmlInput: { maxLength: 200 } }} />
       {withType ? (
         <SearchSelect
-          label="Node type"
+          label="Node Type"
           clearLabel="None"
           options={nodeTypes}
           value={typeId}
@@ -104,8 +106,8 @@ export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes 
   return (
     <Shell
       open={open}
-      title={editing ? 'Update user' : 'Mark as user'}
-      submitLabel={editing ? 'Save user' : 'Create user'}
+      title={editing ? 'Update User' : 'Mark as User'}
+      submitLabel={editing ? 'Save User' : 'Create User'}
       onClose={onClose}
       busy={busy}
       error={error}
@@ -117,11 +119,11 @@ export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes 
           ? `Updates the sign-in for ${user.name}. Leave the password blank to keep it, and clear the theme to inherit this side.`
           : `Creates a sign-in for the node ${node?.name}. Leave the theme empty to inherit this side. The account stays off until this node is in the active game.`}
       </Typography>
-      <TextField autoFocus required label="User name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
+      <TextField autoFocus required label="User Name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
       <TextField required={!editing} type="password" label={editing ? 'New password' : 'Password'} value={password} onChange={(event) => setPassword(event.target.value)} helperText={editing ? 'Leave blank to keep the current password.' : 'At least 3 characters'} autoComplete="new-password" />
       <SearchSelect
-        label="Override theme"
-        clearLabel="Inherit the team theme"
+        label="Override Theme"
+        clearLabel="Inherit the side theme"
         options={free}
         value={themeId}
         onChange={setThemeId}
@@ -164,8 +166,8 @@ export function ForceDialog({ open, themes = EMPTY_LIST, onClose, onSubmit }) {
   return (
     <Shell
       open={open}
-      title="New side"
-      submitLabel="Create side"
+      title="New Side"
+      submitLabel="Create Side"
       onClose={onClose}
       busy={busy}
       error={error}
@@ -173,9 +175,9 @@ export function ForceDialog({ open, themes = EMPTY_LIST, onClose, onSubmit }) {
       onSubmit={() => run({ name: name.trim(), colour, icon: icon || null, themeId: Number(themeId), description: '' })}
     >
       <Typography variant="body2" color="text.secondary">The root of the standard ORBAT is this side. The theme cannot be shared with another side or user.</Typography>
-      <TextField autoFocus required label="Side name" value={name} onChange={(event) => setName(event.target.value)} />
+      <TextField autoFocus required label="Side Name" value={name} onChange={(event) => setName(event.target.value)} />
       <SearchSelect
-        label="Map colour"
+        label="Map Colour"
         options={swatches}
         value={swatchId}
         onChange={setSwatchId}
@@ -198,88 +200,120 @@ export function ForceDialog({ open, themes = EMPTY_LIST, onClose, onSubmit }) {
   )
 }
 
-/** Picks the country side whose standard ORBAT is replicated into the game. */
-export function ReplicaDialog({ open, sides = EMPTY_LIST, onClose, onSubmit }) {
+/** Adds one playing side: a single country, or an alliance of countries. */
+export function PlayingSideDialog({
+  open,
+  sides = EMPTY_LIST,
+  themes = EMPTY_LIST,
+  allowSingle = true,
+  allowAlliance = true,
+  onClose,
+  onSingle,
+  onAlliance,
+}) {
+  const [kind, setKind] = useState('single')
   const [sideId, setSideId] = useState('')
-  const { busy, error, setError, run } = useSubmit(onSubmit)
-  useEffect(() => {
-    if (open) {
-      setSideId(sides[0]?.id ?? '')
-      setError('')
-    }
-  }, [open, sides, setError])
-  return (
-    <Shell open={open} title="Replicate a standard ORBAT" submitLabel="Replicate" onClose={onClose} busy={busy} error={error} submitDisabled={sideId === ''} onSubmit={() => run(sideId)}>
-      {sides.length ? (
-        <SearchSelect
-          required
-          label="Side"
-          options={sides}
-          value={sideId}
-          onChange={setSideId}
-          getOptionLabel={(side) => side.name}
-          getOptionValue={(side) => side.id}
-        />
-      ) : (
-        <Typography variant="body2" color="text.secondary">Every country side is already playing in this game, on its own or in an alliance.</Typography>
-      )}
-    </Shell>
-  )
-}
-
-/** Creates an alliance (a side of kind alliance) with its merged playing ORBAT. */
-export function AllianceDialog({ open, sides = EMPTY_LIST, themes = EMPTY_LIST, onClose, onSubmit }) {
   const [name, setName] = useState('')
   const [colour, setColour] = useState('#2f6fed')
   const [icon, setIcon] = useState('')
   const [themeId, setThemeId] = useState('')
   const [members, setMembers] = useState([])
-  const { busy, error, setError, run } = useSubmit(onSubmit)
+  const { busy, error, setError, run } = useSubmit(async (payload) => {
+    if (payload.kind === 'single') await onSingle(payload.sideId)
+    else await onAlliance(payload.body)
+  })
   const free = selectableThemes(themes.map(asTheme), 'SIDE', null)
+  const showChoice = allowSingle && allowAlliance
+
   useEffect(() => {
-    if (open) {
-      setName('')
-      setColour('#2f6fed')
-      setIcon('')
-      setThemeId('')
-      setMembers([])
-      setError('')
-    }
-  }, [open, setError])
+    if (!open) return
+    setKind(allowSingle ? 'single' : 'alliance')
+    setSideId(sides[0]?.id ?? '')
+    setName('')
+    setColour('#2f6fed')
+    setIcon('')
+    setThemeId('')
+    setMembers([])
+    setError('')
+  }, [open, allowSingle, sides, setError])
+
+  const single = kind === 'single'
+  const submitDisabled = single ? sideId === '' : !name.trim() || members.length < 1 || themeId === ''
+
   return (
     <Shell
       open={open}
-      title="Create an alliance"
-      submitLabel="Create alliance"
+      title="New Side"
+      submitLabel="Add Side"
       onClose={onClose}
       busy={busy}
       error={error}
-      submitDisabled={!name.trim() || members.length < 1 || themeId === ''}
-      onSubmit={() => run({ name: name.trim(), colour, icon: icon || null, themeId: themeId === '' ? null : Number(themeId), memberSideIds: members })}
+      submitDisabled={submitDisabled}
+      onSubmit={() => run(single
+        ? { kind: 'single', sideId }
+        : { kind: 'alliance', body: { name: name.trim(), colour, icon: icon || null, themeId: themeId === '' ? null : Number(themeId), memberSideIds: members } })}
     >
-      <TextField autoFocus required label="Alliance name" value={name} onChange={(event) => setName(event.target.value)} />
-      <TextField label="Map colour" type="color" value={colour} onChange={(event) => setColour(event.target.value)} />
-      <IconField value={icon} onChange={setIcon} />
-      <SearchSelect
-        required
-        label="Theme"
-        options={free}
-        value={themeId === '' ? '' : themeId}
-        onChange={(id) => setThemeId(id)}
-        getOptionLabel={(theme) => theme.name}
-        getOptionValue={(theme) => theme.id}
-      />
-      <SearchSelect
-        multiple
-        required
-        label="Member sides still free in this game"
-        options={sides}
-        value={members}
-        onChange={setMembers}
-        getOptionLabel={(side) => side.name}
-        getOptionValue={(side) => side.id}
-        noOptionsText="Every country side is already playing in this game, on its own or in an alliance."
-      />
+      {showChoice ? (
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          size="small"
+          value={kind}
+          onChange={(_, next) => {
+            if (next) setKind(next)
+          }}
+          aria-label="Kind of side"
+          sx={{ '& .MuiToggleButton-root': { textTransform: 'none' } }}
+        >
+          <ToggleButton value="single">Single Side</ToggleButton>
+          <ToggleButton value="alliance">Alliance</ToggleButton>
+        </ToggleButtonGroup>
+      ) : null}
+      {single ? (
+        sides.length ? (
+          <>
+            <Typography variant="body2" color="text.secondary">Add a country that already has a standard ORBAT.</Typography>
+            <SearchSelect
+              required
+              label="Side"
+              options={sides}
+              value={sideId}
+              onChange={setSideId}
+              getOptionLabel={(side) => side.name}
+              getOptionValue={(side) => side.id}
+            />
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary">Every country side is already playing in this game.</Typography>
+        )
+      ) : (
+        <>
+          <Typography variant="body2" color="text.secondary">An alliance joins country sides that are not already playing in this game.</Typography>
+          <TextField autoFocus required label="Alliance Name" value={name} onChange={(event) => setName(event.target.value)} />
+          <TextField label="Map Colour" type="color" value={colour} onChange={(event) => setColour(event.target.value)} />
+          <IconField value={icon} onChange={setIcon} />
+          <SearchSelect
+            required
+            label="Theme"
+            options={free}
+            value={themeId}
+            onChange={setThemeId}
+            getOptionLabel={(theme) => theme.name}
+            getOptionValue={(theme) => theme.id}
+          />
+          <SearchSelect
+            multiple
+            required
+            label="Member Sides"
+            options={sides}
+            value={members}
+            onChange={setMembers}
+            getOptionLabel={(side) => side.name}
+            getOptionValue={(side) => side.id}
+            noOptionsText="Every country side is already playing in this game."
+          />
+        </>
+      )}
     </Shell>
   )
 }

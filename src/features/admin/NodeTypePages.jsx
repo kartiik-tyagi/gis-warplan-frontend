@@ -324,7 +324,7 @@ function NodeTypesList() {
             Create a node type for ORBAT nodes to use.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/node-types/new')}>
-            New node type
+            New Node Type
           </Button>
         </Box>
       ) : (
@@ -386,7 +386,7 @@ function NodeTypesList() {
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Remove node type"
+        title="Remove Node Type"
         message={deleting ? `Remove “${deleting.name}”? Nodes that already use it must be changed first.` : ''}
         confirmLabel="Remove"
         busy={busyDelete}
@@ -701,7 +701,7 @@ function NodeTypeEditor() {
       </Section>
 
       <Section
-        title="Where it can sit"
+        title="Where It Can Sit"
         description="Parent rules decide which nodes this type can be added under."
         error={Boolean(errors['properties.root'] || parentError)}
       >
@@ -725,7 +725,7 @@ function NodeTypeEditor() {
             <SearchSelect
               multiple
               size="small"
-              label="Allowed parents"
+              label="Allowed Parents"
               loading={catalogueState === 'loading'}
               options={parentOptions}
               value={parentCodes}
@@ -824,7 +824,7 @@ function NodeTypeEditor() {
       </Stack>
       <ConfirmDialog
         open={deleting}
-        title="Remove node type"
+        title="Remove Node Type"
         message="Remove this node type? This cannot be undone."
         confirmLabel="Remove"
         busy={busyDelete}
@@ -845,11 +845,11 @@ export function NodeTypesListPage() {
   const navigate = useNavigate()
   return (
     <ExerciseLayout
-      kicker="Standard data"
-      title="Node types"
+      kicker="Standard Data"
+      title="Node Types"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/node-types/new')}>
-          New node type
+          New Node Type
         </Button>
       }
     >
@@ -862,7 +862,7 @@ export function NodeTypeEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard data" title={isNew ? 'New node type' : 'Edit node type'}>
+    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Node Type' : 'Edit Node Type'}>
       <NodeTypeEditor />
     </ExerciseLayout>
   )

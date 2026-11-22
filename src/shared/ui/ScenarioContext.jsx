@@ -30,12 +30,13 @@ function Mark({ label, children }) {
   )
 }
 
-function Fact({ label, icon, children, fixed = false }) {
+function Fact({ label, icon, children, grow = false }) {
   return (
     <Box
       sx={{
-        minWidth: fixed ? 'auto' : 0,
-        flexShrink: fixed ? 0 : 1,
+        minWidth: grow ? { xs: '100%', lg: 0 } : 0,
+        flex: grow ? { xs: '1 1 100%', lg: '1 1 0' } : '0 1 auto',
+        maxWidth: '100%',
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
@@ -47,11 +48,13 @@ function Fact({ label, icon, children, fixed = false }) {
   )
 }
 
-/** Compact bar field. Autocomplete otherwise collapses to the popup icon inside a flex row. */
-function barField(width) {
+/** Bar field that fills its share of the row and shrinks with the screen. */
+function barField() {
   return {
-    width,
-    flexShrink: 0,
+    flex: '1 1 auto',
+    minWidth: 0,
+    width: 'auto',
+    maxWidth: '100%',
     '& .MuiFormControl-root, & .MuiOutlinedInput-root': { width: '100%' },
     '& .MuiOutlinedInput-root': {
       height: 32,
@@ -178,9 +181,9 @@ export function ScenarioContext() {
 
   return (
     <>
-      <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'nowrap', minWidth: 0, width: '100%' }}>
+      <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
         {session.canSelectScenario ? (
-          <Fact fixed label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
+          <Fact grow label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
             <SearchSelect
               size="small"
               hiddenLabel
@@ -195,7 +198,7 @@ export function ScenarioContext() {
               onChange={askScenario}
               getOptionLabel={(item) => `${item.name}${item.active || item.id === session.activeScenarioId ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
-              sx={barField(240)}
+              sx={barField()}
             />
             <Button size="small" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')} disabled={busy} sx={{ flexShrink: 0 }}>
               Add
@@ -209,7 +212,7 @@ export function ScenarioContext() {
           </Fact>
         )}
         {session.canSelectGame ? (
-          <Fact fixed label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
+          <Fact grow label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
             <SearchSelect
               size="small"
               hiddenLabel
@@ -225,7 +228,7 @@ export function ScenarioContext() {
               isOptionDisabled={(item) => item.open === false}
               getOptionLabel={(item) => `${item.open === false ? `${item.name} · Closed` : item.name}${item.active || item.id === session.activeGame.id ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
-              sx={barField(220)}
+              sx={barField()}
             />
             {session.activeScenarioId ? (
               <Button
@@ -247,15 +250,15 @@ export function ScenarioContext() {
           </Fact>
         )}
         {game?.dateTime ? (
-          <Fact label="Game time" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
+          <Fact label="Game Time" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
+            <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }}>
               {new Date(game.dateTime).toLocaleString()}
             </Typography>
           </Fact>
         ) : null}
         {moonLabel ? (
-          <Fact label="Moon phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ maxWidth: 180 }} title={moonLabel}>
+          <Fact label="Moon Phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
+            <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }} title={moonLabel}>
               {moonLabel}
             </Typography>
           </Fact>

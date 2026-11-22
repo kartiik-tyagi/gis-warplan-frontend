@@ -159,7 +159,7 @@ export function IconsAdminPanel() {
       <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { sm: 'flex-start' } }}>
           <TextField
-            label="Base icon folder"
+            label="Base Icon Folder"
             value={basePathDraft}
             onChange={(event) => setBasePathDraft(event.target.value)}
             disabled={!canManage || savingPath}

@@ -46,7 +46,7 @@ function ColourField({ value, onChange, allowCustom, customLabel }) {
   const options = allowCustom && value === 'custom' ? [{ id: 'custom', name: customLabel || 'Current colour' }, ...swatches] : swatches
   return (
     <SearchSelect
-      label="Map colour"
+      label="Map Colour"
       options={options}
       value={value}
       onChange={onChange}
@@ -76,7 +76,7 @@ function TeamsList() {
       setThemes((themeRows || EMPTY_LIST).map(asTheme))
     } catch (error) {
       setSides(EMPTY_LIST)
-      push(error?.message || 'Teams could not be loaded.', 'error')
+      push(error?.message || 'Sides could not be loaded.', 'error')
     }
   }, [push])
 
@@ -89,17 +89,17 @@ function TeamsList() {
     setBusyDelete(true)
     try {
       await del(`/sides/${deleting.id}`)
-      push('Team removed.', 'success')
+      push('Side removed.', 'success')
       setDeleting(null)
       await load()
     } catch (error) {
-      push(error?.message || 'The team could not be removed.', 'error')
+      push(error?.message || 'The side could not be removed.', 'error')
     } finally {
       setBusyDelete(false)
     }
   }
 
-  if (!sides) return <LoadingState label="Loading teams" />
+  if (!sides) return <LoadingState label="Loading sides" />
 
   const countries = sides.filter((side) => side.kind !== 'alliance')
   const alliances = sides.filter((side) => side.kind === 'alliance')
@@ -107,7 +107,7 @@ function TeamsList() {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
-        A team is a country side. Creating one also creates the standard ORBAT whose root is this side.
+        A side is a country. Creating one also creates the standard ORBAT whose root is this side.
       </Typography>
 
       {!countries.length ? (
@@ -123,13 +123,13 @@ function TeamsList() {
           }}
         >
           <Typography variant="h6" sx={{ mb: 1 }}>
-            No teams yet
+            No Sides Yet
           </Typography>
           <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create the first team to start a standard ORBAT.
+            Create the first side to start a standard ORBAT.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/teams/new')}>
-            New team
+            New Side
           </Button>
         </Box>
       ) : (
@@ -208,7 +208,7 @@ function TeamsList() {
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Remove team"
+        title="Remove Side"
         message={
           deleting
             ? `Remove “${deleting.name}”? This also removes its standard ORBAT when nobody is marked on it.`
@@ -257,7 +257,7 @@ function TeamEditor() {
         const side = await get(`/sides/${id}`)
         if (!live) return
         if (!side || side.kind === 'alliance') {
-          push('That team was not found.', 'error')
+          push('That side was not found.', 'error')
           navigate('/standard/teams', { replace: true })
           return
         }
@@ -270,7 +270,7 @@ function TeamEditor() {
         setReady(true)
       } catch (error) {
         if (!live) return
-        push(error?.message || 'The team could not be opened.', 'error')
+        push(error?.message || 'The side could not be opened.', 'error')
         navigate('/standard/teams', { replace: true })
       }
     })()
@@ -296,18 +296,18 @@ function TeamEditor() {
       if (isNew) {
         const created = await post('/sides', body)
         logger.info('team.created', { id: created.id, name: body.name })
-        push('Team created. Its standard ORBAT root is ready.', 'success')
+        push('Side created. Its standard ORBAT root is ready.', 'success')
         await refreshSession().catch(() => {})
         navigate(`/standard/teams/${created.id}`, { replace: true })
       } else {
         await put(`/sides/${id}`, body)
         logger.info('team.updated', { id })
-        push('Team saved.', 'success')
+        push('Side saved.', 'success')
         await refreshSession().catch(() => {})
       }
     } catch (error) {
-      setMessage(error?.message || 'The team could not be saved.')
-      push(error?.message || 'The team could not be saved.', 'error')
+      setMessage(error?.message || 'The side could not be saved.')
+      push(error?.message || 'The side could not be saved.', 'error')
     } finally {
       setBusy(false)
     }
@@ -317,18 +317,18 @@ function TeamEditor() {
     setBusyDelete(true)
     try {
       await del(`/sides/${id}`)
-      push('Team removed.', 'success')
+      push('Side removed.', 'success')
       await refreshSession().catch(() => {})
       navigate('/standard/teams')
     } catch (error) {
-      push(error?.message || 'The team could not be removed.', 'error')
+      push(error?.message || 'The side could not be removed.', 'error')
       setDeleting(false)
     } finally {
       setBusyDelete(false)
     }
   }
 
-  if (!ready) return <LoadingState label="Opening team" />
+  if (!ready) return <LoadingState label="Opening side" />
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
@@ -358,7 +358,7 @@ function TeamEditor() {
           disabled={busy || busyDelete || !name.trim() || !themeId}
           onClick={save}
         >
-          {busy ? 'Saving…' : isNew ? 'Create team' : 'Save team'}
+          {busy ? 'Saving…' : isNew ? 'Create Side' : 'Save Side'}
         </Button>
         {!isNew ? (
           <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || busyDelete} onClick={() => setDeleting(true)}>
@@ -368,8 +368,8 @@ function TeamEditor() {
       </Stack>
       <ConfirmDialog
         open={deleting}
-        title="Remove team"
-        message="Remove this team? This also removes its standard ORBAT when nobody is marked on it."
+        title="Remove Side"
+        message="Remove this side? This also removes its standard ORBAT when nobody is marked on it."
         confirmLabel="Remove"
         busy={busyDelete}
         onClose={() => {
@@ -385,11 +385,11 @@ export function TeamsListPage() {
   const navigate = useNavigate()
   return (
     <ExerciseLayout
-      kicker="Standard data"
-      title="Teams"
+      kicker="Standard Data"
+      title="Sides"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/teams/new')}>
-          New team
+          New Side
         </Button>
       }
     >
@@ -402,7 +402,7 @@ export function TeamEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard data" title={isNew ? 'New team' : 'Edit team'}>
+    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Side' : 'Edit Side'}>
       <TeamEditor />
     </ExerciseLayout>
   )

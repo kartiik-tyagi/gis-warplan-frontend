@@ -24,7 +24,7 @@ function defaultValue(option) {
  * One searchable dropdown for the application.
  * Typing filters the allowed list. A value can be chosen only from that list.
  * `multiple` keeps the same field and shows the chosen items as chips.
- * `clearLabel` adds an explicit empty choice such as "None" or "No team".
+ * `clearLabel` adds an explicit empty choice such as "None" or "No side".
  */
 export function SearchSelect({
   label,
@@ -129,7 +129,21 @@ export function SearchSelect({
           </li>
         )
       }}
-      sx={sx}
+      sx={[
+        {
+          display: 'flex',
+          width: fullWidth ? '100%' : 'auto',
+          minWidth: 0,
+          '& .MuiFormControl-root': { width: '100%', minWidth: 0 },
+          '& .MuiOutlinedInput-root': { width: '100%', minWidth: 0 },
+          '& .MuiAutocomplete-input': {
+            minWidth: '0 !important',
+            flex: '1 1 auto',
+            textOverflow: 'ellipsis',
+          },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       slotProps={{
         popper: { sx: { zIndex: (theme) => theme.zIndex.modal + 2 } },
       }}
@@ -141,7 +155,7 @@ export function SearchSelect({
           required={required}
           error={error}
           helperText={helperText}
-          placeholder={placeholder || (disabled ? '' : 'Search')}
+          placeholder={placeholder ?? ''}
           size={size}
           slotProps={{
             ...params.slotProps,

@@ -1,11 +1,31 @@
 import { useMemo, useState } from 'react'
-import { Box, Chip, IconButton, Typography } from '@mui/material'
+import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { IconPreview } from '../../shared/ui/IconPicker'
-import { canReparent, indexNodes, visibleOrder } from './orbatDoc'
+import { canReparent, indexNodes, pathTo, visibleOrder } from './orbatDoc'
 
 const INDENT = 18
+
+function NodeHover({ node, ctx }) {
+  const type = ctx.nodeTypes.get(node.nodeTypeId)
+  const side = ctx.sidesById?.get(node.homeSideId) || ctx.sidesById?.get(Number(node.homeSideId))
+  const path = pathTo(ctx.nodes, node.id).map((item) => item.name).join(' / ')
+  const marked = ctx.userByNode.get(node.id)
+  const user = marked && typeof marked === 'object' ? marked.name : marked
+  const kids = (ctx.children.get(node.id) || []).length
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, py: 0.25 }}>
+      <Typography variant="caption" sx={{ fontWeight: 650 }}>{node.name}</Typography>
+      {type ? <Typography variant="caption">Node Type · {type.name}</Typography> : null}
+      <Typography variant="caption">Home Side · {side?.name || '—'}</Typography>
+      <Typography variant="caption">Position · {path}</Typography>
+      <Typography variant="caption">{kids} {kids === 1 ? 'child' : 'children'}</Typography>
+      {user ? <Typography variant="caption">User · {user}</Typography> : null}
+      {node.participationHeld ? <Typography variant="caption">User is off for this game</Typography> : null}
+    </Box>
+  )
+}
 
 function TreeRow({ node, depth, ctx }) {
   const kids = ctx.children.get(node.id) || []
@@ -19,6 +39,12 @@ function TreeRow({ node, depth, ctx }) {
 
   return (
     <Box role="none">
+      <Tooltip
+        placement="left-start"
+        enterDelay={400}
+        disableHoverListener={Boolean(ctx.dragId)}
+        title={<NodeHover node={node} ctx={ctx} />}
+      >
       <Box
         id={`orbat-node-${node.id}`}
         role="treeitem"
@@ -85,12 +111,13 @@ function TreeRow({ node, depth, ctx }) {
           {open ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
         </IconButton>
         {(node.iconPath || type?.iconPath) ? <IconPreview path={node.iconPath || type.iconPath} size={20} theme={ctx.iconTheme} /> : <Box sx={{ width: 20, flexShrink: 0 }} aria-hidden />}
-        <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }} title={type ? `${node.name} (${type.name})` : node.name}>
+        <Typography variant="body2" noWrap sx={{ flex: 1, minWidth: 0 }}>
           {node.name}
         </Typography>
-        {user ? <Chip size="small" label={user} variant="outlined" color="primary" sx={{ height: 20, maxWidth: 110 }} /> : null}
+        {user ? <Chip size="small" label={user} variant="outlined" color="primary" sx={{ height: 20, maxWidth: '40%' }} /> : null}
         {kids.length ? <Typography variant="caption" color="text.secondary">{kids.length}</Typography> : null}
       </Box>
+      </Tooltip>
       {kids.length && open ? (
         <Box role="group">
           {kids.map((child) => (
@@ -106,7 +133,7 @@ function TreeRow({ node, depth, ctx }) {
  * Hierarchical ORBAT tree (no extra dependency): expand/collapse, select, context menu, drag to reparent,
  * keyboard (arrows, Enter/F2 rename, Delete, Insert/+ add child, Shift+F10 menu).
  */
-export function OrbatTree({ nodes, nodeTypes, selectedId, onSelect, expanded, setExpanded, editable, onContextMenu, onMove, onAction, userByNode, iconTheme }) {
+export function OrbatTree({ nodes, nodeTypes, sidesById, selectedId, onSelect, expanded, setExpanded, editable, onContextMenu, onMove, onAction, userByNode, iconTheme }) {
   const { children, roots, byId } = useMemo(() => indexNodes(nodes), [nodes])
   const [dragId, setDragId] = useState(null)
   const [overId, setOverId] = useState(null)
@@ -196,6 +223,7 @@ export function OrbatTree({ nodes, nodeTypes, selectedId, onSelect, expanded, se
   const ctx = {
     nodes,
     nodeTypes,
+    sidesById,
     children,
     expanded,
     selectedId,

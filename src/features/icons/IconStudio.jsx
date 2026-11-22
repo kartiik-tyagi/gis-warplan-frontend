@@ -220,7 +220,7 @@ function PaintField({ label, value, onChange }) {
       <SearchSelect
         size="small"
         label={label}
-        options={[{ id: 'theme', name: 'Theme colour' }, { id: 'fixed', name: 'Fixed colour' }, { id: 'none', name: 'None' }]}
+        options={[{ id: 'theme', name: 'Theme Colour' }, { id: 'fixed', name: 'Fixed Colour' }, { id: 'none', name: 'None' }]}
         value={kind}
         onChange={(next) => {
           if (next === 'none') onChange({ mode: 'none' })
@@ -234,7 +234,7 @@ function PaintField({ label, value, onChange }) {
         <>
           <SearchSelect
             size="small"
-            label="Which theme colour"
+            label="Which Theme Colour"
             options={ICON_TOKENS}
             value={token}
             onChange={(id) => onChange({ mode: 'token', token: id })}
@@ -800,7 +800,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                 <PaintField label="Stroke" value={stroke} onChange={(value) => changePaint('stroke', value)} />
                 <TextField
                   size="small"
-                  label="Stroke width"
+                  label="Stroke Width"
                   type="number"
                   value={strokeWidth ?? 1.5}
                   onChange={(event) => changePaint('strokeWidth', Math.max(0, Math.min(100, Number(event.target.value) || 0)))}
@@ -828,7 +828,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                     />
                     <TextField
                       size="small"
-                      label="Text size"
+                      label="Text Size"
                       type="number"
                       value={selected?.type === 'text' ? selected.fontSize : paint.fontSize}
                       onChange={(event) => {
@@ -849,7 +849,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                 <Stack direction="row" spacing={1}>
                   <TextField
                     size="small"
-                    label="Canvas width"
+                    label="Canvas Width"
                     type="number"
                     value={viewBox.w}
                     onChange={(event) => {
@@ -860,7 +860,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                   />
                   <TextField
                     size="small"
-                    label="Canvas height"
+                    label="Canvas Height"
                     type="number"
                     value={viewBox.h}
                     onChange={(event) => {
@@ -879,7 +879,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
         {mode === 'create' ? (
           <TextField
             size="small"
-            label="File name"
+            label="File Name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             error={Boolean(name) && !nameOk}

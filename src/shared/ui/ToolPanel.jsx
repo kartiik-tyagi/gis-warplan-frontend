@@ -3,10 +3,9 @@ import CloseIcon from '@mui/icons-material/Close'
 import { PanelBody } from './workbench/Panels'
 
 const TITLES = {
-  filters: 'Map filters',
+  filters: 'Map Filters',
   orbat: 'ORBAT',
-  'map-admin': 'Map catalog',
-  'scenario-admin': 'Scenario management',
+  'scenario-admin': 'Scenario Management',
   'game-admin': 'Game',
 }
 
@@ -25,7 +24,7 @@ export function ToolPanel({ panel, onClose }) {
         color: 'text.primary',
       }}
     >
-      {panel === 'filters' || panel === 'map-admin' ? null : (
+      {panel === 'filters' ? null : (
         <>
           <Box sx={{ minHeight: 48, px: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="subtitle2" sx={{ flex: 1 }}>
@@ -38,7 +37,7 @@ export function ToolPanel({ panel, onClose }) {
           <Divider />
         </>
       )}
-      {(panel === 'filters' || panel === 'map-admin') ? (
+      {panel === 'filters' ? (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1, pt: 0.75, pb: 0 }}>
           <IconButton aria-label="Close panel" onClick={onClose} size="small">
             <CloseIcon fontSize="small" />
@@ -52,8 +51,8 @@ export function ToolPanel({ panel, onClose }) {
           py: 1.5,
           flex: 1,
           minHeight: 0,
-          pt: panel === 'filters' || panel === 'map-admin' ? 0.5 : 1.5,
-          ...(panel === 'filters' || panel === 'map-admin'
+          pt: panel === 'filters' ? 0.5 : 1.5,
+          ...(panel === 'filters'
             ? {
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',

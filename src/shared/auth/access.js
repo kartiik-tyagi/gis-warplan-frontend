@@ -39,10 +39,7 @@ function item(id, label, icon) {
 export function navigationForFunctionalities(functionalities) {
   const groups = []
   if (hasFunctionality(functionalities, FunctionalityCodes.MAP_VIEW)) {
-    const mapItems = [item('filters', 'Map filters', 'layers'), item('extent', 'Home extent', 'extent')]
-    if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_MAP)) {
-      mapItems.push(item('map-admin', 'Map catalog', 'settings'))
-    }
+    const mapItems = [item('filters', 'Map Filters', 'layers'), item('extent', 'Home Extent', 'extent')]
     groups.push({ id: 'map', label: 'Map', items: mapItems })
   }
 
@@ -53,20 +50,23 @@ export function navigationForFunctionalities(functionalities) {
 export function sectionsForFunctionalities(functionalities) {
   const sections = []
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_SCENARIO)) {
-    sections.push({ id: 'scenario', kicker: 'Exercise', label: 'Scenario management', icon: 'flag' })
+    sections.push({ id: 'scenario', kicker: 'Exercise', label: 'Scenario Management', icon: 'flag' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_GAME)) {
     sections.push({ id: 'game', kicker: 'Exercise', label: 'Game Management', icon: 'control' })
   }
+  if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_MAP)) {
+    sections.push({ id: 'map-catalog', kicker: 'Map', label: 'Map Catalog', icon: 'settings' })
+  }
   if (canOpenOrbat(functionalities)) sections.push({ id: 'orbat', kicker: 'ORBAT', label: 'ORBAT', icon: 'orbat' })
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_SIDES)) {
-    sections.push({ id: 'teams', kicker: 'Standard data', label: 'Teams', icon: 'teams' })
+    sections.push({ id: 'teams', kicker: 'Standard Data', label: 'Sides', icon: 'teams' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_NODE_TYPES)) {
-    sections.push({ id: 'node-types', kicker: 'Standard data', label: 'Node types', icon: 'table' })
+    sections.push({ id: 'node-types', kicker: 'Standard Data', label: 'Node Types', icon: 'table' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_THEMES)) {
-    sections.push({ id: 'themes', kicker: 'Standard data', label: 'Themes', icon: 'themes' })
+    sections.push({ id: 'themes', kicker: 'Standard Data', label: 'Themes', icon: 'themes' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_USERS)) {
     sections.push({ id: 'users', kicker: 'Access', label: 'Users', icon: 'users' })
@@ -87,6 +87,7 @@ export function sectionsForFunctionalities(functionalities) {
 export const SECTION_ROUTE = Object.freeze({
   scenario: '/exercise/scenarios',
   game: '/exercise/games',
+  'map-catalog': '/map/catalog',
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
@@ -97,11 +98,12 @@ export const SECTION_ROUTE = Object.freeze({
 })
 
 const SECTION_TITLE = Object.freeze({
-  scenario: 'Scenario management',
-  game: 'Game management',
-  teams: 'Teams',
+  scenario: 'Scenario Management',
+  game: 'Game Management',
+  'map-catalog': 'Map Catalog',
+  teams: 'Sides',
   themes: 'Themes',
-  'node-types': 'Node types',
+  'node-types': 'Node Types',
   audit: 'Audit',
   users: 'Users',
   roles: 'Roles',

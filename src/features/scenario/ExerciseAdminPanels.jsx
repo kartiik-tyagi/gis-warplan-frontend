@@ -281,7 +281,7 @@ export function ScenarioAdminPanel() {
           <>
             <TextField
               size="small"
-              label="General idea"
+              label="General Idea"
               multiline
               minRows={2}
               value={form.generalIdea}
@@ -291,7 +291,7 @@ export function ScenarioAdminPanel() {
             />
             <TextField
               size="small"
-              label="Opening narrative"
+              label="Opening Narrative"
               multiline
               minRows={3}
               value={form.openingNarrative}
@@ -301,7 +301,7 @@ export function ScenarioAdminPanel() {
             />
             <TextField
               size="small"
-              label="Special idea"
+              label="Special Idea"
               multiline
               minRows={2}
               value={form.specialIdea}
@@ -376,8 +376,8 @@ export function GameAdminPanel() {
           helperText={!scenarios.length ? 'Create a scenario first' : undefined}
           getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
           getOptionValue={(item) => item.id}
-          sx={{ minWidth: { xs: '100%', sm: 220 } }}
           fullWidth={false}
+          sx={{ flex: { xs: '1 1 100%', sm: '1 1 14rem' }, minWidth: { xs: '100%', sm: '14rem' }, maxWidth: '100%', width: 'auto' }}
         />
       </Stack>
       <ExerciseCrud
@@ -404,7 +404,7 @@ export function GameAdminPanel() {
             <TextField
               size="small"
               type="datetime-local"
-              label="Date and time"
+              label="Date and Time"
               InputLabelProps={{ shrink: true }}
               value={form.dateTime ? toLocalInput(form.dateTime) : form.dateTime}
               onChange={(event) => change('dateTime', event.target.value)}
@@ -437,7 +437,7 @@ export function GameAdminPanel() {
             </Stack>
             <SearchSelect
               size="small"
-              label="Moon phase"
+              label="Moon Phase"
               clearLabel="None"
               options={phases}
               value={form.moonphases}

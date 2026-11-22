@@ -30,7 +30,7 @@ const cardSx = {
   bgcolor: 'background.paper',
 }
 
-function ThemeField({ themes, value, onChange, holderKind, holderId, label = 'Theme', allowEmpty = false, emptyLabel = 'Inherit the team theme' }) {
+function ThemeField({ themes, value, onChange, holderKind, holderId, label = 'Theme', allowEmpty = false, emptyLabel = 'Inherit the side theme' }) {
   const options = selectableThemes(themes, holderKind, holderId)
   return (
     <SearchSelect
@@ -101,7 +101,7 @@ function UsersList() {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
-        Accounts can be created here, or from an ORBAT node with Mark as user. A user on a team inherits that team&apos;s theme until an override is allotted.
+        Accounts can be created here, or from an ORBAT node with Mark as user. A user on a side inherits that side&apos;s theme until an override is allotted.
       </Typography>
       {!rows.length ? (
         <Box sx={{ py: 8, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
@@ -119,12 +119,12 @@ function UsersList() {
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
                   <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>{user.name}</Typography>
                   <Chip size="small" label={statusOf(user)} color={user.active ? 'success' : 'default'} variant={user.active ? 'filled' : 'outlined'} />
-                  {user.name === 'APEX' ? <Chip size="small" variant="outlined" label="Login theme" /> : null}
+                  {user.name === 'APEX' ? <Chip size="small" variant="outlined" label="Login Theme" /> : null}
                 </Stack>
                 <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                   {names.length ? names.join(', ') : 'No roles'}
                   {' · '}
-                  {home ? `Team ${home}` : 'No team'}
+                  {home ? `Side ${home}` : 'No side'}
                   {' · '}
                   {themeName(user.displayThemeId) || 'No theme'}
                   {user.standardNodeId ? ' · From an ORBAT node' : ''}
@@ -196,7 +196,7 @@ function UserEditor() {
   const saveNew = async () => {
     if (!name.trim() || password.length < 3 || !roleIds.length) return
     if (!sideId && !themeId) {
-      push('Choose a team, or allot a theme when the user has no team.', 'warning')
+      push('Choose a side, or allot a theme when the user has no side.', 'warning')
       return
     }
     setBusy(true)
@@ -289,7 +289,7 @@ function UserEditor() {
           <TextField label="Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
           <TextField label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="At least 3 characters" fullWidth required />
           <SearchSelect multiple required label="Roles" options={roles} value={roleIds} onChange={setRoleIds} getOptionLabel={(role) => role.name} getOptionValue={(role) => role.id} />
-          <SearchSelect label="Team" clearLabel="No team" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
+          <SearchSelect label="Side" clearLabel="No Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
           <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" allowEmpty={Boolean(sideId)} />
         </>
       ) : apex ? (
@@ -297,14 +297,14 @@ function UserEditor() {
       ) : (
         <>
           <Typography variant="body2" color="text.secondary">
-            {home ? `Team ${home.name}. ` : 'No team. '}
+            {home ? `Side ${home.name}. ` : 'No side. '}
             {user.standardNodeId ? 'Created from an ORBAT node. Active state follows the game.' : statusOf(user) + '.'}
           </Typography>
           <SearchSelect multiple label="Roles" options={roles} value={roleIds} onChange={setRoleIds} getOptionLabel={(role) => role.name} getOptionValue={(role) => role.id} />
-          <SearchSelect label="Administers team" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
-          <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" holderId={user.id} allowEmpty={Boolean(home)} label="Override theme" emptyLabel="Inherit the team theme" />
+          <SearchSelect label="Administers Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
+          <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" holderId={user.id} allowEmpty={Boolean(home)} label="Override Theme" emptyLabel="Inherit the side theme" />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <TextField type="password" label="New password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="Leave blank to keep the current password" fullWidth />
+            <TextField type="password" label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="Leave blank to keep the current password" fullWidth />
             <Button variant="outlined" disabled={busy || password.length < 3} onClick={setPasswordOnly} sx={{ flexShrink: 0, alignSelf: { sm: 'flex-start' }, mt: { sm: 1 } }}>
               Set password
             </Button>
@@ -320,7 +320,7 @@ function UserEditor() {
             disabled={busy || (isNew && (!name.trim() || password.length < 3 || !roleIds.length))}
             onClick={isNew ? saveNew : saveExisting}
           >
-            {busy ? 'Saving…' : isNew ? 'Create user' : 'Save user'}
+            {busy ? 'Saving…' : isNew ? 'Create User' : 'Save User'}
           </Button>
         )}
         {!isNew && user && !apex && !user.standardNodeId ? (
@@ -496,8 +496,8 @@ function RoleEditor() {
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-      <TextField label="Role code" value={code} onChange={(event) => setCode(event.target.value)} helperText={isNew ? 'Letters, digits, and underscores. It cannot be changed later.' : 'The code cannot be changed.'} disabled={!isNew} fullWidth required />
-      <TextField label="Role name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
+      <TextField label="Role Code" value={code} onChange={(event) => setCode(event.target.value)} helperText={isNew ? 'Letters, digits, and underscores. It cannot be changed later.' : 'The code cannot be changed.'} disabled={!isNew} fullWidth required />
+      <TextField label="Role Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
       <SearchSelect
         multiple
         label="Features"
@@ -511,7 +511,7 @@ function RoleEditor() {
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button onClick={() => navigate('/access/roles')} disabled={busy}>Back to list</Button>
         <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || !name.trim() || (isNew && !code.trim())} onClick={isNew ? create : save}>
-          {busy ? 'Saving…' : isNew ? 'Create role' : 'Save role'}
+          {busy ? 'Saving…' : isNew ? 'Create Role' : 'Save Role'}
         </Button>
         {!isNew && role && !role.standard ? (
           <Button color="error" variant="outlined" startIcon={<DeleteOutlinedIcon />} disabled={busy} onClick={() => setRemoving(true)}>
@@ -521,7 +521,7 @@ function RoleEditor() {
       </Stack>
       <ConfirmDialog
         open={removing}
-        title="Remove role"
+        title="Remove Role"
         message="Remove this role? Accounts that still hold it keep the assignment until someone edits them."
         confirmLabel="Remove"
         busy={busy}
@@ -542,7 +542,7 @@ export function UsersListPage() {
       title="Users"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/users/new')}>
-          New user
+          New User
         </Button>
       }
     >
@@ -555,7 +555,7 @@ export function UserEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Access" title={isNew ? 'New user' : 'Edit user'}>
+    <ExerciseLayout kicker="Access" title={isNew ? 'New User' : 'Edit User'}>
       <UserEditor />
     </ExerciseLayout>
   )
@@ -569,7 +569,7 @@ export function RolesListPage() {
       title="Roles"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/roles/new')}>
-          New role
+          New Role
         </Button>
       }
     >
@@ -582,7 +582,7 @@ export function RoleEditorPage() {
   const { id } = useParams()
   const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Access" title={isNew ? 'New role' : 'Edit role'}>
+    <ExerciseLayout kicker="Access" title={isNew ? 'New Role' : 'Edit Role'}>
       <RoleEditor />
     </ExerciseLayout>
   )

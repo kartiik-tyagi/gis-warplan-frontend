@@ -2,7 +2,6 @@ import { Typography } from '@mui/material'
 import { useSessionStore } from '../../../features/session/useSessionStore'
 import { canOpenOrbat } from '../../auth/access'
 import OrbatPanel from '../../../features/orbat/OrbatPanel'
-import { MapAdminPanel } from '../../../features/map/MapAdminPanel'
 import { ScenarioAdminPanel, GameAdminPanel } from '../../../features/scenario/ExerciseAdminPanels'
 import { FilterList } from '../FilterList'
 
@@ -17,7 +16,6 @@ function Caption({ children }) {
 export function PanelBody({ panel }) {
   if (panel === 'filters') return <FilterList />
   if (panel === 'orbat') return <OrbatGate />
-  if (panel === 'map-admin') return <MapAdminPanel />
   if (panel === 'scenario-admin') return <ScenarioAdminPanel />
   if (panel === 'game-admin') return <GameAdminPanel />
   return <Caption>This panel is not available.</Caption>

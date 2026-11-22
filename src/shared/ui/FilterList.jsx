@@ -82,7 +82,7 @@ export function FilterList() {
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 650, lineHeight: 1.3 }}>
-            Map filters
+            Map Filters
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
             Show or hide layers on the picture. Adjust opacity for layers that are on.
