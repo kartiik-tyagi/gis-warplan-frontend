@@ -115,22 +115,23 @@ export function bounds(shape) {
 
 export function hitShape(shape, point, tolerance) {
   if (!shape) return false
+  const local = unrotatePoint(shape, point)
   if (shape.type === 'line') {
-    return distanceToSegment(point, { x: shape.x1, y: shape.y1 }, { x: shape.x2, y: shape.y2 }) <= tolerance
+    return distanceToSegment(local, { x: shape.x1, y: shape.y1 }, { x: shape.x2, y: shape.y2 }) <= tolerance
   }
-  if (shape.type === 'polyline') return nearChain(shape.points, point, tolerance, false)
-  if (shape.type === 'polygon') return pointInPolygon(point, shape.points) || nearChain(shape.points, point, tolerance, true)
+  if (shape.type === 'polyline') return nearChain(shape.points, local, tolerance, false)
+  if (shape.type === 'polygon') return pointInPolygon(local, shape.points) || nearChain(shape.points, local, tolerance, true)
   if (shape.type === 'ellipse' || shape.type === 'circle') {
     const rx = (shape.type === 'circle' ? shape.r : shape.rx) + tolerance
     const ry = (shape.type === 'circle' ? shape.r : shape.ry) + tolerance
     if (rx <= 0 || ry <= 0) return false
-    const nx = (point.x - shape.cx) / rx
-    const ny = (point.y - shape.cy) / ry
+    const nx = (local.x - shape.cx) / rx
+    const ny = (local.y - shape.cy) / ry
     return nx * nx + ny * ny <= 1
   }
   const box = bounds(shape)
-  return point.x >= box.x - tolerance && point.x <= box.x + box.w + tolerance
-    && point.y >= box.y - tolerance && point.y <= box.y + box.h + tolerance
+  return local.x >= box.x - tolerance && local.x <= box.x + box.w + tolerance
+    && local.y >= box.y - tolerance && local.y <= box.y + box.h + tolerance
 }
 
 export function translateShape(shape, dx, dy) {
@@ -184,6 +185,53 @@ export function applyHandle(shape, kind, point) {
   return shape
 }
 
+export function centerOf(shape) {
+  const box = bounds(shape)
+  return { x: box.x + box.w / 2, y: box.y + box.h / 2 }
+}
+
+export function dashArray(dash, strokeWidth) {
+  const width = Number(strokeWidth) || 1
+  if (dash === 'dashed') return `${coord(width * 2.4)} ${coord(width * 1.4)}`
+  if (dash === 'dotted') return `${coord(Math.max(0.15, width * 0.35))} ${coord(width * 1.5)}`
+  return ''
+}
+
+function transformAttr(shape) {
+  const angle = Number(shape?.rotation) || 0
+  if (angle) {
+    const center = centerOf(shape)
+    return ` transform="rotate(${coord(angle)} ${coord(center.x)} ${coord(center.y)})"`
+  }
+  return shape?.transform ? ` transform="${escapeAttr(shape.transform)}"` : ''
+}
+
+function rotationOf(transform) {
+  if (!transform) return null
+  const match = /^\s*rotate\(\s*(-?(?:\d+\.?\d*|\.\d+))\s+(-?(?:\d+\.?\d*|\.\d+))\s+(-?(?:\d+\.?\d*|\.\d+))\s*\)\s*$/i.exec(transform)
+  if (!match) return null
+  return { angle: Number(match[1]) }
+}
+
+function dashKind(value) {
+  const parts = String(value || '').trim().split(/[\s,]+/).map(Number).filter((part) => Number.isFinite(part))
+  if (parts.length >= 2 && parts[0] <= parts[1] * 0.6) return 'dotted'
+  return 'dashed'
+}
+
+function unrotatePoint(shape, point) {
+  const angle = Number(shape?.rotation) || 0
+  if (!angle) return point
+  const center = centerOf(shape)
+  const rad = (-angle * Math.PI) / 180
+  const dx = point.x - center.x
+  const dy = point.y - center.y
+  return {
+    x: center.x + dx * Math.cos(rad) - dy * Math.sin(rad),
+    y: center.y + dx * Math.sin(rad) + dy * Math.cos(rad),
+  }
+}
+
 function serializeShape(shape) {
   const paint = `${paintAttr('fill', 'data-wp-fill', shape.fill, true)}${paintAttr('stroke', 'data-wp-stroke', shape.stroke, false)}`
   const stroked = shape.stroke && shape.stroke.mode !== 'none'
@@ -191,8 +239,10 @@ function serializeShape(shape) {
     ? ` stroke-width="${num(shape.strokeWidth || 1, 0, 1000)}"${shape.lineCap ? ` stroke-linecap="${shape.lineCap}"` : ''}${shape.lineJoin ? ` stroke-linejoin="${shape.lineJoin}"` : ''}`
     : ''
   const opacity = shape.opacity != null && shape.opacity < 1 ? ` opacity="${num(shape.opacity, 0, 1)}"` : ''
-  const transform = shape.transform ? ` transform="${escapeAttr(shape.transform)}"` : ''
-  const common = `${paint}${strokeExtra}${opacity}${transform}`
+  const transform = transformAttr(shape)
+  const dash = dashArray(shape.dash, shape.strokeWidth)
+  const dashAttr = dash ? ` stroke-dasharray="${dash}"` : ''
+  const common = `${paint}${strokeExtra}${dashAttr}${opacity}${transform}`
   switch (shape.type) {
     case 'rect': {
       const width = Number(shape.width)
@@ -219,7 +269,7 @@ function serializeShape(shape) {
     }
     case 'path':
       if (!shape.d) return ''
-      return `<path d="${escapeAttr(shape.d)}"${common}/>`
+      return `<path d="${escapeAttr(shape.d)}"${shape.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : ''}${common}/>`
     case 'text':
       return `<text x="${coord(shape.x)}" y="${coord(shape.y)}" font-size="${num(shape.fontSize || 4, 0.5, 500)}" font-family="Roboto, sans-serif" text-anchor="${shape.textAnchor || 'middle'}"${common}>${escapeText(String(shape.text || '').slice(0, 200))}</text>`
     default:
@@ -277,7 +327,10 @@ function shapeFrom(element, inherited) {
     lineJoin: lineJoin(element.getAttribute('stroke-linejoin')),
     transform: transform || undefined,
   }
-  if (element.getAttribute('stroke-dasharray')) paint.lossy = true
+  if (element.getAttribute('stroke-dasharray') && element.getAttribute('stroke-dasharray') !== 'none') {
+    base.dash = dashKind(element.getAttribute('stroke-dasharray'))
+  }
+  const rotation = rotationOf(transform)
   let shape = null
   if (name === 'rect') {
     shape = { ...base, type: 'rect', x: numAttr(element, 'x'), y: numAttr(element, 'y'), width: numAttr(element, 'width'), height: numAttr(element, 'height'), rx: optionalNum(element, 'rx'), ry: optionalNum(element, 'ry') }
@@ -294,7 +347,7 @@ function shapeFrom(element, inherited) {
   } else if (name === 'path') {
     const d = element.getAttribute('d') || ''
     if (!d || d.length > 8000 || /[<>"]/.test(d)) return null
-    shape = { ...base, type: 'path', d: d.trim() }
+    shape = { ...base, type: 'path', d: d.trim(), fillRule: element.getAttribute('fill-rule') === 'evenodd' ? 'evenodd' : undefined }
   } else if (name === 'text') {
     const text = textOf(element)
     if (text.lossy) paint.lossy = true
@@ -309,6 +362,10 @@ function shapeFrom(element, inherited) {
     }
   }
   if (!shape) return null
+  if (rotation != null) {
+    shape.rotation = rotation.angle
+    shape.transform = undefined
+  }
   return { shape, lossy: paint.lossy }
 }
 

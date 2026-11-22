@@ -25,13 +25,24 @@ import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory'
 import TitleIcon from '@mui/icons-material/Title'
 import UndoIcon from '@mui/icons-material/Undo'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
-import { drawIcon, reviseIcon } from '../../shared/api/assets'
+import RotateLeftIcon from '@mui/icons-material/RotateLeft'
+import RotateRightIcon from '@mui/icons-material/RotateRight'
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill'
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank'
+import BorderOuterIcon from '@mui/icons-material/BorderOuter'
+import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule'
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import GrainIcon from '@mui/icons-material/Grain'
+import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined'
+import { drawIcon } from '../../shared/api/assets'
 import { httpText } from '../../shared/api/http'
 import { ICON_TOKENS, iconCssVars, tokenColor } from '../../shared/icons/iconTheme'
 import {
   applyHandle,
   bounds,
+  centerOf,
   cssPaint,
+  dashArray,
   handles,
   hitShape,
   newId,
@@ -52,6 +63,7 @@ const TOOLS = [
   { id: 'ellipse', label: 'Ellipse', Icon: RadioButtonUncheckedIcon },
   { id: 'polygon', label: 'Polygon', Icon: ChangeHistoryIcon },
   { id: 'text', label: 'Text', Icon: TitleIcon },
+  { id: 'eraser', label: 'Eraser', Icon: CleaningServicesOutlinedIcon },
 ]
 
 const TOOL_HELP = {
@@ -62,6 +74,7 @@ const TOOL_HELP = {
   ellipse: 'Press and drag. Hold Shift for a circle.',
   polygon: 'Click each corner, then finish the shape.',
   text: 'Click to place text, then edit the wording.',
+  eraser: 'Drag across the drawing to rub it out.',
 }
 
 const DEFAULT_PAINT = {
@@ -71,9 +84,19 @@ const DEFAULT_PAINT = {
   opacity: 1,
   fontSize: 4,
   wording: 'Text',
+  dash: 'solid',
+  corner: 0,
 }
 
 const DEFAULT_BOX = { x: 0, y: 0, w: 24, h: 24 }
+
+function lookOf(fill, stroke) {
+  const filled = fill && fill.mode !== 'none'
+  const stroked = stroke && stroke.mode !== 'none'
+  if (filled && stroked) return 'both'
+  if (!filled && stroked) return 'outline'
+  return 'filled'
+}
 
 function fileNameFrom(input) {
   const stem = String(input || '').trim().replace(/\.svg$/i, '')
@@ -88,19 +111,21 @@ function appearance(paint, kind) {
   const opacity = Number(paint.opacity)
   const strokeWidth = Number(paint.strokeWidth) || 1.5
   const safeOpacity = Number.isFinite(opacity) ? opacity : 1
+  const dash = paint.dash && paint.dash !== 'solid' ? paint.dash : undefined
   if (kind === 'stroke') {
     const stroke = paint.stroke?.mode !== 'none'
       ? paint.stroke
       : paint.fill?.mode !== 'none'
         ? paint.fill
         : { mode: 'token', token: 'primary' }
-    return { fill: { mode: 'none' }, stroke, strokeWidth, opacity: safeOpacity, lineCap: 'round', lineJoin: 'round' }
+    return { fill: { mode: 'none' }, stroke, strokeWidth, opacity: safeOpacity, dash, lineCap: 'round', lineJoin: 'round' }
   }
   return {
     fill: paint.fill || { mode: 'token', token: 'primary' },
     stroke: paint.stroke || { mode: 'none' },
     strokeWidth,
     opacity: safeOpacity,
+    dash,
   }
 }
 
@@ -119,7 +144,18 @@ function rectBetween(origin, point, shift, paint) {
   const width = Math.abs(end.x - origin.x)
   const height = Math.abs(end.y - origin.y)
   if (width < 0.4 || height < 0.4) return null
-  return { id: 'draft', type: 'rect', x, y, width, height, ...appearance(paint, 'fill') }
+  const corner = Math.max(0, Math.min(Math.min(width, height) / 2, Number(paint.corner) || 0))
+  return {
+    id: 'draft',
+    type: 'rect',
+    x,
+    y,
+    width,
+    height,
+    rx: corner || undefined,
+    ry: corner || undefined,
+    ...appearance(paint, 'fill'),
+  }
 }
 
 function ellipseBetween(origin, point, shift, paint) {
@@ -136,6 +172,189 @@ function ellipseBetween(origin, point, shift, paint) {
     ry,
     ...appearance(paint, 'fill'),
   }
+}
+
+function eraserRadius(viewBox) {
+  return Math.max(0.7, Math.max(viewBox.w, viewBox.h) / 14)
+}
+
+function pointDistance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y)
+}
+
+function insideEraser(point, center, radius) {
+  return pointDistance(point, center) <= radius
+}
+
+function roundCoord(value) {
+  return Math.round(value * 10) / 10
+}
+
+function circleHole(cx, cy, radius) {
+  const k = radius * 0.5522847498
+  const n = roundCoord
+  return `M ${n(cx - radius)} ${n(cy)} C ${n(cx - radius)} ${n(cy - k)} ${n(cx - k)} ${n(cy - radius)} ${n(cx)} ${n(cy - radius)} C ${n(cx + k)} ${n(cy - radius)} ${n(cx + radius)} ${n(cy - k)} ${n(cx + radius)} ${n(cy)} C ${n(cx + radius)} ${n(cy + k)} ${n(cx + k)} ${n(cy + radius)} ${n(cx)} ${n(cy + radius)} C ${n(cx - k)} ${n(cy + radius)} ${n(cx - radius)} ${n(cy + k)} ${n(cx - radius)} ${n(cy)} Z`
+}
+
+function shapeHasFill(shape) {
+  return Boolean(shape.fill && shape.fill.mode !== 'none')
+}
+
+function densify(points, step) {
+  if (!points?.length) return []
+  const out = []
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const start = points[index]
+    const end = points[index + 1]
+    const pieces = Math.max(1, Math.ceil(pointDistance(start, end) / step))
+    for (let piece = 0; piece < pieces; piece += 1) {
+      const t = piece / pieces
+      out.push({ x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t })
+    }
+  }
+  out.push(points[points.length - 1])
+  return out
+}
+
+function splitAway(points, center, radius) {
+  const runs = []
+  let run = []
+  points.forEach((point) => {
+    if (insideEraser(point, center, radius)) {
+      if (run.length >= 2) runs.push(run)
+      run = []
+      return
+    }
+    run.push(point)
+  })
+  if (run.length >= 2) runs.push(run)
+  return runs
+}
+
+function lineCuts(shape, center, radius) {
+  const start = { x: shape.x1, y: shape.y1 }
+  const end = { x: shape.x2, y: shape.y2 }
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const fx = start.x - center.x
+  const fy = start.y - center.y
+  const a = dx * dx + dy * dy
+  const b = 2 * (fx * dx + fy * dy)
+  const c = fx * fx + fy * fy - radius * radius
+  const disc = b * b - 4 * a * c
+  if (a === 0 || disc < 0) return []
+  const root = Math.sqrt(disc)
+  return [(-b - root) / (2 * a), (-b + root) / (2 * a)]
+    .filter((t) => t >= 0 && t <= 1)
+    .sort((left, right) => left - right)
+    .map((t) => ({ x: start.x + dx * t, y: start.y + dy * t }))
+}
+
+function eraseLine(shape, center, radius) {
+  const start = { x: shape.x1, y: shape.y1 }
+  const end = { x: shape.x2, y: shape.y2 }
+  const startIn = insideEraser(start, center, radius)
+  const endIn = insideEraser(end, center, radius)
+  const cuts = lineCuts(shape, center, radius)
+  if (startIn && endIn) return []
+  if (!cuts.length) return [shape]
+  if (startIn) return [{ ...shape, x1: cuts[cuts.length - 1].x, y1: cuts[cuts.length - 1].y }]
+  if (endIn) return [{ ...shape, x2: cuts[0].x, y2: cuts[0].y }]
+  if (cuts.length < 2) return [shape]
+  return [
+    { ...shape, x2: cuts[0].x, y2: cuts[0].y },
+    { ...shape, id: newId(), x1: cuts[1].x, y1: cuts[1].y },
+  ]
+}
+
+function outlineOf(shape) {
+  if (shape.type === 'rect') {
+    return [
+      { x: shape.x, y: shape.y },
+      { x: shape.x + shape.width, y: shape.y },
+      { x: shape.x + shape.width, y: shape.y + shape.height },
+      { x: shape.x, y: shape.y + shape.height },
+      { x: shape.x, y: shape.y },
+    ]
+  }
+  if (shape.type === 'polygon') return [...(shape.points || []), shape.points?.[0]].filter(Boolean)
+  if (shape.type === 'ellipse' || shape.type === 'circle') {
+    const rx = shape.type === 'circle' ? shape.r : shape.rx
+    const ry = shape.type === 'circle' ? shape.r : shape.ry
+    const points = []
+    for (let step = 0; step <= 24; step += 1) {
+      const angle = (Math.PI * 2 * step) / 24
+      points.push({ x: shape.cx + Math.cos(angle) * rx, y: shape.cy + Math.sin(angle) * ry })
+    }
+    return points
+  }
+  return []
+}
+
+function outerPath(shape) {
+  if (shape.type === 'path') return shape.d
+  if (shape.type === 'rect') {
+    const right = roundCoord(shape.x + shape.width)
+    const bottom = roundCoord(shape.y + shape.height)
+    return `M ${roundCoord(shape.x)} ${roundCoord(shape.y)} H ${right} V ${bottom} H ${roundCoord(shape.x)} Z`
+  }
+  if (shape.type === 'circle') return circleHole(shape.cx, shape.cy, shape.r)
+  if (shape.type === 'ellipse') {
+    const k = 0.5522847498
+    const { cx, cy, rx, ry } = shape
+    const n = roundCoord
+    return `M ${n(cx - rx)} ${n(cy)} C ${n(cx - rx)} ${n(cy - ry * k)} ${n(cx - rx * k)} ${n(cy - ry)} ${n(cx)} ${n(cy - ry)} C ${n(cx + rx * k)} ${n(cy - ry)} ${n(cx + rx)} ${n(cy - ry * k)} ${n(cx + rx)} ${n(cy)} C ${n(cx + rx)} ${n(cy + ry * k)} ${n(cx + rx * k)} ${n(cy + ry)} ${n(cx)} ${n(cy + ry)} C ${n(cx - rx * k)} ${n(cy + ry)} ${n(cx - rx)} ${n(cy + ry * k)} ${n(cx - rx)} ${n(cy)} Z`
+  }
+  if (shape.type === 'polygon' && shape.points?.length) {
+    return `${shape.points.map((point, index) => `${index ? 'L' : 'M'} ${roundCoord(point.x)} ${roundCoord(point.y)}`).join(' ')} Z`
+  }
+  return ''
+}
+
+function punch(shape, center, radius) {
+  const outer = outerPath(shape)
+  if (!outer) return []
+  return [{
+    id: shape.id,
+    type: 'path',
+    d: `${outer} ${circleHole(center.x, center.y, radius)}`,
+    fillRule: 'evenodd',
+    fill: shape.fill,
+    stroke: shape.stroke,
+    strokeWidth: shape.strokeWidth,
+    opacity: shape.opacity,
+    dash: shape.dash,
+    lineCap: shape.lineCap,
+    lineJoin: shape.lineJoin,
+    rotation: shape.rotation,
+  }]
+}
+
+function eraseOne(shape, center, radius) {
+  if (shape.type === 'line') return eraseLine(shape, center, radius)
+  if (shape.type === 'polyline') {
+    const runs = splitAway(densify(shape.points, radius / 2), center, radius)
+    return runs.map((points, index) => ({ ...shape, id: index ? newId() : shape.id, points }))
+  }
+  if (shape.type === 'text') return hitShape(shape, center, radius) ? [] : [shape]
+  const outline = outlineOf(shape)
+  if (!shapeHasFill(shape) && outline.length > 1) {
+    const runs = splitAway(densify(outline, radius / 2), center, radius)
+    if (runs.length === 1 && runs[0].length === outline.length) return [shape]
+    return runs.map((points) => ({
+      ...shape,
+      id: newId(),
+      type: 'polyline',
+      points,
+      fill: { mode: 'none' },
+    }))
+  }
+  if (hitShape(shape, center, radius)) return punch(shape, center, radius)
+  return [shape]
+}
+
+function eraseShapes(shapes, center, radius) {
+  return shapes.flatMap((shape) => eraseOne(shape, center, radius))
 }
 
 function clientToSvg(event, svg) {
@@ -176,14 +395,17 @@ function hexForInput(color) {
 }
 
 function ShapeNode({ shape }) {
+  const angle = Number(shape.rotation) || 0
+  const center = angle ? centerOf(shape) : null
   const shared = {
     fill: cssPaint(shape.fill),
     stroke: shape.stroke?.mode === 'none' ? 'none' : cssPaint(shape.stroke),
     strokeWidth: shape.stroke?.mode === 'none' ? undefined : shape.strokeWidth,
     strokeLinecap: shape.lineCap,
     strokeLinejoin: shape.lineJoin,
+    strokeDasharray: dashArray(shape.dash, shape.strokeWidth) || undefined,
     opacity: shape.opacity != null && shape.opacity < 1 ? shape.opacity : undefined,
-    transform: shape.transform || undefined,
+    transform: angle ? `rotate(${angle} ${center.x} ${center.y})` : (shape.transform || undefined),
   }
   switch (shape.type) {
     case 'rect':
@@ -311,6 +533,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [cursor, setCursor] = useState(null)
 
   shapesRef.current = shapes
   viewBoxRef.current = viewBox
@@ -439,6 +662,8 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
           setLossy(parsed.lossy)
         }
         setLabel(initialLabel && initialLabel !== path.split('/').pop() ? initialLabel : '')
+        const file = (path.split('/').pop() || 'icon.svg').replace(/\.svg$/i, '')
+        setName(`${file}-copy`)
         setLoading(false)
       })
       .catch((failure) => {
@@ -517,6 +742,14 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
       setTool('select')
       return
     }
+    if (currentTool === 'eraser') {
+      const radius = eraserRadius(viewBoxRef.current)
+      const before = shapesRef.current
+      const next = eraseShapes(before, p, radius)
+      dragRef.current = { kind: 'eraser', before: structuredClone(before), changed: JSON.stringify(next) !== JSON.stringify(before) }
+      if (dragRef.current.changed) setShapesSafe(next)
+      return
+    }
     if (currentTool === 'select') {
       const tolerance = Math.max(viewBoxRef.current.w, viewBoxRef.current.h) / 40
       const list = shapesRef.current
@@ -544,11 +777,21 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
   }
 
   function onPointerMove(event) {
-    const drag = dragRef.current
-    if (!drag) return
     const svg = svgRef.current
     if (!svg) return
     const p = clientToSvg(event, svg)
+    if (toolRef.current === 'eraser') setCursor(p)
+    else if (cursor) setCursor(null)
+    const drag = dragRef.current
+    if (!drag) return
+    if (drag.kind === 'eraser') {
+      const next = eraseShapes(shapesRef.current, p, eraserRadius(viewBoxRef.current))
+      if (JSON.stringify(next) !== JSON.stringify(shapesRef.current)) {
+        drag.changed = true
+        setShapesSafe(next)
+      }
+      return
+    }
     if (drag.kind === 'freehand') {
       const last = drag.points[drag.points.length - 1]
       if (drag.points.length < 250 && Math.hypot(p.x - last.x, p.y - last.y) >= 0.35) drag.points.push(p)
@@ -589,6 +832,11 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
     const drag = dragRef.current
     if (!drag) return
     dragRef.current = null
+    if (drag.kind === 'eraser') {
+      if (drag.changed) pushPast(drag.before)
+      select(null)
+      return
+    }
     if (drag.kind === 'freehand') {
       const points = drag.points
       draftRef.current = null
@@ -624,6 +872,40 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
     dragRef.current = { kind, before: structuredClone(shapesRef.current), base: structuredClone(shape) }
   }
 
+  function rotateSelected(delta) {
+    const id = selectedRef.current
+    const shape = shapesRef.current.find((item) => item.id === id)
+    if (!shape) return
+    const next = Math.round((((Number(shape.rotation) || 0) + delta) % 360) * 10) / 10
+    updateSelected({ rotation: next === 0 ? undefined : next })
+  }
+
+  function applyLook(kind) {
+    const sourceFill = selectedRef.current
+      ? shapesRef.current.find((item) => item.id === selectedRef.current)?.fill
+      : paintRef.current.fill
+    const sourceStroke = selectedRef.current
+      ? shapesRef.current.find((item) => item.id === selectedRef.current)?.stroke
+      : paintRef.current.stroke
+    const ink = (value) => (value && value.mode !== 'none' ? value : { mode: 'token', token: 'primary' })
+    const fill = kind === 'outline' ? { mode: 'none' } : ink(sourceFill)
+    const stroke = kind === 'filled' ? { mode: 'none' } : ink(sourceStroke?.mode !== 'none' ? sourceStroke : sourceFill)
+    const strokeWidth = Math.max(Number(paintRef.current.strokeWidth) || 0, kind === 'filled' ? 0 : 1.5)
+    if (!selectedRef.current) {
+      const next = { ...paintRef.current, fill, stroke, strokeWidth }
+      paintRef.current = next
+      setPaint(next)
+      return
+    }
+    if (!historyMarkRef.current) {
+      pushPast(shapesRef.current)
+      historyMarkRef.current = true
+    }
+    setShapesSafe(shapesRef.current.map((shape) => (
+      shape.id === selectedRef.current ? { ...shape, fill, stroke, strokeWidth } : shape
+    )))
+  }
+
   function changePaint(key, value) {
     if (!selectedRef.current) {
       const next = { ...paintRef.current, [key]: value }
@@ -641,22 +923,27 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
     }
     const svg = serializeIcon(viewBoxRef.current, shapesRef.current)
     const trimmedLabel = label.trim()
+    const folder = mode === 'create' ? (directory || '') : path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+    const savedName = fileNameFrom(name)
+    const originalName = (path.split('/').pop() || '').toLowerCase()
+    if (mode !== 'create' && savedName.toLowerCase() === originalName) {
+      setError('Choose a new file name. The original icon is left unchanged.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
-      const result = mode === 'create'
-        ? await drawIcon({
-          name: fileNameFrom(name),
-          directory: directory || '',
-          label: trimmedLabel,
-          svg,
-        })
-        : await reviseIcon({ path, label: trimmedLabel, svg })
-      const saved = result?.path || path
+      const result = await drawIcon({
+        name: savedName,
+        directory: folder,
+        label: trimmedLabel,
+        svg,
+      })
+      const saved = result?.path || savedName
       forgetIconPreview(saved)
       invalidateIconLabels()
       logger.info('icons.studio.saved', { path: saved, mode })
-      push(mode === 'create' ? `Drew ${saved}.` : `Revised ${saved}.`, 'success')
+      push(mode === 'create' ? `Drew ${saved}.` : `Saved a new icon ${saved}. The original was not changed.`, 'success')
       onSaved?.(saved)
     } catch (failure) {
       const text = failure?.message || 'The icon could not be saved.'
@@ -673,8 +960,9 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
   const stroke = selected ? selected.stroke : paint.stroke
   const strokeWidth = selected ? selected.strokeWidth : paint.strokeWidth
   const opacity = selected ? selected.opacity : paint.opacity
-  const nameOk = mode !== 'create' || validFileName(name)
-  const folder = directory || 'the root folder'
+  const originalName = (path.split('/').pop() || '').toLowerCase()
+  const nameOk = validFileName(name) && (mode === 'create' || fileNameFrom(name).toLowerCase() !== originalName)
+  const folder = mode === 'create' ? (directory || 'the root folder') : (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : 'the root folder')
   const grid = []
   const step = viewBox.w <= 32 ? 2 : viewBox.w / 12
   for (let x = viewBox.x; x <= viewBox.x + viewBox.w + 0.01; x += step) grid.push({ x1: x, y1: viewBox.y, x2: x, y2: viewBox.y + viewBox.h, key: `v${x}` })
@@ -692,63 +980,66 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
       maxWidth="lg"
     >
       <DialogTitle sx={{ pb: 0.5 }}>
-        {mode === 'create' ? 'Draw an icon' : 'Revise icon'}
+        {mode === 'create' ? 'Draw an icon' : 'Save a new icon'}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          {mode === 'create' ? `Saves into ${folder}. ` : `${path}. `}
-          Each shape can follow the theme, or keep a fixed colour such as green. Both show the same way on the map.
+          {mode === 'create'
+            ? `Saves a new SVG into ${folder}. `
+            : `Copies ${path} into a new file. The original icon is not changed. `}
+          Outline leaves the inside empty. A fixed colour stays the same on the map.
         </Typography>
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={1.5}>
           {error ? <Alert severity="error">{error}</Alert> : null}
-          {lossy ? <Alert severity="warning">Saving replaces this file with the shapes the editor can keep.</Alert> : null}
+          {lossy ? <Alert severity="warning">Some parts of the original drawing cannot be edited here. Saving still writes a new file and leaves the original unchanged.</Alert> : null}
           {loading ? <LoadingState label="Opening icon" /> : (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '148px minmax(0, 1fr) 240px' }, gap: 1.5, alignItems: 'start' }}>
-              <Stack spacing={1}>
-                <ToggleButtonGroup
-                  exclusive
-                  orientation="vertical"
-                  size="small"
-                  value={tool}
-                  onChange={(_, value) => {
-                    if (!value) return
-                    draftRef.current = null
-                    setDraft(null)
-                    setTool(value)
-                  }}
-                  aria-label="Drawing tools"
-                >
-                  {TOOLS.map((item) => (
-                    <ToggleButton key={item.id} value={item.id} aria-label={item.label} sx={{ justifyContent: 'flex-start', gap: 1, textTransform: 'none' }}>
-                      <item.Icon fontSize="small" />
-                      {item.label}
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-                <Typography variant="caption" color="text.secondary">{TOOL_HELP[tool]}</Typography>
-                <Stack direction="row" spacing={0.5}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 240px' }, gap: 1.5, alignItems: 'start' }}>
+              <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+                <Stack direction="row" spacing={0.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={tool}
+                    onChange={(_, value) => {
+                      if (!value) return
+                      draftRef.current = null
+                      setDraft(null)
+                      setTool(value)
+                    }}
+                    aria-label="Drawing tools"
+                  >
+                    {TOOLS.map((item) => (
+                      <ToggleButton key={item.id} value={item.id} title={item.label} aria-label={item.label} sx={{ px: 0.75 }}>
+                        <item.Icon fontSize="small" />
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                  <ToggleButtonGroup exclusive size="small" value={lookOf(fill, stroke)} onChange={(_, value) => value && applyLook(value)} aria-label="Fill or outline">
+                    <ToggleButton value="filled" title="Filled" aria-label="Filled" sx={{ px: 0.75 }}><FormatColorFillIcon fontSize="small" /></ToggleButton>
+                    <ToggleButton value="outline" title="Outline" aria-label="Outline" sx={{ px: 0.75 }}><CheckBoxOutlineBlankIcon fontSize="small" /></ToggleButton>
+                    <ToggleButton value="both" title="Filled and outline" aria-label="Filled and outline" sx={{ px: 0.75 }}><BorderOuterIcon fontSize="small" /></ToggleButton>
+                  </ToggleButtonGroup>
+                  <ToggleButtonGroup exclusive size="small" value={(selected ? selected.dash : paint.dash) || 'solid'} onChange={(_, value) => value && changePaint('dash', value)} aria-label="Stroke line">
+                    <ToggleButton value="solid" title="Solid line" aria-label="Solid line" sx={{ px: 0.75 }}><HorizontalRuleIcon fontSize="small" /></ToggleButton>
+                    <ToggleButton value="dashed" title="Dashed line" aria-label="Dashed line" sx={{ px: 0.75 }}><MoreHorizIcon fontSize="small" /></ToggleButton>
+                    <ToggleButton value="dotted" title="Dotted line" aria-label="Dotted line" sx={{ px: 0.75 }}><GrainIcon fontSize="small" /></ToggleButton>
+                  </ToggleButtonGroup>
                   <Tooltip title="Undo">
-                    <span>
-                      <Button size="small" aria-label="Undo" disabled={!past.length || busy} onClick={undo} sx={{ minWidth: 40 }}><UndoIcon fontSize="small" /></Button>
-                    </span>
+                    <span><Button size="small" aria-label="Undo" disabled={!past.length || busy} onClick={undo} sx={{ minWidth: 36, px: 0.75 }}><UndoIcon fontSize="small" /></Button></span>
                   </Tooltip>
                   <Tooltip title="Delete shape">
-                    <span>
-                      <Button size="small" aria-label="Delete shape" disabled={!selected || busy} onClick={removeSelected} sx={{ minWidth: 40 }}><DeleteOutlinedIcon fontSize="small" /></Button>
-                    </span>
+                    <span><Button size="small" aria-label="Delete shape" disabled={!selected || busy} onClick={removeSelected} sx={{ minWidth: 36, px: 0.75 }}><DeleteOutlinedIcon fontSize="small" /></Button></span>
                   </Tooltip>
                 </Stack>
-                <Button size="small" disabled={!shapes.length || busy} onClick={clearCanvas}>Clear</Button>
+                <Typography variant="caption" color="text.secondary">{TOOL_HELP[tool]}</Typography>
                 {tool === 'polygon' && draft?.points?.length ? (
-                  <Stack spacing={0.5}>
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                     <Typography variant="caption" color="text.secondary">{draft.points.length} corners</Typography>
-                    <Button size="small" variant="outlined" disabled={draft.points.length < 3} onClick={finishPolygon}>Finish shape</Button>
-                    <Button size="small" onClick={() => { draftRef.current = null; setDraft(null) }}>Cancel shape</Button>
+                    <Button size="small" variant="outlined" disabled={draft.points.length < 3} onClick={finishPolygon}>Finish</Button>
+                    <Button size="small" onClick={() => { draftRef.current = null; setDraft(null) }}>Cancel</Button>
                   </Stack>
                 ) : null}
-              </Stack>
-
-              <Box sx={{ width: '100%', maxWidth: 460, mx: 'auto' }}>
+                <Box sx={{ width: '100%', maxWidth: 520 }}>
                 <Box sx={{ position: 'relative', width: '100%', pt: '100%', border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
                   <Box sx={{ position: 'absolute', inset: 0 }}>
                     <svg
@@ -772,27 +1063,40 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                         {shapes.map((shape) => <ShapeNode key={shape.id} shape={shape} />)}
                         {draft && draft.type !== 'polygon' ? <ShapeNode shape={draft} /> : null}
                         {draft?.type === 'polygon' ? <polyline points={draft.points.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="var(--wp-primary)" strokeWidth={viewBox.w / 80} /> : null}
-                        {selected ? (
-                          <Selection shape={selected} viewBox={viewBox} />
-                        ) : null}
                       </g>
-                      {tool === 'select' && selected ? handles(selected).map((handle) => (
+                      {tool === 'eraser' && cursor ? (
                         <circle
-                          key={handle.kind}
-                          cx={handle.x}
-                          cy={handle.y}
-                          r={handleRadius}
-                          fill="var(--wp-info)"
-                          stroke="var(--wp-backgroundPaper)"
-                          strokeWidth={handleRadius / 3}
-                          onPointerDown={(event) => onHandleDown(event, handle.kind)}
+                          cx={cursor.x}
+                          cy={cursor.y}
+                          r={eraserRadius(viewBox)}
+                          fill="rgba(255,255,255,0.35)"
+                          stroke="var(--wp-textPrimary)"
+                          strokeWidth={Math.max(viewBox.w, viewBox.h) / 160}
                         />
-                      )) : null}
+                      ) : null}
+                      {tool === 'select' && selected ? (
+                        <g transform={selected.rotation ? `rotate(${selected.rotation} ${centerOf(selected).x} ${centerOf(selected).y})` : undefined}>
+                          <Selection shape={selected} viewBox={viewBox} />
+                          {handles(selected).map((handle) => (
+                            <circle
+                              key={handle.kind}
+                              cx={handle.x}
+                              cy={handle.y}
+                              r={handleRadius}
+                              fill="var(--wp-info)"
+                              stroke="var(--wp-backgroundPaper)"
+                              strokeWidth={handleRadius / 3}
+                              onPointerDown={(event) => onHandleDown(event, handle.kind)}
+                            />
+                          ))}
+                        </g>
+                      ) : null}
                     </svg>
                   </Box>
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>{shapes.length} shape{shapes.length === 1 ? '' : 's'}</Typography>
               </Box>
+              </Stack>
 
               <Stack spacing={1.25}>
                 <Typography variant="subtitle2">{selected ? 'Selected shape' : 'Next shape'}</Typography>
@@ -840,6 +1144,31 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                     />
                   </>
                 ) : null}
+                {(selected?.type === 'rect' || (!selected && tool === 'rect')) ? (
+                  <TextField
+                    size="small"
+                    label="Corner radius"
+                    type="number"
+                    value={selected?.type === 'rect' ? (selected.rx || 0) : (paint.corner || 0)}
+                    onChange={(event) => {
+                      const corner = Math.max(0, Math.min(48, Number(event.target.value) || 0))
+                      if (selected?.type === 'rect') updateSelected({ rx: corner || undefined, ry: corner || undefined })
+                      else changePaint('corner', corner)
+                    }}
+                    helperText="0 keeps the corners square. A larger value rounds them."
+                    slotProps={{ htmlInput: { min: 0, max: 48, step: 0.5 } }}
+                  />
+                ) : null}
+                {selected ? (
+                  <Stack spacing={0.5}>
+                    <Typography variant="caption" color="text.secondary">Rotation {Math.round(Number(selected.rotation) || 0)}°</Typography>
+                    <Stack direction="row" spacing={0.5}>
+                      <Button size="small" aria-label="Rotate left" onClick={() => rotateSelected(-15)} sx={{ minWidth: 40 }}><RotateLeftIcon fontSize="small" /></Button>
+                      <Button size="small" aria-label="Rotate right" onClick={() => rotateSelected(15)} sx={{ minWidth: 40 }}><RotateRightIcon fontSize="small" /></Button>
+                      <Button size="small" onClick={() => rotateSelected(-(Number(selected.rotation) || 0))}>Reset</Button>
+                    </Stack>
+                  </Stack>
+                ) : null}
                 {selected ? (
                   <Stack direction="row" spacing={0.5}>
                     <Button size="small" onClick={() => reorder(1)}>Forward</Button>
@@ -876,17 +1205,21 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 1.5, alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
-        {mode === 'create' ? (
-          <TextField
-            size="small"
-            label="File Name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            error={Boolean(name) && !nameOk}
-            helperText={name && !nameOk ? 'Letters, numbers, dots, underscores, or hyphens.' : 'Saved as an SVG in the icon folder.'}
-            sx={{ minWidth: 220, flex: 1 }}
-          />
-        ) : <Box sx={{ flex: 1 }} />}
+        <TextField
+          size="small"
+          label="File Name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          error={Boolean(name) && !nameOk}
+          helperText={
+            mode !== 'create' && fileNameFrom(name).toLowerCase() === originalName
+              ? 'Choose a new file name. The original icon is left unchanged.'
+              : name && !nameOk
+                ? 'Letters, numbers, dots, underscores, or hyphens.'
+                : 'Saved as a new SVG. The original file is not replaced.'
+          }
+          sx={{ minWidth: 220, flex: 1 }}
+        />
         <TextField
           size="small"
           label="Label"
@@ -897,7 +1230,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
         />
         <Button onClick={onClose} disabled={busy}>Cancel</Button>
         <Button variant="contained" disabled={busy || loading || !shapes.length || !nameOk} onClick={save}>
-          {busy ? 'Saving' : mode === 'create' ? 'Save icon' : 'Save drawing'}
+          {busy ? 'Saving' : 'Save new icon'}
         </Button>
       </DialogActions>
     </Dialog>

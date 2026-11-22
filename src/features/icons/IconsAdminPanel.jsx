@@ -245,7 +245,7 @@ export function IconsAdminPanel() {
                         </Button>
                         {isSvgPath(chosenFile.path) ? (
                           <Button variant="outlined" onClick={() => setStudio({ mode: 'revise', path: chosenFile.path, label: chosenFile.label || '' })}>
-                            Revise
+                            Revise as new
                           </Button>
                         ) : null}
                       </Stack>
