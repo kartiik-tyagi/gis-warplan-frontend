@@ -7,10 +7,10 @@ import VectorSource from 'ol/source/Vector'
 import Cluster from 'ol/source/Cluster'
 import Translate from 'ol/interaction/Translate'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import { Circle, Fill, Icon, Stroke, Style, Text } from 'ol/style'
+import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
 import { useOrbatPicture } from '../features/orbat/useOrbatPicture'
 import { locationPickedJustNow, useLocationPick } from '../shared/map/useLocationPick'
-import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
+import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, mapSymbol, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
 
 /** Draws the open ORBAT draft on the situation map. Nearby markers cluster as you zoom out. */
 export function OrbatLayer({ map }) {
@@ -150,14 +150,14 @@ export function OrbatLayer({ map }) {
       }
       const node = byId.get(members[0]?.get('nodeId'))
       if (!node) return null
-      const icon = iconTheme && node.iconPath ? cachedIcon(node.iconPath, iconTheme) : ''
+      const symbol = iconTheme && node.iconPath ? mapSymbol(cachedIcon(node.iconPath, iconTheme)) : null
       return new Style({
-        image: icon
-          ? new Icon({ src: icon, scale: 1.5, anchor: [0.5, 0.5] })
+        image: symbol
+          ? symbol.image
           : new Circle({ radius: 6, fill: new Fill({ color: colour }), stroke: new Stroke({ color: viewerTheme.palette.background.paper, width: 2 }) }),
         text: new Text({
           text: node.short_name || node.name,
-          offsetY: -16,
+          offsetY: symbol ? symbol.offsetY : -12,
           font: '12px Roboto',
           fill: new Fill({ color: viewerTheme.palette.text.primary }),
           stroke: new Stroke({ color: viewerTheme.palette.background.paper, width: 3 }),

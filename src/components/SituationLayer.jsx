@@ -7,13 +7,13 @@ import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Cluster from 'ol/source/Cluster'
 import { fromLonLat } from 'ol/proj'
-import { Circle, Fill, Icon, Stroke, Style, Text } from 'ol/style'
+import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
 import { get } from '../shared/api/http'
 import { themeFromEntity } from '../shared/api/mappers'
 import { createAppTheme } from '../shared/theme/createAppTheme'
 import { useOrbatPicture } from '../features/orbat/useOrbatPicture'
 import { useSituation } from '../features/situation/useSituation'
-import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
+import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, mapSymbol, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
 
 /** Side id -> that side's theme. Sides and themes are already returned to any signed-in user. */
 function useTeamIconThemes() {
@@ -231,15 +231,15 @@ export function SituationLayer({ map }) {
       const nodeId = member?.get('nodeId')
       if (!byFeature.get(nodeId)) return null
       const iconTheme = member.get('iconTheme')
-      const icon = iconTheme ? cachedIcon(member.get('iconPath'), iconTheme) : ''
+      const symbol = iconTheme ? mapSymbol(cachedIcon(member.get('iconPath'), iconTheme)) : null
       const colour = member.get('colour') || '#2f6fed'
       return new Style({
-        image: icon
-          ? new Icon({ src: icon, scale: 1.5, anchor: [0.5, 0.5] })
+        image: symbol
+          ? symbol.image
           : new Circle({ radius: 6, fill: new Fill({ color: colour }), stroke: new Stroke({ color: viewerTheme.palette.background.paper, width: 2 }) }),
         text: new Text({
           text: member.get('name') || '',
-          offsetY: -16,
+          offsetY: symbol ? symbol.offsetY : -12,
           font: '12px Roboto',
           fill: new Fill({ color: viewerTheme.palette.text.primary }),
           stroke: new Stroke({ color: viewerTheme.palette.background.paper, width: 3 }),
