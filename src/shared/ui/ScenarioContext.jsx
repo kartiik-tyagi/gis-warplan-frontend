@@ -12,7 +12,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
@@ -34,9 +33,10 @@ function Fact({ label, icon, children, grow = false }) {
   return (
     <Box
       sx={{
-        minWidth: grow ? { xs: '100%', lg: 0 } : 0,
-        flex: grow ? { xs: '1 1 100%', lg: '1 1 0' } : '0 1 auto',
+        minWidth: 0,
+        flex: grow ? { xs: '1 1 100%', lg: '1 1 0' } : { xs: '1 1 100%', lg: '0.7 1 0' },
         maxWidth: '100%',
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
@@ -181,7 +181,7 @@ export function ScenarioContext() {
 
   return (
     <>
-      <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap', minWidth: 0, width: '100%' }}>
+      <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: { xs: 'wrap', lg: 'nowrap' }, minWidth: 0, width: '100%', overflow: 'hidden' }}>
         {session.canSelectScenario ? (
           <Fact grow label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
             <SearchSelect
@@ -198,11 +198,9 @@ export function ScenarioContext() {
               onChange={askScenario}
               getOptionLabel={(item) => `${item.name}${item.active || item.id === session.activeScenarioId ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
+              action={{ label: 'New Scenario', onSelect: () => navigate('/exercise/scenarios/new') }}
               sx={barField()}
             />
-            <Button size="small" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')} disabled={busy} sx={{ flexShrink: 0 }}>
-              Add
-            </Button>
           </Fact>
         ) : (
           <Fact label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
@@ -228,19 +226,9 @@ export function ScenarioContext() {
               isOptionDisabled={(item) => item.open === false}
               getOptionLabel={(item) => `${item.open === false ? `${item.name} · Closed` : item.name}${item.active || item.id === session.activeGame.id ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
+              action={session.activeScenarioId ? { label: 'New Game', onSelect: () => navigate(`/exercise/games/new?scenarioId=${session.activeScenarioId}`) } : undefined}
               sx={barField()}
             />
-            {session.activeScenarioId ? (
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                disabled={busy}
-                onClick={() => navigate(`/exercise/games/new?scenarioId=${session.activeScenarioId}`)}
-                sx={{ flexShrink: 0 }}
-              >
-                Add
-              </Button>
-            ) : null}
           </Fact>
         ) : (
           <Fact label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
@@ -251,14 +239,14 @@ export function ScenarioContext() {
         )}
         {game?.dateTime ? (
           <Fact label="Game Time" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }}>
+            <Typography variant="body2" noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {new Date(game.dateTime).toLocaleString()}
             </Typography>
           </Fact>
         ) : null}
         {moonLabel ? (
           <Fact label="Moon Phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }} title={moonLabel}>
+            <Typography variant="body2" noWrap title={moonLabel} sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {moonLabel}
             </Typography>
           </Fact>

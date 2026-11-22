@@ -25,10 +25,13 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
       component="header"
       sx={{
         minHeight: 48,
+        width: '100%',
+        minWidth: 0,
         px: 1,
         display: 'flex',
         alignItems: 'center',
         gap: 1,
+        overflow: 'hidden',
         borderBottom: floating ? 0 : 1,
         borderColor: 'divider',
         bgcolor: floating ? 'transparent' : 'background.paper',
@@ -36,11 +39,11 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
       }}
     >
       {leading}
-      <Typography variant="subtitle2" sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.5, flexShrink: 0, fontSize: { xs: '0.75rem', sm: undefined } }}>
+      <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.5, flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: { xs: '0.75rem', sm: undefined } }}>
         GIS WARPLAN
       </Typography>
       <ViewModes mode={viewMode} onChange={onViewMode} />
-      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', overflow: 'auto' }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', overflow: 'hidden' }}>
         <ScenarioContext />
       </Box>
       <Box sx={{ flex: { xs: 1, lg: 0 } }} />
@@ -56,10 +59,12 @@ export function ContextStrip() {
       sx={{
         display: { xs: 'flex', lg: 'none' },
         alignItems: 'center',
+        width: '100%',
+        minWidth: 0,
         gap: 2,
         px: 1.5,
         py: 0.75,
-        overflowX: 'auto',
+        overflow: 'hidden',
         borderBottom: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
