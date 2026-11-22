@@ -83,38 +83,44 @@ export function NodeNameDialog({ open, title, submitLabel = 'Save', initialName 
   )
 }
 
-/** Creates a user bound to a saved standard ORBAT node. An empty theme inherits the side theme. */
-export function MarkAsUserDialog({ open, node, roles = EMPTY_LIST, themes = EMPTY_LIST, onClose, onSubmit }) {
+/** Creates or updates a user bound to a saved standard ORBAT node. An empty theme inherits the side theme. */
+export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes = EMPTY_LIST, onClose, onSubmit }) {
+  const editing = Boolean(user)
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [roleIds, setRoleIds] = useState([])
   const [themeId, setThemeId] = useState('')
   const { busy, error, setError, run } = useSubmit(onSubmit)
-  const free = selectableThemes(themes, 'USER', null)
+  const free = selectableThemes(themes, 'USER', user?.id ?? null)
   useEffect(() => {
     if (open) {
-      setName(node?.name || '')
+      setName(user?.name || node?.name || '')
       setPassword('')
-      setRoleIds([])
-      setThemeId('')
+      setRoleIds(Array.isArray(user?.roleIds) ? user.roleIds : [])
+      setThemeId(user?.themeId == null || user?.themeId === '' ? '' : String(user.themeId))
       setError('')
     }
-  }, [open, node, setError])
+  }, [open, node, user, setError])
   const toggle = (id) => setRoleIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
+  const passwordOk = editing ? password.length === 0 || password.length >= 3 : password.length >= 3
   return (
     <Shell
       open={open}
-      title="Mark as user"
-      submitLabel="Create user"
+      title={editing ? 'Update user' : 'Mark as user'}
+      submitLabel={editing ? 'Save user' : 'Create user'}
       onClose={onClose}
       busy={busy}
       error={error}
-      submitDisabled={!name.trim() || password.length < 3 || !roleIds.length}
+      submitDisabled={!name.trim() || !passwordOk || !roleIds.length}
       onSubmit={() => run({ name: name.trim(), password, roleIds, themeId: themeId === '' ? null : Number(themeId) })}
     >
-      <Typography variant="body2" color="text.secondary">Creates a sign-in for the node {node?.name}. Leave the theme empty to inherit this side.</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {editing
+          ? `Updates the sign-in for ${user.name}. Leave the password blank to keep it, and clear the theme to inherit this side.`
+          : `Creates a sign-in for the node ${node?.name}. Leave the theme empty to inherit this side. The account stays off until this node is in the active game.`}
+      </Typography>
       <TextField autoFocus required label="User name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
-      <TextField required type="password" label="Password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="At least 3 characters" autoComplete="new-password" />
+      <TextField required={!editing} type="password" label={editing ? 'New password' : 'Password'} value={password} onChange={(event) => setPassword(event.target.value)} helperText={editing ? 'Leave blank to keep the current password.' : 'At least 3 characters'} autoComplete="new-password" />
       <TextField select label="Override theme" value={themeId} onChange={(event) => setThemeId(event.target.value)}>
         <MenuItem value="">Inherit the team theme</MenuItem>
         {free.map((theme) => (

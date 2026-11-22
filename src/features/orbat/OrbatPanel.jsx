@@ -53,7 +53,7 @@ function statusOf(record) {
   return record?.metadata?.status === 'finalized' ? 'finalized' : 'draft'
 }
 
-function NodeDetails({ node, nodes, nodeTypes, sidesById, userName, editable, canMark, onChange, onAdd, onDelete, onMark }) {
+function NodeDetails({ node, nodes, nodeTypes, sidesById, markedUser, editable, canMark, canHold, onChange, onAdd, onDelete, onMark, onUpdate, onHold }) {
   const [name, setName] = useState(node?.name || '')
   useEffect(() => {
     setName(node?.name || '')
@@ -107,17 +107,21 @@ function NodeDetails({ node, nodes, nodeTypes, sidesById, userName, editable, ca
           <Typography variant="caption" sx={{ wordBreak: 'break-all' }}>{node.sourceNodeId}</Typography>
         </Box>
       ) : null}
-      {userName ? (
+      {markedUser ? (
         <Box>
           <Caption>Marked as user</Caption>
-          <Typography variant="body2">{userName}</Typography>
+          <Typography variant="body2">{markedUser.name}</Typography>
         </Box>
       ) : null}
       <Divider />
       <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
         {editable ? <Button size="small" onClick={onAdd}>Add child</Button> : null}
         {editable && node.parentId ? <Button size="small" color="error" onClick={onDelete}>Delete</Button> : null}
-        {canMark && !userName ? <Button size="small" onClick={onMark}>Mark as user</Button> : null}
+        {canMark && !markedUser ? <Button size="small" onClick={onMark}>Mark as user</Button> : null}
+        {canMark && markedUser ? <Button size="small" onClick={onUpdate}>Update user</Button> : null}
+        {canHold && node.sourceNodeId ? (
+          <Button size="small" onClick={onHold}>{node.participationHeld ? 'Allow user' : 'Deactivate user'}</Button>
+        ) : null}
       </Stack>
     </Stack>
   )
@@ -264,13 +268,6 @@ export default function OrbatPanel() {
     soft(api.listNodeTypes(), (rows) => setNodeTypes(new Map(rows.map((type) => [type.id, type]))))
     if (canMark) soft(api.listRoles(), setRoles)
     soft(get('/themes'), (rows) => setThemes(rows.map(asTheme)))
-    if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_USERS)) {
-      soft(api.listUsers(), (rows) => {
-        const next = new Map()
-        rows.forEach((user) => user.standardNodeId && next.set(user.standardNodeId, user.name))
-        setMarkedNodes((current) => new Map([...next, ...current]))
-      })
-    }
     if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_SCENARIO)) {
       soft(api.listScenarios(), (rows) =>
         setScenarios(rows.map((row) => ({ id: String(row.id), name: row.name, active: Boolean(row.active) }))),
@@ -280,6 +277,24 @@ export default function OrbatPanel() {
       live = false
     }
   }, [canMark, functionalities, session?.me?.administeredSideId])
+
+  useEffect(() => {
+    if (!canMark || !standard?.id) return undefined
+    let live = true
+    api.listMarkedUsers(standard.id)
+      .then((rows) => {
+        if (!live) return
+        const next = new Map()
+        ;(rows || []).forEach((user) => {
+          if (user.standardNodeId) next.set(user.standardNodeId, user)
+        })
+        setMarkedNodes(next)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [canMark, standard?.id])
 
   // Standard ORBAT of the chosen side
   const loadStandard = useCallback(async () => {
@@ -380,6 +395,13 @@ export default function OrbatPanel() {
       return
     }
     setDialog({ kind: 'mark', id })
+  }
+  const openUpdate = (id) => {
+    if (dirty) {
+      push('Save the ORBAT first: the node must exist on the server.', 'warning')
+      return
+    }
+    setDialog({ kind: 'update', id })
   }
 
   const onTreeAction = (action, id) => {
@@ -488,12 +510,13 @@ export default function OrbatPanel() {
     setNodes((current) => reparent(current, id, parentId))
   }
 
-  const save = async (metadata) => {
+  const save = async (metadata, nodeList) => {
     if (!record) return null
     setSaving(true)
     setSaveError('')
+    const savingNodes = nodeList || nodes
     try {
-      const body = { orbatJson: { ...(record.orbatJson || {}), nodes }, metadata, version: record.version }
+      const body = { orbatJson: { ...(record.orbatJson || {}), nodes: savingNodes }, metadata, version: record.version }
       const saved = tab === 'standard' ? await api.saveStandardOrbat(sideId, { ...body, metadata: record.metadata || undefined }) : await api.savePlayingOrbat(gameId, record.id, body)
       if (tab === 'standard') setStandard(saved)
       else {
@@ -517,15 +540,48 @@ export default function OrbatPanel() {
 
   const reload = () => (tab === 'standard' ? loadStandard() : loadPlaying(orbatId))
 
-  const markUser = async ({ name, password, roleIds }) => {
+  const markUser = async ({ name, password, roleIds, themeId }) => {
     const node = index.byId.get(dialog.id)
-    const created = await api.markAsUser({ standardOrbatId: record.id, standardNodeId: node.id, name, password, roleIds })
-    setMarkedNodes((current) => new Map(current).set(node.id, created.name))
+    const created = await api.markAsUser({
+      standardOrbatId: record.id,
+      standardNodeId: node.id,
+      name,
+      password,
+      roleIds,
+      themeId: themeId ?? null,
+    })
+    setMarkedNodes((current) => new Map(current).set(node.id, created))
     push(`User ${created.name} created.`, 'success')
     setDialog(null)
     if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_USERS)) {
       useDirectoryStore.getState().run(() => directoryApi.loadWorkbench(userId)).catch(() => {})
     }
+  }
+
+  const updateUser = async ({ name, password, roleIds, themeId }) => {
+    const node = index.byId.get(dialog.id)
+    const body = {
+      standardOrbatId: record.id,
+      standardNodeId: node.id,
+      name,
+      roleIds,
+      themeId: themeId ?? null,
+      clearTheme: themeId == null,
+    }
+    if (password) body.password = password
+    const saved = await api.updateMarkedUser(body)
+    setMarkedNodes((current) => new Map(current).set(node.id, saved))
+    push(`User ${saved.name} updated.`, 'success')
+    setDialog(null)
+  }
+
+  const toggleHold = async (id) => {
+    const node = index.byId.get(id)
+    if (!node?.sourceNodeId || tab !== 'playing' || !editable) return
+    const next = updateNode(nodes, id, { participationHeld: !node.participationHeld })
+    setNodes(next)
+    setMenu(null)
+    await save(record?.metadata, next)
   }
 
   const createForce = async (body) => {
@@ -730,7 +786,7 @@ export default function OrbatPanel() {
           <Chip size="small" label={`v${record.version}`} variant="outlined" />
           {tab === 'playing' ? <Chip size="small" label={status} color={status === 'finalized' ? 'success' : 'default'} /> : null}
           {dirty ? <Chip size="small" label="Unsaved" color="warning" /> : null}
-          {tab === 'playing' && status === 'finalized' ? <Caption>Re-edit to change it. Assigned users cannot work again until you finalize.</Caption> : null}
+          {tab === 'playing' && status === 'finalized' ? <Caption>Re-edit to change it. If this game is active, its users are signed out until you finalize again.</Caption> : null}
           <Box sx={{ flex: 1 }} />
           {editable ? (
             <>
@@ -767,6 +823,7 @@ export default function OrbatPanel() {
       ) : null}
 
       {record && !loading ? (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ minHeight: 240, alignItems: 'stretch' }}>
         <Box sx={{ flex: 1, minWidth: 0, minHeight: 240, maxHeight: { md: 'calc(100vh - 280px)' }, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
           {nodes.length ? (
             <OrbatTree
@@ -787,6 +844,25 @@ export default function OrbatPanel() {
             <Box sx={{ p: 2 }}><Caption>This ORBAT has no nodes.</Caption></Box>
           )}
         </Box>
+        <Box sx={{ width: { md: 280 }, flexShrink: 0 }}>
+          <NodeDetails
+            node={index.byId.get(selectedId)}
+            nodes={nodes}
+            nodeTypes={nodeTypes}
+            sidesById={sidesById}
+            markedUser={userByNode.get(selectedId) || null}
+            editable={editable}
+            canMark={tab === 'standard' && canMark}
+            canHold={tab === 'playing' && editable}
+            onChange={(patch) => selectedId && setNodes((current) => updateNode(current, selectedId, patch))}
+            onAdd={() => selectedId && openAdd(selectedId)}
+            onDelete={() => selectedId && openDelete(selectedId)}
+            onMark={() => selectedId && openMark(selectedId)}
+            onUpdate={() => selectedId && openUpdate(selectedId)}
+            onHold={() => selectedId && toggleHold(selectedId)}
+          />
+        </Box>
+        </Stack>
       ) : null}
 
       <Menu
@@ -800,6 +876,10 @@ export default function OrbatPanel() {
         {editable && menuNode?.parentId ? <MenuItem onClick={() => { closeMenu(); setDialog({ kind: 'edit', id: menu.id }) }}>Edit</MenuItem> : null}
         {editable && menuNode?.parentId ? <MenuItem onClick={() => { closeMenu(); openDelete(menu.id) }}>Delete</MenuItem> : null}
         {tab === 'standard' && canMark && menu && !markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openMark(menu.id) }}>Mark as user</MenuItem> : null}
+        {tab === 'standard' && canMark && menu && markedHere(menu.id) ? <MenuItem onClick={() => { closeMenu(); openUpdate(menu.id) }}>Update user</MenuItem> : null}
+        {tab === 'playing' && editable && menuNode?.sourceNodeId ? (
+          <MenuItem onClick={() => toggleHold(menu.id)}>{menuNode.participationHeld ? 'Allow user' : 'Deactivate user'}</MenuItem>
+        ) : null}
         {!editable && !(tab === 'standard' && canMark) ? <MenuItem disabled>Read only</MenuItem> : null}
       </Menu>
 
@@ -830,18 +910,20 @@ export default function OrbatPanel() {
         onConfirm={deleteNode}
       />
       <MarkAsUserDialog
-        open={dialog?.kind === 'mark'}
+        open={dialog?.kind === 'mark' || dialog?.kind === 'update'}
         node={index.byId.get(dialog?.id)}
+        user={dialog?.kind === 'update' ? userByNode.get(dialog.id) : null}
         roles={roles}
         themes={themes}
         onClose={() => setDialog(null)}
-        onSubmit={markUser}
+        onSubmit={dialog?.kind === 'update' ? updateUser : markUser}
       />
       <OrbatMapChrome
         nodes={nodes}
         types={[...nodeTypes.values()]}
         editable={editable}
         canMark={tab === 'standard' && canMark}
+        canHold={tab === 'playing' && editable}
         marked={userByNode}
         onAdd={(parentId, typeId, latitude, longitude) => setDialog({
           kind: 'add',
@@ -852,6 +934,8 @@ export default function OrbatPanel() {
         onEdit={(id) => setDialog({ kind: 'edit', id })}
         onDelete={(id) => setDialog({ kind: 'delete', id })}
         onMark={(id) => openMark(id)}
+        onUpdate={(id) => openUpdate(id)}
+        onHold={(id) => toggleHold(id)}
       />
       <ForceDialog open={dialog?.kind === 'force'} themes={themes} onClose={() => setDialog(null)} onSubmit={createForce} />
       <ReplicaDialog open={dialog?.kind === 'replica'} sides={replicaSides} onClose={() => setDialog(null)} onSubmit={replicate} />
@@ -859,7 +943,7 @@ export default function OrbatPanel() {
       <ConfirmDialog
         open={dialog?.kind === 'finalize'}
         title="Finalize playing ORBAT"
-        message={`Save ${record?.name || 'this ORBAT'} and mark it finalized? Users marked on its standard nodes are assigned to it and can then work.`}
+        message={`Save ${record?.name || 'this ORBAT'} and mark it finalized? If this game is active, its users can sign in. If the game is not active, they stay signed out.`}
         confirmLabel="Finalize"
         busy={saving}
         error={saveError}
@@ -869,7 +953,7 @@ export default function OrbatPanel() {
       <ConfirmDialog
         open={dialog?.kind === 'reopen'}
         title="Re-edit playing ORBAT"
-        message={`Return ${record?.name || 'this ORBAT'} to draft? Assigned users cannot work until you finalize it again.`}
+        message={`Return ${record?.name || 'this ORBAT'} to draft? The game stays as it is. If the game is active, users on this ORBAT are signed out until you finalize it again.`}
         confirmLabel="Re-edit"
         busy={saving}
         error={saveError}

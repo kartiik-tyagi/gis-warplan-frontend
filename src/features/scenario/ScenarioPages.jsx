@@ -74,6 +74,20 @@ function ScenarioList() {
     }
   }
 
+  const deactivate = async (item) => {
+    if (!item.active || activatingId) return
+    setActivatingId(item.id)
+    try {
+      await changeScenario('')
+      push(`“${item.name}” is no longer the active scenario.`, 'success')
+      await load()
+    } catch (error) {
+      push(error?.message || 'The scenario could not be deactivated.', 'error')
+    } finally {
+      setActivatingId(null)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!deleting) return
     setBusyDelete(true)
@@ -163,15 +177,26 @@ function ScenarioList() {
                 >
                   Manage games
                 </Button>
-                <Button
-                  size="small"
-                  variant={item.active ? 'outlined' : 'contained'}
-                  startIcon={<CheckCircleOutlinedIcon />}
-                  disabled={Boolean(item.active) || activatingId != null}
-                  onClick={() => activate(item)}
-                >
-                  {item.active ? 'Active' : activatingId === item.id ? 'Activating…' : 'Activate'}
-                </Button>
+                {item.active ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={activatingId != null}
+                    onClick={() => deactivate(item)}
+                  >
+                    {activatingId === item.id ? 'Deactivating…' : 'Deactivate'}
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<CheckCircleOutlinedIcon />}
+                    disabled={activatingId != null}
+                    onClick={() => activate(item)}
+                  >
+                    {activatingId === item.id ? 'Activating…' : 'Activate'}
+                  </Button>
+                )}
                 <Button
                   size="small"
                   color="error"
@@ -289,6 +314,7 @@ function ScenarioEditor() {
   const navigate = useNavigate()
   const push = useToastStore((state) => state.push)
   const refreshSession = useSessionStore((state) => state.refresh)
+  const changeScenario = useSessionStore((state) => state.changeScenario)
   const [form, setForm] = useState(EMPTY)
   const [attachedFile, setAttachedFile] = useState('')
   const [pendingFile, setPendingFile] = useState(null)
@@ -458,6 +484,46 @@ function ScenarioEditor() {
           ) : null}
         </Box>
         <Stack direction="row" spacing={1}>
+          {!isNew && active ? (
+            <Button
+              variant="outlined"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await changeScenario('')
+                  setActive(false)
+                  push('This scenario is no longer active.', 'success')
+                } catch (error) {
+                  push(error?.message || 'The scenario could not be deactivated.', 'error')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Deactivate
+            </Button>
+          ) : null}
+          {!isNew && !active ? (
+            <Button
+              variant="contained"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await changeScenario(String(id))
+                  setActive(true)
+                  push('This scenario is now active.', 'success')
+                } catch (error) {
+                  push(error?.message || 'The scenario could not be activated.', 'error')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Activate
+            </Button>
+          ) : null}
           <Button onClick={() => navigate('/exercise/scenarios')} disabled={busy}>
             Cancel
           </Button>

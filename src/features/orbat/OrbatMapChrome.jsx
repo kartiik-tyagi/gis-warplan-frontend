@@ -61,7 +61,7 @@ function HoverCard({ hover, nodes, types }) {
 }
 
 /** Hover details and the map right-click menu. A cluster asks which resource you mean before any action. */
-export function OrbatMapChrome({ nodes, types, editable, canMark, marked, onAdd, onEdit, onDelete, onMark }) {
+export function OrbatMapChrome({ nodes, types, editable, canMark, canHold, marked, onAdd, onEdit, onDelete, onMark, onUpdate, onHold }) {
   const hover = useOrbatPicture((state) => state.hover)
   const menu = useOrbatPicture((state) => state.menu)
   const closeMenu = useOrbatPicture((state) => state.closeMenu)
@@ -140,8 +140,14 @@ export function OrbatMapChrome({ nodes, types, editable, canMark, marked, onAdd,
           <MenuItem key={type.id} onClick={() => beginAdd(resource.id, type.id)}>{type.name}</MenuItem>
         ))}
         {canMark && resource && !marked.has(resource.id) ? <MenuItem onClick={() => { onMark(resource.id); setResourceId(null); closeMenu() }}>Mark as user</MenuItem> : null}
+        {canMark && resource && marked.has(resource.id) ? <MenuItem onClick={() => { onUpdate(resource.id); setResourceId(null); closeMenu() }}>Update user</MenuItem> : null}
+        {canHold && resource?.sourceNodeId ? (
+          <MenuItem onClick={() => { onHold(resource.id); setResourceId(null); closeMenu() }}>
+            {resource.participationHeld ? 'Allow user' : 'Deactivate user'}
+          </MenuItem>
+        ) : null}
         {editable && resource?.parentId ? <MenuItem onClick={() => { onDelete(resource.id); setResourceId(null); closeMenu() }}>Delete</MenuItem> : null}
-        {!editable ? <MenuItem disabled>Read only</MenuItem> : null}
+        {!editable && !(canMark && resource && marked.has(resource.id)) && !(canHold && resource?.sourceNodeId) ? <MenuItem disabled>Read only</MenuItem> : null}
       </Menu>
     </>
   )

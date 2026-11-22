@@ -12,7 +12,8 @@ function TreeRow({ node, depth, ctx }) {
   const open = ctx.expanded.has(node.id)
   const selected = ctx.selectedId === node.id
   const type = ctx.nodeTypes.get(node.nodeTypeId)
-  const user = ctx.userByNode.get(node.id)
+  const marked = ctx.userByNode.get(node.id)
+  const user = marked && typeof marked === 'object' ? marked.name : marked
   const dropOk = ctx.dragId && canReparent(ctx.nodes, ctx.dragId, node.id)
   const over = ctx.overId === node.id && dropOk
 

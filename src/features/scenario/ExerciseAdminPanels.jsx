@@ -13,6 +13,7 @@ import {
 } from '@mui/material'
 import { ApiError } from '../../shared/api/errors'
 import { del, get, post, put } from '../../shared/api/http'
+import { loadMoonPhases } from '../../shared/api/moonPhases'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
@@ -70,7 +71,7 @@ function fromTimeInput(value) {
  * List + form + activate/delete shared by scenarios and games.
  * `listPath` is null until a parent (scenario) is chosen; `itemPath(id)` addresses a single record.
  */
-function ExerciseCrud({ noun, listPath, itemPath, empty, toBody, primary, secondary, extraFields, details, disabledNote }) {
+function ExerciseCrud({ noun, listPath, itemPath, deactivatePath, empty, toBody, primary, secondary, extraFields, details, disabledNote }) {
   const push = useToastStore((state) => state.push)
   const refreshSession = useSessionStore((state) => state.refresh)
   const [items, setItems] = useState(null)
@@ -164,6 +165,15 @@ function ExerciseCrud({ noun, listPath, itemPath, empty, toBody, primary, second
       await syncShell()
     }, `The ${noun} could not be activated.`)
 
+  const deactivate = () =>
+    run(async () => {
+      await post(deactivatePath)
+      logger.info(`${noun}.admin.deactivated`, { id: selectedId })
+      push(`${noun[0].toUpperCase()}${noun.slice(1)} deactivated.`, 'success')
+      await load()
+      await syncShell()
+    }, `The ${noun} could not be deactivated.`)
+
   const remove = () =>
     run(async () => {
       await del(itemPath(selectedId))
@@ -219,8 +229,11 @@ function ExerciseCrud({ noun, listPath, itemPath, empty, toBody, primary, second
         {selected && details ? details(selected) : null}
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
           <Button variant="contained" onClick={save} disabled={busy}>Save</Button>
-          {selectedId !== 'new' ? (
-            <Button variant="outlined" onClick={activate} disabled={busy || selected?.active}>Activate</Button>
+          {selectedId !== 'new' && selected?.active && deactivatePath ? (
+            <Button variant="outlined" onClick={deactivate} disabled={busy}>Deactivate</Button>
+          ) : null}
+          {selectedId !== 'new' && !selected?.active ? (
+            <Button variant="outlined" onClick={activate} disabled={busy}>Activate</Button>
           ) : null}
           {selectedId !== 'new' ? (
             <Button color="error" variant="outlined" onClick={() => setConfirmDelete(true)} disabled={busy || selected?.active}>
@@ -254,6 +267,7 @@ export function ScenarioAdminPanel() {
         noun="scenario"
         listPath="/scenarios"
         itemPath={(id) => `/scenarios/${id}`}
+        deactivatePath="/scenarios/deactivate"
         empty={EMPTY_SCENARIO}
         toBody={(form) => ({
           name: form.name.trim(),
@@ -310,6 +324,19 @@ export function GameAdminPanel() {
   const push = useToastStore((state) => state.push)
   const [scenarios, setScenarios] = useState(null)
   const [scenarioId, setScenarioId] = useState('')
+  const [phases, setPhases] = useState(EMPTY_LIST)
+
+  useEffect(() => {
+    let live = true
+    loadMoonPhases()
+      .then((rows) => {
+        if (live) setPhases(rows)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
 
   useEffect(() => {
     let live = true
@@ -361,6 +388,7 @@ export function GameAdminPanel() {
         noun="game"
         listPath={scenarioId ? `/scenarios/${scenarioId}/games` : null}
         itemPath={(id) => `/games/${id}`}
+        deactivatePath="/games/deactivate"
         empty={EMPTY_GAME}
         toBody={(form) => ({
           name: form.name.trim(),
@@ -411,15 +439,22 @@ export function GameAdminPanel() {
               />
             </Stack>
             <TextField
+              select
               size="small"
-              label="Moonphases"
-              multiline
-              minRows={2}
+              label="Moon phase"
               value={form.moonphases}
               onChange={(event) => change('moonphases', event.target.value)}
               error={Boolean(errors.moonphases)}
-              helperText={errors.moonphases || undefined}
-            />
+              helperText={errors.moonphases || 'Optional'}
+            >
+              <MenuItem value="">None</MenuItem>
+              {phases.map((phase) => (
+                <MenuItem key={phase.code} value={phase.code}>{phase.label}</MenuItem>
+              ))}
+              {form.moonphases && !phases.some((phase) => phase.code === form.moonphases) ? (
+                <MenuItem value={form.moonphases}>{form.moonphases}</MenuItem>
+              ) : null}
+            </TextField>
             <TextField
               size="small"
               label="Description"

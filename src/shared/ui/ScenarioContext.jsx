@@ -22,6 +22,7 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
+import { loadMoonPhases, moonPhaseLabel } from '../api/moonPhases'
 
 const NONE = '__none__'
 const NONE_GAME = '__none_game__'
@@ -56,6 +57,19 @@ export function ScenarioContext() {
   const [pending, setPending] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [phases, setPhases] = useState([])
+
+  useEffect(() => {
+    let live = true
+    loadMoonPhases()
+      .then((rows) => {
+        if (live) setPhases(rows)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!session) return undefined
@@ -76,6 +90,7 @@ export function ScenarioContext() {
   )
   const scenario = scenarios.find((item) => item.id === session.activeScenarioId)
   const game = games.find((item) => item.id === session.activeGame.id) || session.activeGame
+  const moonLabel = moonPhaseLabel(phases, game?.moonphases)
   const scenarioValue = session.activeScenarioId || NONE
   const gameValue =
     session.activeScenarioId && session.activeGame.id && games.some((item) => item.id === session.activeGame.id)
@@ -252,10 +267,10 @@ export function ScenarioContext() {
             </Typography>
           </Fact>
         ) : null}
-        {game?.moonphases ? (
-          <Fact label="Moonphases" icon={<NightlightOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ maxWidth: 180 }} title={game.moonphases}>
-              {game.moonphases}
+        {moonLabel ? (
+          <Fact label="Moon phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
+            <Typography variant="body2" noWrap sx={{ maxWidth: 180 }} title={moonLabel}>
+              {moonLabel}
             </Typography>
           </Fact>
         ) : null}

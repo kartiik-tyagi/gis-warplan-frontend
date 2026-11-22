@@ -16,6 +16,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { del, get, post, put } from '../../shared/api/http'
+import { loadMoonPhases } from '../../shared/api/moonPhases'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
@@ -132,6 +133,23 @@ function GameList() {
     }
   }
 
+  const deactivate = async (event, item) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!item.active || activatingId) return
+    setActivatingId(item.id)
+    try {
+      await changeGame('')
+      push(`“${item.name}” is no longer the active game.`, 'success')
+      await loadGames()
+      await refreshSession()
+    } catch (error) {
+      push(error?.message || 'The game could not be deactivated.', 'error')
+    } finally {
+      setActivatingId(null)
+    }
+  }
+
   if (!scenarios) return <LoadingState label="Loading scenarios" />
 
   return (
@@ -219,15 +237,26 @@ function GameList() {
                 >
                   Edit
                 </Button>
-                <Button
-                  size="small"
-                  variant={item.active ? 'outlined' : 'contained'}
-                  startIcon={<CheckCircleOutlinedIcon />}
-                  disabled={Boolean(item.active) || activatingId != null}
-                  onClick={(event) => activate(event, item)}
-                >
-                  {item.active ? 'Active' : activatingId === item.id ? 'Activating…' : 'Activate'}
-                </Button>
+                {item.active ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={activatingId != null}
+                    onClick={(event) => deactivate(event, item)}
+                  >
+                    {activatingId === item.id ? 'Deactivating…' : 'Deactivate'}
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<CheckCircleOutlinedIcon />}
+                    disabled={activatingId != null}
+                    onClick={(event) => activate(event, item)}
+                  >
+                    {activatingId === item.id ? 'Activating…' : 'Activate'}
+                  </Button>
+                )}
               </Stack>
             </Box>
           ))}
@@ -244,6 +273,7 @@ function GameEditor() {
   const navigate = useNavigate()
   const push = useToastStore((state) => state.push)
   const refreshSession = useSessionStore((state) => state.refresh)
+  const changeGame = useSessionStore((state) => state.changeGame)
   const [scenarios, setScenarios] = useState(EMPTY_LIST)
   const [scenarioId, setScenarioId] = useState(searchParams.get('scenarioId') || '')
   const [form, setForm] = useState(EMPTY)
@@ -253,6 +283,19 @@ function GameEditor() {
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [phases, setPhases] = useState(EMPTY_LIST)
+
+  useEffect(() => {
+    let live = true
+    loadMoonPhases()
+      .then((rows) => {
+        if (live) setPhases(rows)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
 
   useEffect(() => {
     let live = true
@@ -436,17 +479,22 @@ function GameEditor() {
         />
       </Stack>
       <TextField
-        label="Moonphases"
-        multiline
-        minRows={2}
+        select
+        label="Moon phase"
         value={form.moonphases}
         onChange={(event) => change('moonphases', event.target.value)}
         error={Boolean(errors.moonphases)}
-        helperText={errors.moonphases || 'Optional free-text moon phase notes'}
-        placeholder=" "
+        helperText={errors.moonphases || 'Optional'}
         fullWidth
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
+      >
+        <MenuItem value="">None</MenuItem>
+        {phases.map((phase) => (
+          <MenuItem key={phase.code} value={phase.code}>{phase.label}</MenuItem>
+        ))}
+        {form.moonphases && !phases.some((phase) => phase.code === form.moonphases) ? (
+          <MenuItem value={form.moonphases}>{form.moonphases}</MenuItem>
+        ) : null}
+      </TextField>
       <RichTextEditor
         label="Description"
         value={form.description}
@@ -466,6 +514,46 @@ function GameEditor() {
           ) : null}
         </Box>
         <Stack direction="row" spacing={1}>
+          {!isNew && active ? (
+            <Button
+              variant="outlined"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await changeGame('')
+                  setActive(false)
+                  push('This game is no longer active.', 'success')
+                } catch (error) {
+                  push(error?.message || 'The game could not be deactivated.', 'error')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Deactivate
+            </Button>
+          ) : null}
+          {!isNew && !active ? (
+            <Button
+              variant="contained"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await changeGame(String(id))
+                  setActive(true)
+                  push('This game is now active.', 'success')
+                } catch (error) {
+                  push(error?.message || 'The game could not be activated.', 'error')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Activate
+            </Button>
+          ) : null}
           <Button onClick={() => navigate(scenarioId ? `/exercise/games?scenarioId=${scenarioId}` : '/exercise/games')} disabled={busy}>
             Cancel
           </Button>

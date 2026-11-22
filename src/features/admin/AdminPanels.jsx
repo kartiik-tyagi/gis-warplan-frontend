@@ -152,7 +152,7 @@ function UserEditor({ user, roles, sides, themes, themeName, onChanged }) {
     <Stack spacing={1}>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Typography variant="body2" sx={{ flex: 1, opacity: user.active ? 1 : 0.55 }}>{user.name}</Typography>
-        <Caption>{user.active ? 'Active' : 'Inactive'}</Caption>
+        <Caption>{user.standardNodeId ? (user.active ? 'On for the active game' : 'Off') : (user.active ? 'Active' : 'Inactive')}</Caption>
       </Stack>
       <Caption>
         {home ? `Team ${home.name}. ` : 'No team. '}
@@ -196,9 +196,11 @@ function UserEditor({ user, roles, sides, themes, themeName, onChanged }) {
             <TextField size="small" type="password" label="New password" value={password} onChange={(event) => setPassword(event.target.value)} sx={{ flex: 1 }} />
             <Button size="small" disabled={busy || password.length < 3} onClick={() => patchUser({ password }, 'Password set.').then(() => setPassword(''))}>Set</Button>
           </Stack>
-          <Button size="small" color={user.active ? 'error' : 'primary'} disabled={busy} onClick={() => patchUser({ active: !user.active }, user.active ? 'User deactivated.' : 'User activated.')}>
-            {user.active ? 'Deactivate' : 'Activate'}
-          </Button>
+          {user.standardNodeId ? null : (
+            <Button size="small" color={user.active ? 'error' : 'primary'} disabled={busy} onClick={() => patchUser({ active: !user.active }, user.active ? 'User deactivated.' : 'User activated.')}>
+              {user.active ? 'Deactivate' : 'Activate'}
+            </Button>
+          )}
         </>
       ) : null}
     </Stack>

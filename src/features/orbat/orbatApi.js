@@ -1,4 +1,4 @@
-import { del, get, post, put } from '../../shared/api/http'
+import { del, get, patch, post, put } from '../../shared/api/http'
 
 export const listSides = () => get('/sides')
 export const listNodeTypes = () => get('/node-types')
@@ -38,3 +38,7 @@ export const listAlliances = (gameId) => get(`/games/${gameId}/alliances`)
 export const createAlliance = (gameId, body) => post(`/games/${gameId}/alliances`, body)
 
 export const markAsUser = (body) => post('/users/mark-from-node', body)
+
+export const listMarkedUsers = (standardOrbatId) => get('/users/marked', { standardOrbatId })
+
+export const updateMarkedUser = (body) => patch('/users/marked', body)
