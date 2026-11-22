@@ -4,7 +4,7 @@ import { IconField } from '../../shared/ui/IconPicker'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
 import { useLocationPick } from '../../shared/map/useLocationPick'
-import { allowedChildren, fieldsOf, typeCode } from './nodeRules'
+import { allowedChildren, canSitUnder, fieldsOf, typeCode } from './nodeRules'
 
 function emptyValues(type, preset) {
   const values = { name: preset?.name || '', nodeTypeId: type?.id ?? preset?.nodeTypeId ?? '' }
@@ -15,24 +15,64 @@ function emptyValues(type, preset) {
 }
 
 /** One form for adding or editing a node. Fields come from the node type catalogue. */
-export function NodeFormDialog({ open, title, types = [], parent, initial, preset, presetTypeId, iconTheme, onClose, onSubmit }) {
-  const parentType = types.find((type) => String(type.id) === String(parent?.nodeTypeId)) || null
-  const choices = useMemo(() => (initial ? types.filter((type) => String(type.id) === String(initial.nodeTypeId)) : allowedChildren(types, parentType)), [types, parentType, initial])
+export function NodeFormDialog({
+  open,
+  title,
+  types = [],
+  parent,
+  initial,
+  preset,
+  presetTypeId,
+  iconTheme,
+  hierarchy = null,
+  sides = null,
+  sideId = '',
+  onSideChange,
+  onClose,
+  onSubmit,
+}) {
   const [typeId, setTypeId] = useState('')
+  const [underId, setUnderId] = useState('')
   const [iconPath, setIconPath] = useState('')
   const [values, setValues] = useState({ name: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const type = types.find((item) => String(item.id) === String(typeId)) || null
+  const tree = Array.isArray(hierarchy) ? hierarchy : null
+  const underNode = tree?.find((node) => node.id === underId) || null
+  const typeOfNode = (node) => types.find((item) => String(item.id) === String(node?.nodeTypeId)) || null
+  const parentType = types.find((item) => String(item.id) === String((underNode || parent)?.nodeTypeId)) || null
+  const choices = useMemo(() => {
+    if (initial) return types.filter((item) => String(item.id) === String(initial.nodeTypeId))
+    if (tree) {
+      if (underNode) return allowedChildren(types, typeOfNode(underNode))
+      return types.filter((item) => tree.some((node) => canSitUnder(item, typeCode(typeOfNode(node)))))
+    }
+    return allowedChildren(types, parentType)
+  }, [types, parentType, initial, tree, underNode])
+  const underOptions = useMemo(() => {
+    if (!tree) return []
+    if (!type) return tree
+    return tree.filter((node) => canSitUnder(type, typeCode(typeOfNode(node))))
+  }, [tree, type, types])
+  const rootEdit = Boolean(initial && !initial.parentId)
 
   const wasOpen = useRef(false)
   useEffect(() => {
     const opening = open && !wasOpen.current
     wasOpen.current = open
     if (!opening) return
-    const startId = initial?.nodeTypeId || presetTypeId || choices[0]?.id || ''
+    const hinted = parent
+    const hintedType = types.find((item) => String(item.id) === String(hinted?.nodeTypeId))
+    const startChoices = initial
+      ? types.filter((item) => String(item.id) === String(initial.nodeTypeId))
+      : hinted
+        ? allowedChildren(types, hintedType)
+        : choices
+    const startId = initial?.nodeTypeId || presetTypeId || startChoices[0]?.id || ''
     const start = types.find((item) => String(item.id) === String(startId))
     setTypeId(startId === '' ? '' : String(startId))
+    setUnderId(initial?.parentId || parent?.id || '')
     setIconPath(initial?.iconPath || start?.iconPath || '')
     const next = emptyValues(start, initial || preset)
     if (!initial && parent && start?.code === 'GOC') {
@@ -60,7 +100,12 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
       setError('Enter a name.')
       return
     }
+    if (tree && !rootEdit && !underId) {
+      setError('Choose where this sits in the hierarchy.')
+      return
+    }
     const node = { ...values, name: String(values.name).trim(), nodeTypeId: type.id, iconPath: iconPath || null }
+    if (tree && !rootEdit) node.parentId = underId || null
     fieldsOf(type).forEach((field) => {
       const raw = node[field.key]
       if (field.type === 'number') node[field.key] = raw === '' || raw == null ? null : Number(raw)
@@ -105,6 +150,18 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
       <DialogContent>
         <Stack spacing={1.25} sx={{ pt: 1 }}>
           {choices.length ? null : <TextField error size="small" value="This node has no type yet, so nothing can be added under it. Edit it and choose a type first." slotProps={{ input: { readOnly: true } }} />}
+          {sides?.length ? (
+            <SearchSelect
+              required
+              size="small"
+              label="Side"
+              options={sides}
+              value={sideId}
+              onChange={onSideChange}
+              getOptionLabel={(item) => item.name}
+              getOptionValue={(item) => String(item.id)}
+            />
+          ) : null}
           <SearchSelect
             required
             size="small"
@@ -117,10 +174,24 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
               setTypeId(id)
               setIconPath(next?.iconPath || '')
               setValues(emptyValues(next, { ...values, nodeTypeId: next?.id }))
+              const stayed = tree?.find((node) => node.id === underId)
+              if (next && stayed && !canSitUnder(next, typeCode(typeOfNode(stayed)))) setUnderId('')
             }}
             getOptionLabel={(item) => item.name}
             getOptionValue={(item) => String(item.id)}
           />
+          {tree && !rootEdit ? (
+            <SearchSelect
+              required
+              size="small"
+              label="Under"
+              options={underOptions}
+              value={underOptions.some((node) => node.id === underId) ? underId : ''}
+              onChange={setUnderId}
+              getOptionLabel={(node) => `${node.name}${typeOfNode(node)?.name ? ` · ${typeOfNode(node).name}` : ''}`}
+              getOptionValue={(node) => node.id}
+            />
+          ) : null}
           <IconField label="Icon" value={iconPath} onChange={setIconPath} theme={iconTheme} />
           <TextField required size="small" label="Name" value={values.name || ''} onChange={(event) => setField('name', event.target.value)} />
           {latitude ? (
@@ -175,7 +246,7 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button type="submit" variant="contained" disabled={busy || !typeId}>{busy ? 'Saving' : 'Done'}</Button>
+        <Button type="submit" variant="contained" disabled={busy || !typeId || (tree && !rootEdit && !underId)}>{busy ? 'Saving' : 'Done'}</Button>
       </DialogActions>
     </Dialog>
   )

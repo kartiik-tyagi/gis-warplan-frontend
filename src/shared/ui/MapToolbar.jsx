@@ -8,6 +8,7 @@ import { NavIcon } from './navIcons'
 
 const GROUP_ICON = {
   map: 'layers',
+  orbat: 'orbat',
   plan: 'plan',
   game: 'control',
   admin: 'settings',
@@ -39,12 +40,12 @@ function ToolButton({ item, selected, onSelect, placement }) {
   )
 }
 
-export function MapToolbar({ orientation = 'horizontal', activeId, onSelect, onHide }) {
+export function MapToolbar({ orientation = 'horizontal', activeId, pressedIds = [], onSelect, onHide }) {
   const groups = useNavigation()
   const theme = useTheme()
   const compact = useMediaQuery(theme.breakpoints.down('md'))
   const vertical = orientation === 'vertical'
-  const [openGroups, setOpenGroups] = useState(['map', 'admin'])
+  const [openGroups, setOpenGroups] = useState(['map', 'orbat', 'admin'])
   const placement = vertical ? 'right' : 'bottom'
 
   const toggle = (id) => {
@@ -122,8 +123,8 @@ export function MapToolbar({ orientation = 'horizontal', activeId, onSelect, onH
               </Button>
             )}
             {open
-              ? group.items.map((item) => (
-                  <ToolButton key={item.id} item={item} selected={activeId === item.id} onSelect={onSelect} placement={placement} />
+                ? group.items.map((item) => (
+                  <ToolButton key={item.id} item={item} selected={activeId === item.id || pressedIds.includes(item.id)} onSelect={onSelect} placement={placement} />
                 ))
               : null}
           </Box>

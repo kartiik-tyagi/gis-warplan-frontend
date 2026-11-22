@@ -42,6 +42,14 @@ export function navigationForFunctionalities(functionalities) {
     const mapItems = [item('filters', 'Map Filters', 'layers'), item('extent', 'Home Extent', 'extent')]
     groups.push({ id: 'map', label: 'Map', items: mapItems })
   }
+  const orbatItems = []
+  if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_STANDARD_ORBAT)) {
+    orbatItems.push(item('orbat-standard', 'Standard', 'orbat'))
+  }
+  if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_PLAYING_ORBAT)) {
+    orbatItems.push(item('orbat-playing', 'Playing', 'flight'))
+  }
+  if (orbatItems.length) groups.push({ id: 'orbat', label: 'ORBAT', items: orbatItems })
 
   return groups
 }
@@ -59,6 +67,9 @@ export function sectionsForFunctionalities(functionalities) {
     sections.push({ id: 'map-catalog', kicker: 'Map', label: 'Map Catalog', icon: 'settings' })
   }
   if (canOpenOrbat(functionalities)) sections.push({ id: 'orbat', kicker: 'ORBAT', label: 'ORBAT', icon: 'orbat' })
+  if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_STANDARD_ORBAT)) {
+    sections.push({ id: 'air', kicker: 'Standard Data', label: 'Air', icon: 'flight' })
+  }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_SIDES)) {
     sections.push({ id: 'teams', kicker: 'Standard Data', label: 'Sides', icon: 'teams' })
   }
@@ -88,6 +99,7 @@ export const SECTION_ROUTE = Object.freeze({
   scenario: '/exercise/scenarios',
   game: '/exercise/games',
   'map-catalog': '/map/catalog',
+  air: '/standard/air',
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
@@ -101,6 +113,7 @@ const SECTION_TITLE = Object.freeze({
   scenario: 'Scenario Management',
   game: 'Game Management',
   'map-catalog': 'Map Catalog',
+  air: 'Air',
   teams: 'Sides',
   themes: 'Themes',
   'node-types': 'Node Types',

@@ -20,9 +20,13 @@ import { StatusFooter } from '../shared/ui/StatusFooter'
 import { ToolDock } from '../shared/ui/ToolDock'
 import { ContextStrip, TopBar } from '../shared/ui/TopBar'
 import { WorkWindow } from '../shared/ui/WorkWindow'
+import { MapOrbat } from '../features/orbat/MapOrbat'
+import { useMapOrbat } from '../features/orbat/useMapOrbat'
+import { AirPage } from '../features/air/AirPages'
 
 function Frame() {
   const { panel, closePanel, select } = useChrome()
+  const mapMode = useMapOrbat((state) => state.mode)
   const refresh = useSessionStore((state) => state.refresh)
   const [toolsOpen, setToolsOpen] = useState(true)
   const [readout, setReadout] = useState(null)
@@ -30,6 +34,19 @@ function Frame() {
   useEffect(() => {
     refresh().catch(() => {})
   }, [refresh])
+
+  useEffect(() => {
+    if (panel === 'orbat') useMapOrbat.getState().clear()
+  }, [panel])
+
+  const selectTool = (id) => {
+    if (id === 'orbat-standard' || id === 'orbat-playing') {
+      useMapOrbat.getState().toggle(id === 'orbat-standard' ? 'standard' : 'playing')
+      if (panel === 'orbat') closePanel()
+      return
+    }
+    select(id)
+  }
 
   return (
     <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', bgcolor: 'background.default', color: 'text.primary' }}>
@@ -42,7 +59,7 @@ function Frame() {
         }
       />
       <ContextStrip />
-      {toolsOpen ? <MapToolbar activeId={panel} onSelect={select} /> : null}
+      {toolsOpen ? <MapToolbar activeId={panel} pressedIds={mapMode ? [`orbat-${mapMode}`] : []} onSelect={selectTool} /> : null}
       <Box
         sx={{
           flex: 1,
@@ -53,8 +70,9 @@ function Frame() {
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ flex: 1, minWidth: 0, minHeight: { xs: panel ? '32vh' : 0, md: 0 }, display: 'flex' }}>
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: { xs: panel ? '32vh' : 0, md: 0 }, display: 'flex', position: 'relative' }}>
           <MapStage readout="none" onReadout={setReadout} />
+          <MapOrbat suspended={panel === 'orbat'} />
         </Box>
         <ToolDock panel={panel} onClose={closePanel} edge="end" />
       </Box>
@@ -86,6 +104,7 @@ export default function Shell() {
         <Route path="/exercise/games/:id" element={<GameEditorPage />} />
         <Route path="/map/catalog" element={<MapCatalogPage />} />
         <Route path="/standard/teams" element={<TeamsListPage />} />
+        <Route path="/standard/air" element={<AirPage />} />
         <Route path="/standard/teams/:id" element={<TeamEditorPage />} />
         <Route path="/standard/themes" element={<ThemesListPage />} />
         <Route path="/standard/themes/:id" element={<ThemeEditorPage />} />

@@ -33,6 +33,7 @@ import { childAllowed } from './nodeRules'
 import { OrbatMapChrome } from './OrbatMapChrome'
 import { refreshSituation } from '../situation/useSituation'
 import { useOrbatPicture } from './useOrbatPicture'
+import { useMapOrbat } from './useMapOrbat'
 import { swatches } from '../../shared/theme/swatches'
 import { swatchForColour, themeFromEntity } from '../../shared/api/mappers'
 import { createAppTheme } from '../../shared/theme/createAppTheme'
@@ -386,7 +387,9 @@ export default function OrbatPanel() {
     useOrbatPicture.setState({ parentId: selectedId })
   }, [selectedId])
 
-  useEffect(() => () => useOrbatPicture.getState().hide(), [])
+  useEffect(() => () => {
+    if (!useMapOrbat.getState().mode) useOrbatPicture.getState().hide()
+  }, [])
 
   useEffect(() => {
     if (!placeToken) return
