@@ -20,6 +20,7 @@ import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
 import MyLocationOutlinedIcon from '@mui/icons-material/MyLocationOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined'
+import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
@@ -468,6 +469,9 @@ function ViewDefaultsTab({ servers }) {
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const locationOwner = useSharedMapPick((point) => setForm((current) => (
+    current ? { ...current, centerLat: point.latitude, centerLon: point.longitude } : current
+  )))
 
   useEffect(() => {
     let live = true
@@ -538,7 +542,17 @@ function ViewDefaultsTab({ servers }) {
         <SectionLabel>Centre and zoom</SectionLabel>
         <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
           {VIEW_NUMBER.map(([name, label]) => (
-            <Field key={name} name={name} label={label} type="number" form={form} errors={errors} onChange={change} sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }} />
+            <Field
+              key={name}
+              name={name}
+              label={label}
+              type="number"
+              form={form}
+              errors={errors}
+              onChange={change}
+              slotProps={name === 'centerLat' || name === 'centerLon' ? { input: { startAdornment: locationStartAdornment(locationOwner) } } : undefined}
+              sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }}
+            />
           ))}
         </Stack>
         <SectionLabel>Default server</SectionLabel>

@@ -8,6 +8,7 @@ import { useDirectoryStore } from '../../features/directory/useDirectoryStore'
 import { useSituation } from '../../features/situation/useSituation'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { get } from '../api/http'
+import { useLocationPick } from '../map/useLocationPick'
 
 function formatCoordinate(value) {
   return Number(value).toFixed(4)
@@ -42,6 +43,28 @@ export function MapStage({ readout = 'bar', onReadout }) {
   const userId = session?.me?.userId
   const playingOrbatId = session?.me?.playingOrbatId
   const canWork = session?.me?.canWork
+  const picking = useLocationPick((state) => state.armed)
+
+  useEffect(() => {
+    const element = map?.getTargetElement?.()
+    if (!element) return undefined
+    const previous = element.style.cursor
+    if (picking) element.style.cursor = 'crosshair'
+    const frame = requestAnimationFrame(() => map.updateSize())
+    return () => {
+      cancelAnimationFrame(frame)
+      element.style.cursor = previous
+    }
+  }, [map, picking])
+
+  useEffect(() => {
+    if (!picking) return undefined
+    const onKey = (event) => {
+      if (event.key === 'Escape') useLocationPick.getState().disarm()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [picking])
 
   useEffect(() => {
     if (!session) return undefined
@@ -130,6 +153,36 @@ export function MapStage({ readout = 'bar', onReadout }) {
         {measure ? (
           <Box sx={{ position: 'absolute', top: 12, left: 12, zIndex: 2, px: 1, py: 0.5, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
             <Typography variant="caption">{measure}</Typography>
+          </Box>
+        ) : null}
+        {picking ? (
+          <Box
+            sx={(theme) => ({
+              position: 'absolute',
+              top: 12,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: theme.zIndex.modal + 1,
+              px: 1.25,
+              py: 0.75,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'primary.main',
+              borderRadius: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              pointerEvents: 'auto',
+            })}
+          >
+            <Typography
+              component="button"
+              variant="caption"
+              onClick={() => useLocationPick.getState().disarm()}
+              sx={{ border: 0, bgcolor: 'transparent', color: 'primary.main', cursor: 'pointer', font: 'inherit' }}
+            >
+              Back to form
+            </Typography>
           </Box>
         ) : null}
         {readout === 'overlay' ? (

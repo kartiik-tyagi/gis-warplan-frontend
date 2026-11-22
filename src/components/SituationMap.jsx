@@ -8,6 +8,7 @@ import ScaleLine from 'ol/control/ScaleLine'
 import { fromLonLat, toLonLat } from 'ol/proj'
 import { Box } from '@mui/material'
 import 'ol/ol.css'
+import { useLocationPick } from '../shared/map/useLocationPick'
 
 function createTileLayer(serviceUrl, filter) {
   if (!serviceUrl || !filter?.layers) return null
@@ -76,6 +77,10 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
       if (event.dragging) return
       const [longitude, latitude] = toLonLat(event.coordinate)
       onPointerRef.current?.({ latitude, longitude })
+    })
+    map.on('singleclick', (event) => {
+      const [longitude, latitude] = toLonLat(event.coordinate)
+      useLocationPick.getState().offer(latitude, longitude)
     })
 
     const publishZoom = () => {

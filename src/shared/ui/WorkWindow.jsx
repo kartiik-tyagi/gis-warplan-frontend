@@ -5,6 +5,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { create } from 'zustand'
 import { sectionFromPath } from '../auth/access'
+import { useLocationPick } from '../map/useLocationPick'
 
 const MIN_W = 480
 const MIN_H = 360
@@ -109,6 +110,7 @@ export function WorkWindow() {
   const box = useWorkWindowStore((state) => state.box)
   const place = useWorkWindowStore((state) => state.place)
   const ensure = useWorkWindowStore((state) => state.ensure)
+  const picking = useLocationPick((state) => state.armed)
 
   useEffect(() => {
     if (sectionFromPath(location.pathname)) ensure()
@@ -147,6 +149,8 @@ export function WorkWindow() {
         overflow: 'hidden',
         minWidth: 0,
         minHeight: 0,
+        visibility: picking ? 'hidden' : 'visible',
+        pointerEvents: picking ? 'none' : 'auto',
       })}
     >
       <Box

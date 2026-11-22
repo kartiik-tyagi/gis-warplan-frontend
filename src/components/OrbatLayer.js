@@ -9,6 +9,7 @@ import Translate from 'ol/interaction/Translate'
 import { fromLonLat, toLonLat } from 'ol/proj'
 import { Circle, Fill, Icon, Stroke, Style, Text } from 'ol/style'
 import { useOrbatPicture } from '../features/orbat/useOrbatPicture'
+import { locationPickedJustNow, useLocationPick } from '../shared/map/useLocationPick'
 import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
 
 /** Draws the open ORBAT draft on the situation map. Nearby markers cluster as you zoom out. */
@@ -40,6 +41,7 @@ export function OrbatLayer({ map }) {
     const onClick = (event) => {
       if (!armed) return
       armed = false
+      if (useLocationPick.getState().armed || locationPickedJustNow()) return
       const hit = map.forEachFeatureAtPixel(event.pixel, (feature) => feature, { layerFilter: (item) => item === layer })
       const members = membersOf(hit)
       if (members.length > 1) {

@@ -11,6 +11,7 @@ import { fromLonLat, toLonLat } from 'ol/proj'
 import { getArea, getLength } from 'ol/sphere'
 import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, Text } from 'ol/style'
 import { click } from 'ol/events/condition'
+import { locationPickedJustNow, useLocationPick } from '../shared/map/useLocationPick'
 import * as api from '../shared/api/client'
 import { useCommit, useDirectoryStore } from '../features/directory/useDirectoryStore'
 import { useSessionStore } from '../features/session/useSessionStore'
@@ -231,6 +232,7 @@ export function MapWorkbench({ map }) {
         type: drawing[tool],
         freehand: tool === 'freehand',
         geometryFunction: tool === 'rectangle' ? createBox() : undefined,
+        condition: () => !useLocationPick.getState().armed && !locationPickedJustNow(),
       })
       draw.on('drawend', (event) => {
         const geometry = readGeometry(tool, event.feature.getGeometry())
@@ -246,11 +248,17 @@ export function MapWorkbench({ map }) {
       })
       track(draw)
     } else if (tool === 'edit') {
-      const modify = new Modify({ source })
+      const modify = new Modify({
+        source,
+        condition: () => !useLocationPick.getState().armed && !locationPickedJustNow(),
+      })
       modify.on('modifyend', onModify)
       track(modify)
     } else if (tool === 'select') {
-      const picker = new Select({ condition: click, layers: [layer] })
+      const picker = new Select({
+        condition: (event) => click(event) && !useLocationPick.getState().armed && !locationPickedJustNow(),
+        layers: [layer],
+      })
       picker.on('select', (event) => {
         const feature = event.selected[0]
         if (!feature) return

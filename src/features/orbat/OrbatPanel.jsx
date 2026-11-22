@@ -830,6 +830,7 @@ export default function OrbatPanel() {
         user={dialog?.kind === 'update' ? userByNode.get(dialog.id) : null}
         roles={roles}
         themes={themes}
+        sideName={sidesById.get(Number(sideId))?.name || ''}
         onClose={() => setDialog(null)}
         onSubmit={dialog?.kind === 'update' ? updateUser : markUser}
       />

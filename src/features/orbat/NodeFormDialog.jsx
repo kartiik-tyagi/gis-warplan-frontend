@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
 import { IconField } from '../../shared/ui/IconPicker'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
+import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
+import { useLocationPick } from '../../shared/map/useLocationPick'
 import { allowedChildren, fieldsOf, typeCode } from './nodeRules'
 
 function emptyValues(type, preset) {
@@ -23,8 +25,11 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
   const [error, setError] = useState('')
   const type = types.find((item) => String(item.id) === String(typeId)) || null
 
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (!open) return
+    const opening = open && !wasOpen.current
+    wasOpen.current = open
+    if (!opening) return
     const startId = initial?.nodeTypeId || presetTypeId || choices[0]?.id || ''
     const start = types.find((item) => String(item.id) === String(startId))
     setTypeId(startId === '' ? '' : String(startId))
@@ -36,9 +41,15 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
     }
     setValues(next)
     setError('')
-  }, [open, initial, presetTypeId, parent, choices, types])
+  }, [open, initial, preset, presetTypeId, parent, choices, types])
 
   const setField = (key, value) => setValues((current) => ({ ...current, [key]: value }))
+  const picking = useLocationPick((state) => state.armed)
+  const locationOwner = useSharedMapPick((point) => setValues((current) => ({
+    ...current,
+    latitude: point.latitude,
+    longitude: point.longitude,
+  })))
 
   const submit = async () => {
     if (!type) {
@@ -66,8 +77,30 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
     }
   }
 
+  const catalogue = fieldsOf(type)
+  const latitude = catalogue.find((field) => field.key === 'latitude')
+  const longitude = catalogue.find((field) => field.key === 'longitude')
+  const otherFields = catalogue.filter((field) => field.key !== 'latitude' && field.key !== 'longitude')
+
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="xs" component="form" onSubmit={(event) => { event.preventDefault(); submit() }}>
+    <Dialog
+      open={open && !picking}
+      keepMounted
+      hideBackdrop={picking}
+      onClose={(event, reason) => {
+        if (picking && reason === 'escapeKeyDown') {
+          useLocationPick.getState().disarm()
+          return
+        }
+        if (!busy) onClose()
+      }}
+      fullWidth
+      maxWidth="xs"
+      component="form"
+      onSubmit={(event) => { event.preventDefault(); submit() }}
+      sx={picking ? { pointerEvents: 'none' } : undefined}
+      slotProps={{ paper: { sx: picking ? { visibility: 'hidden' } : undefined } }}
+    >
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Stack spacing={1.25} sx={{ pt: 1 }}>
@@ -90,7 +123,29 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
           />
           <IconField label="Icon" value={iconPath} onChange={setIconPath} theme={iconTheme} />
           <TextField required size="small" label="Name" value={values.name || ''} onChange={(event) => setField('name', event.target.value)} />
-          {fieldsOf(type).map((field) => field.type === 'choice' ? (
+          {latitude ? (
+            <TextField
+              required={latitude.required}
+              size="small"
+              type="number"
+              label={latitude.label}
+              value={values.latitude ?? ''}
+              onChange={(event) => setField('latitude', event.target.value)}
+              slotProps={{ input: { startAdornment: locationStartAdornment(locationOwner) } }}
+            />
+          ) : null}
+          {longitude ? (
+            <TextField
+              required={longitude.required}
+              size="small"
+              type="number"
+              label={longitude.label}
+              value={values.longitude ?? ''}
+              onChange={(event) => setField('longitude', event.target.value)}
+              slotProps={{ input: { startAdornment: locationStartAdornment(locationOwner) } }}
+            />
+          ) : null}
+          {otherFields.map((field) => field.type === 'choice' ? (
             <SearchSelect
               key={field.key}
               required={field.required}

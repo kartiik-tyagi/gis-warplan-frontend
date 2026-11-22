@@ -85,7 +85,7 @@ export function NodeNameDialog({ open, title, submitLabel = 'Save', initialName 
 }
 
 /** Creates or updates a user bound to a saved standard ORBAT node. An empty theme inherits the side theme. */
-export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes = EMPTY_LIST, onClose, onSubmit }) {
+export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes = EMPTY_LIST, sideName = '', onClose, onSubmit }) {
   const editing = Boolean(user)
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -116,8 +116,8 @@ export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes 
     >
       <Typography variant="body2" color="text.secondary">
         {editing
-          ? `Updates the sign-in for ${user.name}. Leave the password blank to keep it, and clear the theme to inherit this side.`
-          : `Creates a sign-in for the node ${node?.name}. Leave the theme empty to inherit this side. The account stays off until this node is in the active game.`}
+          ? `Updates the sign-in for ${user.name}. The account stays on ${sideName || 'this side'}. Leave the password blank to keep it, and clear the theme to inherit that side.`
+          : `Creates a sign-in for the node ${node?.name}. The account belongs to ${sideName || 'this side'}, and every role, including Side administrator, applies to that side. The side stays locked until the user is unmarked. Leave the theme empty to inherit it. The account stays off until this node is in the active game.`}
       </Typography>
       <TextField autoFocus required label="User Name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
       <TextField required={!editing} type="password" label={editing ? 'New password' : 'Password'} value={password} onChange={(event) => setPassword(event.target.value)} helperText={editing ? 'Leave blank to keep the current password.' : 'At least 3 characters'} autoComplete="new-password" />

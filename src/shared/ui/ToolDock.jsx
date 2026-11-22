@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Box, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { useLocationPick } from '../map/useLocationPick'
 import { ToolPanel } from './ToolPanel'
 
 const SPAN_KEY = 'gis-warplan.dock-span'
@@ -29,6 +30,7 @@ function readSpan() {
 export function ToolDock({ panel, onClose, edge = 'end' }) {
   const theme = useTheme()
   const phone = useMediaQuery(theme.breakpoints.down('md'))
+  const picking = useLocationPick((state) => state.armed)
   const box = useRef(null)
   const [span, setSpan] = useState(readSpan)
 
@@ -64,7 +66,7 @@ export function ToolDock({ panel, onClose, edge = 'end' }) {
         maxHeight: phone ? '80vh' : 'none',
         flexShrink: 0,
         minHeight: 0,
-        display: 'flex',
+        display: picking ? 'none' : 'flex',
         overflow: 'hidden',
         bgcolor: 'background.paper',
         borderColor: 'divider',

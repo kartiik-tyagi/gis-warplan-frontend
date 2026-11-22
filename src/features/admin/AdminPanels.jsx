@@ -222,7 +222,7 @@ function UserEditor() {
     if (!user) return
     const body = {}
     if (!sameIds(roleIds, user.roleIds)) body.roleIds = roleIds
-    if (sideId && String(user.administeredSideId ?? '') !== sideId) body.administeredSideId = Number(sideId)
+    if (!user.standardNodeId && sideId && String(user.administeredSideId ?? '') !== sideId) body.administeredSideId = Number(sideId)
     if (themeId && String(user.themeId ?? '') !== themeId) body.themeId = Number(themeId)
     if (!themeId && user.themeId) body.clearTheme = true
     if (!Object.keys(body).length) {
@@ -298,10 +298,20 @@ function UserEditor() {
         <>
           <Typography variant="body2" color="text.secondary">
             {home ? `Side ${home.name}. ` : 'No side. '}
-            {user.standardNodeId ? 'Created from an ORBAT node. Active state follows the game.' : statusOf(user) + '.'}
+            {user.standardNodeId ? 'Created from an ORBAT node. The side is locked, and active state follows the game.' : statusOf(user) + '.'}
           </Typography>
           <SearchSelect multiple label="Roles" options={roles} value={roleIds} onChange={setRoleIds} getOptionLabel={(role) => role.name} getOptionValue={(role) => role.id} />
-          <SearchSelect label="Administers Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
+          {user.standardNodeId ? (
+            <TextField
+              label="Administers Side"
+              value={home?.name || 'The side of this ORBAT node'}
+              helperText="Locked to the ORBAT node. It stays with this account until the user is unmarked."
+              fullWidth
+              slotProps={{ input: { readOnly: true } }}
+            />
+          ) : (
+            <SearchSelect label="Administers Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
+          )}
           <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" holderId={user.id} allowEmpty={Boolean(home)} label="Override Theme" emptyLabel="Inherit the side theme" />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <TextField type="password" label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="Leave blank to keep the current password" fullWidth />

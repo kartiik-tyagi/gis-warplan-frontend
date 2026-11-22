@@ -165,7 +165,7 @@ export async function saveUser(userId, draft) {
   if (draft.password) body.password = draft.password
   if (Array.isArray(draft.roleIds)) body.roleIds = draft.roleIds.map(numericId).filter((id) => id !== null)
   if (typeof draft.active === 'boolean') body.active = draft.active
-  if (draft.sideId) body.administeredSideId = numericId(draft.sideId)
+  if (draft.sideId && !draft.standardNodeId) body.administeredSideId = numericId(draft.sideId)
   if (!Object.keys(body).length) throw new ApiError('Nothing was changed.', 'VALIDATION')
   await patch(`/users/${numericId(draft.id)}`, body)
   return after(userId, 'user.saved', { id: draft.id })
