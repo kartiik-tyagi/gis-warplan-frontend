@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material'
 import { FunctionalityCodes, hasFunctionality } from '../../shared/auth/functionalityCodes'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { hasAny } from '../../shared/auth/access'
 import { get, post, put } from '../../shared/api/http'
 import * as directoryApi from '../../shared/api/client'
@@ -79,19 +80,17 @@ function NodeDetails({ node, nodes, nodeTypes, sidesById, markedUser, editable, 
         onBlur={commitName}
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
       />
-      <TextField
-        select
+      <SearchSelect
         size="small"
         label="Node type"
+        clearLabel="None"
+        options={[...nodeTypes.values()]}
         value={node.nodeTypeId ?? ''}
         disabled={!editable}
-        onChange={(event) => onChange({ nodeTypeId: event.target.value === '' ? null : event.target.value })}
-      >
-        <MenuItem value="">None</MenuItem>
-        {[...nodeTypes.values()].map((type) => (
-          <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>
-        ))}
-      </TextField>
+        onChange={(id) => onChange({ nodeTypeId: id === '' ? null : id })}
+        getOptionLabel={(type) => type.name}
+        getOptionValue={(type) => type.id}
+      />
       <Box>
         <Caption>Home side</Caption>
         <Typography variant="body2">{sidesById.get(node.homeSideId)?.name || `Side ${node.homeSideId}`}</Typography>
@@ -142,18 +141,26 @@ function ForceFields({ side, themes, onSave }) {
   return (
     <Stack spacing={1}>
       <Caption>This root is the side. Colour, icon and theme save immediately. Rename the root, then Save the tree, to rename the side.</Caption>
-      <TextField select size="small" label="Map colour" value={swatchId} onChange={(event) => setSwatchId(event.target.value)}>
-        {swatchId === 'custom' ? <MenuItem value="custom">{side.colour || 'Current colour'}</MenuItem> : null}
-        {swatches.map((swatch) => (
-          <MenuItem key={swatch.id} value={swatch.id}>{swatch.name}</MenuItem>
-        ))}
-      </TextField>
+      <SearchSelect
+        size="small"
+        label="Map colour"
+        options={swatchId === 'custom' ? [{ id: 'custom', name: side.colour || 'Current colour' }, ...swatches] : swatches}
+        value={swatchId}
+        onChange={setSwatchId}
+        getOptionLabel={(swatch) => swatch.name}
+        getOptionValue={(swatch) => swatch.id}
+      />
       <IconField value={icon} onChange={setIcon} />
-      <TextField select size="small" required label="Theme" value={themeId} onChange={(event) => setThemeId(event.target.value)}>
-        {options.map((theme) => (
-          <MenuItem key={theme.id} value={String(theme.id)}>{theme.name}</MenuItem>
-        ))}
-      </TextField>
+      <SearchSelect
+        size="small"
+        required
+        label="Theme"
+        options={options}
+        value={themeId}
+        onChange={setThemeId}
+        getOptionLabel={(theme) => theme.name}
+        getOptionValue={(theme) => String(theme.id)}
+      />
       <Button
         size="small"
         variant="outlined"
@@ -704,18 +711,17 @@ export default function OrbatPanel() {
 
       {tab === 'standard' ? (
         <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <TextField
-            select
+          <SearchSelect
             size="small"
             label="Side"
+            fullWidth={false}
+            options={countrySides}
             value={sideId}
-            onChange={(event) => guard(() => setSideId(event.target.value))}
+            onChange={(id) => guard(() => setSideId(id))}
+            getOptionLabel={(side) => side.name}
+            getOptionValue={(side) => String(side.id)}
             sx={{ minWidth: 200 }}
-          >
-            {countrySides.map((side) => (
-              <MenuItem key={side.id} value={String(side.id)}>{side.name}</MenuItem>
-            ))}
-          </TextField>
+          />
           {canCreateForce ? (
             <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'force' })}>New side</Button>
           ) : null}
@@ -725,49 +731,44 @@ export default function OrbatPanel() {
         </Stack>
       ) : (
         <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-          <TextField
-            select
+          <SearchSelect
             size="small"
             label="Scenario"
+            fullWidth={false}
+            options={scenarios}
             value={scenarioId}
-            onChange={(event) => guard(() => setScenarioId(event.target.value))}
-            sx={{ minWidth: 170 }}
+            onChange={(id) => guard(() => setScenarioId(id))}
             disabled={!scenarios.length}
             helperText={!scenarios.length ? 'Needs Manage scenario' : undefined}
-          >
-            {scenarios.map((item) => (
-              <MenuItem key={item.id} value={item.id}>{item.name}{item.active ? ' · active' : ''}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
+            getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+            getOptionValue={(item) => item.id}
+            sx={{ minWidth: 170 }}
+          />
+          <SearchSelect
             size="small"
             label="Game"
+            fullWidth={false}
+            options={games}
             value={gameId}
-            onChange={(event) => guard(() => setGameId(event.target.value))}
-            sx={{ minWidth: 150 }}
+            onChange={(id) => guard(() => setGameId(id))}
             disabled={!games.length}
             helperText={scenarioId && !games.length ? 'No games' : undefined}
-          >
-            {games.map((item) => (
-              <MenuItem key={item.id} value={item.id}>{item.name}{item.active ? ' · active' : ''}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
+            getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+            getOptionValue={(item) => item.id}
+            sx={{ minWidth: 150 }}
+          />
+          <SearchSelect
             size="small"
             label="Side"
+            fullWidth={false}
+            options={orbats}
             value={orbatId}
-            onChange={(event) => guard(() => setOrbatId(event.target.value))}
-            sx={{ minWidth: 190 }}
+            onChange={(id) => guard(() => setOrbatId(id))}
             disabled={!orbats.length}
-          >
-            {orbats.map((item) => (
-              <MenuItem key={item.id} value={String(item.id)}>
-                {item.name}{item.metadata?.alliance ? ' (alliance)' : ''} · {statusOf(item)}
-              </MenuItem>
-            ))}
-          </TextField>
+            getOptionLabel={(item) => `${item.name}${item.metadata?.alliance ? ' (alliance)' : ''} · ${statusOf(item)}`}
+            getOptionValue={(item) => String(item.id)}
+            sx={{ minWidth: 190 }}
+          />
           {canPlaying ? <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'replica' })} disabled={!gameId}>Replica</Button> : null}
           {canAlliance ? <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'alliance' })} disabled={!gameId}>Alliance</Button> : null}
         </Stack>

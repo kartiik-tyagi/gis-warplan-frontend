@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import {
   Alert,
   Box,
@@ -7,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
   Stack,
   TextField,
   ToggleButton,
@@ -212,40 +212,35 @@ function ShapeNode({ shape }) {
 }
 
 function PaintField({ label, value, onChange }) {
-  const theme = useTheme()
   const kind = paintKind(value)
   const token = value?.mode === 'token' && ICON_TOKENS.some((item) => item.id === value.token) ? value.token : 'primary'
   const fixed = hexForInput(value?.color).toLowerCase()
   return (
     <Stack spacing={0.75}>
-      <TextField
-        select
+      <SearchSelect
         size="small"
         label={label}
+        options={[{ id: 'theme', name: 'Theme colour' }, { id: 'fixed', name: 'Fixed colour' }, { id: 'none', name: 'None' }]}
         value={kind}
-        onChange={(event) => {
-          const next = event.target.value
+        onChange={(next) => {
           if (next === 'none') onChange({ mode: 'none' })
           else if (next === 'fixed') onChange({ mode: 'locked', color: value?.mode === 'locked' ? hexForInput(value.color) : '#2f9e44' })
           else onChange({ mode: 'token', token })
         }}
-      >
-        <MenuItem value="theme">Theme colour</MenuItem>
-        <MenuItem value="fixed">Fixed colour</MenuItem>
-        <MenuItem value="none">None</MenuItem>
-      </TextField>
+        getOptionLabel={(item) => item.name}
+        getOptionValue={(item) => item.id}
+      />
       {kind === 'theme' ? (
         <>
-          <TextField select size="small" label="Which theme colour" value={token} onChange={(event) => onChange({ mode: 'token', token: event.target.value })}>
-            {ICON_TOKENS.map((item) => (
-              <MenuItem key={item.id} value={item.id}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: tokenColor(theme, item.id), border: 1, borderColor: 'divider', flexShrink: 0 }} />
-                  <span>{item.label}</span>
-                </Stack>
-              </MenuItem>
-            ))}
-          </TextField>
+          <SearchSelect
+            size="small"
+            label="Which theme colour"
+            options={ICON_TOKENS}
+            value={token}
+            onChange={(id) => onChange({ mode: 'token', token: id })}
+            getOptionLabel={(item) => item.label}
+            getOptionValue={(item) => item.id}
+          />
           <Typography variant="caption" color="text.secondary">Follows the theme, in the panel and on the map.</Typography>
         </>
       ) : null}

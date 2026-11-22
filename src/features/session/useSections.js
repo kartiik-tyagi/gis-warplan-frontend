@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { SECTION_PANEL, SECTION_ROUTE } from '../../shared/auth/access'
+import { SECTION_PANEL, SECTION_ROUTE, sectionFromPath } from '../../shared/auth/access'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { useChromeBus } from './useChromeBus'
 import { useSessionStore } from './useSessionStore'
@@ -8,23 +8,28 @@ import { useSessionStore } from './useSessionStore'
 export function useSections() {
   const sections = useSessionStore((state) => state.session?.sections ?? EMPTY_LIST)
   const openPanel = useChromeBus((state) => state.open)
-  const clearPanel = useChromeBus((state) => state.close)
+  const dismissDock = useChromeBus((state) => state.dismissDock)
   const navigate = useNavigate()
   const location = useLocation()
-  const [sectionId, setSectionId] = useState(null)
-  const selected = sections.some((section) => section.id === sectionId) ? sectionId : null
+  const [dockSection, setDockSection] = useState(null)
+  const routeSection = sectionFromPath(location.pathname)
+  const selected = routeSection && sections.some((section) => section.id === routeSection.id)
+    ? routeSection.id
+    : sections.some((section) => section.id === dockSection)
+      ? dockSection
+      : null
 
   const select = (id) => {
-    setSectionId(id)
     const route = SECTION_ROUTE[id]
     if (route) {
-      clearPanel()
+      setDockSection(null)
+      dismissDock()
       navigate(route)
       return
     }
     const panel = SECTION_PANEL[id]
     if (!panel) return
-    // Open the dock on the map shell; leave any full page first.
+    setDockSection(id)
     openPanel(panel)
     if (location.pathname !== '/') navigate('/')
   }

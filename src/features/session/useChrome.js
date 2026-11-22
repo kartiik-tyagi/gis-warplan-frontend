@@ -6,9 +6,16 @@ export function useChrome() {
   const requestExtent = useSessionStore((state) => state.requestExtent)
   const pinnedPanel = useChromeBus((state) => state.pinnedPanel)
   const clearPin = useChromeBus((state) => state.close)
+  const dismiss = useChromeBus((state) => state.dismiss)
   const [localPanel, setLocalPanel] = useState(null)
+  const [seenDismiss, setSeenDismiss] = useState(dismiss)
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+
+  if (dismiss !== seenDismiss) {
+    setSeenDismiss(dismiss)
+    setLocalPanel(null)
+  }
 
   // Menu pin wins until closed; toolbar selection uses local panel after clearing the pin.
   const panel = pinnedPanel || localPanel

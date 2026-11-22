@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
 import { IconField } from '../../shared/ui/IconPicker'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { allowedChildren, fieldsOf, typeCode } from './nodeRules'
 
 function emptyValues(type, preset) {
@@ -71,25 +72,37 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
       <DialogContent>
         <Stack spacing={1.25} sx={{ pt: 1 }}>
           {choices.length ? null : <TextField error size="small" value="This node has no type yet, so nothing can be added under it. Edit it and choose a type first." slotProps={{ input: { readOnly: true } }} />}
-          <TextField select required size="small" label="Node type" value={choices.some((item) => String(item.id) === String(typeId)) ? typeId : ''} disabled={Boolean(initial?.nodeTypeId) || !choices.length} onChange={(event) => {
-            const next = types.find((item) => String(item.id) === event.target.value)
-            setTypeId(event.target.value)
-            setIconPath(next?.iconPath || '')
-            setValues(emptyValues(next, { ...values, nodeTypeId: next?.id }))
-          }}>
-            {choices.map((item) => (
-              <MenuItem key={item.id} value={String(item.id)}>{item.name}</MenuItem>
-            ))}
-          </TextField>
+          <SearchSelect
+            required
+            size="small"
+            label="Node type"
+            options={choices}
+            value={choices.some((item) => String(item.id) === String(typeId)) ? typeId : ''}
+            disabled={Boolean(initial?.nodeTypeId) || !choices.length}
+            onChange={(id) => {
+              const next = types.find((item) => String(item.id) === String(id))
+              setTypeId(id)
+              setIconPath(next?.iconPath || '')
+              setValues(emptyValues(next, { ...values, nodeTypeId: next?.id }))
+            }}
+            getOptionLabel={(item) => item.name}
+            getOptionValue={(item) => String(item.id)}
+          />
           <IconField label="Icon" value={iconPath} onChange={setIconPath} theme={iconTheme} />
           <TextField required size="small" label="Name" value={values.name || ''} onChange={(event) => setField('name', event.target.value)} />
           {fieldsOf(type).map((field) => field.type === 'choice' ? (
-            <TextField key={field.key} select required={field.required} size="small" label={field.label} value={values[field.key] ?? ''} onChange={(event) => setField(field.key, event.target.value)}>
-              {field.required ? null : <MenuItem value="">None</MenuItem>}
-              {(field.options || []).map((option) => (
-                <MenuItem key={option} value={option}>{option.replaceAll('_', ' ')}</MenuItem>
-              ))}
-            </TextField>
+            <SearchSelect
+              key={field.key}
+              required={field.required}
+              size="small"
+              label={field.label}
+              clearLabel={field.required ? undefined : 'None'}
+              options={(field.options || []).map((option) => ({ id: option, name: String(option).replaceAll('_', ' ') }))}
+              value={values[field.key] ?? ''}
+              onChange={(id) => setField(field.key, id)}
+              getOptionLabel={(option) => option.name}
+              getOptionValue={(option) => option.id}
+            />
           ) : (
             <TextField
               key={field.key}

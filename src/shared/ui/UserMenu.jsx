@@ -7,6 +7,7 @@ import * as api from '../../shared/api/client'
 import { get } from '../api/http'
 import { themeFromEntity } from '../api/mappers'
 import { EMPTY_LIST } from '../lib/empty'
+import { SearchSelect } from './SearchSelect'
 
 export function UserMenu({ open = false, onOpenChange, buttonRef }) {
   const profile = useSessionStore((state) => state.session?.profile)
@@ -118,17 +119,14 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             This becomes the login theme. A theme already allotted to a team or to another user is not listed.
           </Typography>
-          <TextField
-            select
-            fullWidth
+          <SearchSelect
             label="Theme"
+            options={themeChoices}
             value={themeChoices.some((item) => item.id === themeId) ? themeId : ''}
-            onChange={(event) => setThemeId(event.target.value)}
-          >
-            {themeChoices.map((item) => (
-              <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>
-            ))}
-          </TextField>
+            onChange={setThemeId}
+            getOptionLabel={(item) => item.name}
+            getOptionValue={(item) => item.id}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setThemeOpen(false)} disabled={themeBusy}>Cancel</Button>

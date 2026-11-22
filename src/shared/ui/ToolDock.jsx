@@ -4,7 +4,7 @@ import { useTheme } from '@mui/material/styles'
 import { ToolPanel } from './ToolPanel'
 
 const SPAN_KEY = 'gis-warplan.dock-span'
-const WIDE = new Set(['orbat', 'map-admin', 'scenario-admin', 'game-admin', 'audit', 'users', 'roles', 'icons', 'filters'])
+const WIDE = new Set(['orbat', 'map-admin', 'scenario-admin', 'game-admin', 'filters'])
 
 function dockWidth(panel) {
   if (panel === 'orbat') return 'min(820px, 62vw)'

@@ -9,7 +9,6 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  MenuItem,
   Stack,
   Switch,
   TextField,
@@ -26,6 +25,7 @@ import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
@@ -429,11 +429,18 @@ function LayersTab({ servers }) {
     >
       <SectionLabel>Layer</SectionLabel>
       <Stack spacing={1.5}>
-        <Field name="gisServerId" label="GIS server" select form={form} errors={errors} onChange={change}>
-          {servers.map((server) => (
-            <MenuItem key={server.id} value={server.id}>{server.name || server.code}</MenuItem>
-          ))}
-        </Field>
+        <SearchSelect
+          size="small"
+          required
+          label="GIS server"
+          options={servers}
+          value={form.gisServerId}
+          onChange={(id) => change('gisServerId', id)}
+          error={Boolean(errors.gisServerId)}
+          helperText={errors.gisServerId || undefined}
+          getOptionLabel={(server) => server.name || server.code}
+          getOptionValue={(server) => server.id}
+        />
         {LAYER_TEXT.map(([name, label]) => (
           <Field key={name} name={name} label={label} form={form} errors={errors} onChange={change} />
         ))}
@@ -534,12 +541,18 @@ function ViewDefaultsTab({ servers }) {
           ))}
         </Stack>
         <SectionLabel>Default server</SectionLabel>
-        <Field name="defaultGisServerId" label="Default GIS server" select form={form} errors={errors} onChange={change}>
-          <MenuItem value="">None</MenuItem>
-          {servers.map((server) => (
-            <MenuItem key={server.id} value={server.id}>{server.name || server.code}</MenuItem>
-          ))}
-        </Field>
+        <SearchSelect
+          size="small"
+          label="Default GIS server"
+          clearLabel="None"
+          options={servers}
+          value={form.defaultGisServerId}
+          onChange={(id) => change('defaultGisServerId', id)}
+          error={Boolean(errors.defaultGisServerId)}
+          helperText={errors.defaultGisServerId || undefined}
+          getOptionLabel={(server) => server.name || server.code}
+          getOptionValue={(server) => server.id}
+        />
         <Divider />
         <Button
           variant="contained"

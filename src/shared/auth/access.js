@@ -83,20 +83,41 @@ export function sectionsForFunctionalities(functionalities) {
   return sections
 }
 
-/** Full-page routes for application-menu sections (leave the map shell). */
+/** Application-menu sections that open in the work window over the map. */
 export const SECTION_ROUTE = Object.freeze({
   scenario: '/exercise/scenarios',
   game: '/exercise/games',
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
+  audit: '/records/audit',
+  users: '/access/users',
+  roles: '/access/roles',
+  icons: '/records/icons',
 })
+
+const SECTION_TITLE = Object.freeze({
+  scenario: 'Scenario management',
+  game: 'Game management',
+  teams: 'Teams',
+  themes: 'Themes',
+  'node-types': 'Node types',
+  audit: 'Audit',
+  users: 'Users',
+  roles: 'Roles',
+  icons: 'Icons',
+})
+
+/** The work-window section for a path, or null when the map is showing on its own. */
+export function sectionFromPath(pathname) {
+  const match = Object.entries(SECTION_ROUTE).find(
+    ([, route]) => pathname === route || pathname.startsWith(`${route}/`),
+  )
+  if (!match) return null
+  return { id: match[0], title: SECTION_TITLE[match[0]] }
+}
 
 /** Which tool panel an application-menu section opens (dock panels). */
 export const SECTION_PANEL = Object.freeze({
   orbat: 'orbat',
-  users: 'users',
-  roles: 'roles',
-  icons: 'icons',
-  audit: 'audit',
 })

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Box, MenuItem, Slider, TextField, Typography } from '@mui/material'
+import { Box, Slider, Typography } from '@mui/material'
+import { SearchSelect } from './SearchSelect'
 import SituationMap from '../../components/SituationMap'
 import { useDirectoryStore } from '../../features/directory/useDirectoryStore'
 import { useSessionStore } from '../../features/session/useSessionStore'
@@ -77,24 +78,19 @@ export function MapGrid({ onReadout }) {
                   bgcolor: 'background.paper',
                 }}
               >
-                <TextField
-                  select
+                <SearchSelect
                   size="small"
                   hiddenLabel
+                  aria-label={`Grid ${index + 1} center`}
+                  options={centers}
                   value={place.id}
-                  onChange={(event) => {
-                    const next = event.target.value
+                  onChange={(next) => {
                     setCellIds((current) => current.map((id, itemIndex) => (itemIndex === index ? next : id)))
                   }}
-                  aria-label={`Grid ${index + 1} center`}
+                  getOptionLabel={(item) => item.name}
+                  getOptionValue={(item) => item.id}
                   sx={{ flex: 1, minWidth: 0 }}
-                >
-                  {centers.map((item) => (
-                    <MenuItem key={item.id} value={item.id}>
-                      {item.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
                 <Typography variant="caption" sx={{ flexShrink: 0 }}>
                   Zoom
                 </Typography>

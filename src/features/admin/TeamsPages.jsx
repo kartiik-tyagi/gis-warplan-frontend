@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Chip,
-  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -21,6 +20,7 @@ import { logger } from '../../shared/lib/logger'
 import { swatches } from '../../shared/theme/swatches'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 import { IconField, IconPreview } from '../../shared/ui/IconPicker'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { useToastStore } from '../feedback/useToastStore'
@@ -30,29 +30,29 @@ import { asTheme, selectableThemes } from './themeChoices'
 function ThemeField({ themes, value, onChange, holderKind, holderId }) {
   const options = selectableThemes(themes, holderKind, holderId)
   return (
-    <TextField select label="Theme" value={value} onChange={onChange} required fullWidth>
-      <MenuItem value="" disabled>
-        Choose
-      </MenuItem>
-      {options.map((theme) => (
-        <MenuItem key={theme.id} value={String(theme.id)}>
-          {theme.name}
-        </MenuItem>
-      ))}
-    </TextField>
+    <SearchSelect
+      required
+      label="Theme"
+      options={options}
+      value={value}
+      onChange={onChange}
+      getOptionLabel={(theme) => theme.name}
+      getOptionValue={(theme) => String(theme.id)}
+    />
   )
 }
 
 function ColourField({ value, onChange, allowCustom, customLabel }) {
+  const options = allowCustom && value === 'custom' ? [{ id: 'custom', name: customLabel || 'Current colour' }, ...swatches] : swatches
   return (
-    <TextField select label="Map colour" value={value} onChange={onChange} fullWidth>
-      {allowCustom && value === 'custom' ? <MenuItem value="custom">{customLabel}</MenuItem> : null}
-      {swatches.map((swatch) => (
-        <MenuItem key={swatch.id} value={swatch.id}>
-          {swatch.name}
-        </MenuItem>
-      ))}
-    </TextField>
+    <SearchSelect
+      label="Map colour"
+      options={options}
+      value={value}
+      onChange={onChange}
+      getOptionLabel={(swatch) => swatch.name}
+      getOptionValue={(swatch) => swatch.id}
+    />
   )
 }
 
@@ -336,7 +336,7 @@ function TeamEditor() {
       <TextField label="Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
       <ColourField
         value={swatchId}
-        onChange={(event) => setSwatchId(event.target.value)}
+        onChange={setSwatchId}
         allowCustom={!isNew}
         customLabel={customColour || 'Current colour'}
       />
@@ -344,7 +344,7 @@ function TeamEditor() {
       <ThemeField
         themes={themes}
         value={themeId}
-        onChange={(event) => setThemeId(event.target.value)}
+        onChange={setThemeId}
         holderKind="SIDE"
         holderId={isNew ? undefined : id}
       />

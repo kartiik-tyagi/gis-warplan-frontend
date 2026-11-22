@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import { SearchSelect } from './SearchSelect'
 import * as api from '../../shared/api/client'
 import { EMPTY_LIST } from '../lib/empty'
 import { useCommit, useDirectoryStore } from '../../features/directory/useDirectoryStore'
@@ -49,14 +50,15 @@ export function DraftDialog() {
       <DialogTitle>{pending?.surface === 'planning' ? 'Keep this graphic' : 'Keep this feature'}</DialogTitle>
       <DialogContent>
         <TextField fullWidth margin="dense" label="Name" value={name} onChange={(event) => setName(event.target.value)} />
-        <TextField select fullWidth margin="dense" label="Side" value={sideId} onChange={(event) => setSideId(event.target.value)}>
-          <MenuItem value="">None</MenuItem>
-          {sides.map((side) => (
-            <MenuItem key={side.id} value={side.id}>
-              {side.name}
-            </MenuItem>
-          ))}
-        </TextField>
+        <SearchSelect
+          label="Side"
+          clearLabel="None"
+          options={sides}
+          value={sideId}
+          onChange={setSideId}
+          getOptionLabel={(side) => side.name}
+          getOptionValue={(side) => side.id}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={() => setPending(null)}>Cancel</Button>

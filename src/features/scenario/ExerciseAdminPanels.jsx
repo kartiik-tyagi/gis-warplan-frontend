@@ -6,12 +6,12 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  MenuItem,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
 import { ApiError } from '../../shared/api/errors'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { del, get, post, put } from '../../shared/api/http'
 import { loadMoonPhases } from '../../shared/api/moonPhases'
 import { EMPTY_LIST } from '../../shared/lib/empty'
@@ -366,22 +366,19 @@ export function GameAdminPanel() {
         <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
           Games belong to a scenario. Each game owns its playing side. Activate one game for the exercise.
         </Typography>
-        <TextField
-          select
+        <SearchSelect
           size="small"
           label="Scenario"
+          options={scenarios}
           value={scenarioId}
-          onChange={(event) => setScenarioId(event.target.value)}
+          onChange={setScenarioId}
           disabled={!scenarios.length}
-          displayEmpty
           helperText={!scenarios.length ? 'Create a scenario first' : undefined}
+          getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+          getOptionValue={(item) => item.id}
           sx={{ minWidth: { xs: '100%', sm: 220 } }}
-        >
-          {!scenarios.length ? <MenuItem value="" disabled>No scenarios</MenuItem> : null}
-          {scenarios.map((item) => (
-            <MenuItem key={item.id} value={item.id}>{item.name}{item.active ? ' · active' : ''}</MenuItem>
-          ))}
-        </TextField>
+          fullWidth={false}
+        />
       </Stack>
       <ExerciseCrud
         key={scenarioId}
@@ -438,23 +435,18 @@ export function GameAdminPanel() {
                 fullWidth
               />
             </Stack>
-            <TextField
-              select
+            <SearchSelect
               size="small"
               label="Moon phase"
+              clearLabel="None"
+              options={phases}
               value={form.moonphases}
-              onChange={(event) => change('moonphases', event.target.value)}
+              onChange={(id) => change('moonphases', id)}
               error={Boolean(errors.moonphases)}
               helperText={errors.moonphases || 'Optional'}
-            >
-              <MenuItem value="">None</MenuItem>
-              {phases.map((phase) => (
-                <MenuItem key={phase.code} value={phase.code}>{phase.label}</MenuItem>
-              ))}
-              {form.moonphases && !phases.some((phase) => phase.code === form.moonphases) ? (
-                <MenuItem value={form.moonphases}>{form.moonphases}</MenuItem>
-              ) : null}
-            </TextField>
+              getOptionLabel={(phase) => phase.label}
+              getOptionValue={(phase) => phase.code}
+            />
             <TextField
               size="small"
               label="Description"

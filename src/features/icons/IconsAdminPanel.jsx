@@ -23,6 +23,7 @@ import { LoadingState } from '../../shared/ui/LoadingState'
 import { IconPreview } from '../../shared/ui/IconPicker'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
+import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { IconStudio } from './IconStudio'
 
 function directories(node, depth = 0, found = []) {
@@ -147,55 +148,57 @@ export function IconsAdminPanel() {
   if (!tree && !error) return <LoadingState label="Loading icons" />
 
   return (
-    <Stack spacing={1.5}>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+    <Stack spacing={2.5}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
           Browse the icon folders. New icons are drawn here and stored on the server.
         </Typography>
         <Chip size="small" variant="outlined" label={canManage ? 'Can draw' : 'Read only'} />
-        <Button size="small" onClick={load}>Refresh</Button>
       </Stack>
 
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <TextField
-          size="small"
-          label="Base icon folder"
-          value={basePathDraft}
-          onChange={(event) => setBasePathDraft(event.target.value)}
-          disabled={!canManage || savingPath}
-          error={canManage && !basePathDraft.trim()}
-          helperText={canManage ? 'Folder the icon store reads from. Created if missing; must be writable.' : `Icons are read from ${basePath || '…'}.`}
-          sx={{ minWidth: 280, flex: 1 }}
-        />
-        {canManage ? (
-          <Button
-            size="small"
-            variant="contained"
-            disabled={savingPath || !basePathDraft.trim() || basePathDraft.trim() === basePath}
-            onClick={savePath}
-            sx={{ mt: 0.5 }}
-          >
-            {savingPath ? 'Saving' : 'Save folder'}
-          </Button>
-        ) : null}
-      </Stack>
+      <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { sm: 'flex-start' } }}>
+          <TextField
+            label="Base icon folder"
+            value={basePathDraft}
+            onChange={(event) => setBasePathDraft(event.target.value)}
+            disabled={!canManage || savingPath}
+            error={canManage && !basePathDraft.trim()}
+            helperText={canManage ? 'Folder the icon store reads from. Created if missing; must be writable.' : `Icons are read from ${basePath || '…'}.`}
+            fullWidth
+          />
+          {canManage ? (
+            <Button
+              variant="outlined"
+              disabled={savingPath || !basePathDraft.trim() || basePathDraft.trim() === basePath}
+              onClick={savePath}
+              sx={{ flexShrink: 0, mt: { sm: 1 } }}
+            >
+              {savingPath ? 'Saving…' : 'Save folder'}
+            </Button>
+          ) : null}
+        </Stack>
+      </Box>
 
       {error ? <Alert severity="error">{error}</Alert> : null}
 
       {tree ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr' }, gap: 2 }}>
-          <List dense disablePadding aria-label="Icon folders" sx={{ maxHeight: 420, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-            {folders.map((item) => (
-              <ListItemButton key={item.path || 'root'} selected={item.path === folder} onClick={() => openFolder(item.path)} sx={{ pl: 1 + item.depth * 1.5 }}>
-                <FolderOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                <ListItemText primary={item.name} slotProps={{ primary: { variant: 'body2', noWrap: true } }} />
-              </ListItemButton>
-            ))}
-          </List>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2, alignItems: 'start' }}>
+          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+            <Typography variant="subtitle2" sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}>Folders</Typography>
+            <List dense disablePadding aria-label="Icon folders" sx={{ maxHeight: 480, overflow: 'auto' }}>
+              {folders.map((item) => (
+                <ListItemButton key={item.path || 'root'} selected={item.path === folder} onClick={() => openFolder(item.path)} sx={{ pl: 2 + item.depth * 1.5 }}>
+                  <FolderOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                  <ListItemText primary={item.name} slotProps={{ primary: { variant: 'body2', noWrap: true } }} />
+                </ListItemButton>
+              ))}
+            </List>
+          </Box>
 
-          <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+          <Stack spacing={2} sx={{ minWidth: 0 }}>
             {files.length ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 1 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', gap: 1.25 }}>
                 {files.map((file) => (
                   <Button
                     key={file.path}
@@ -203,7 +206,7 @@ export function IconsAdminPanel() {
                     color={chosen === file.path ? 'primary' : 'inherit'}
                     onClick={() => setChosen(file.path)}
                     aria-pressed={chosen === file.path}
-                    sx={{ flexDirection: 'column', gap: 0.5, minHeight: 88, textTransform: 'none', p: 0.5 }}
+                    sx={{ flexDirection: 'column', gap: 0.75, minHeight: 104, textTransform: 'none', borderRadius: 2, p: 1 }}
                   >
                     <IconPreview path={file.path} size={40} alt={file.label || file.name} />
                     <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{file.label || file.name}</Typography>
@@ -211,16 +214,17 @@ export function IconsAdminPanel() {
                 ))}
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">No icons in {folder || 'the root folder'}.</Typography>
+              <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
+                <Typography variant="body2" color="text.secondary">No icons in {folder || 'the root folder'}.</Typography>
+              </Box>
             )}
 
             {chosenFile ? (
-              <Stack spacing={1} sx={{ p: 1, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+              <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'flex-start' } }}>
                   <IconPreview path={chosenFile.path} size={64} alt={chosenFile.label || chosenFile.name} />
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
                     <TextField
-                      size="small"
                       label="Label"
                       value={labelDraft}
                       onChange={(event) => setLabelDraft(event.target.value)}
@@ -229,39 +233,34 @@ export function IconsAdminPanel() {
                       helperText={canManage ? 'Shown in the picker instead of the file name.' : ' '}
                       fullWidth
                     />
+                    <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>File: {chosenFile.path}</Typography>
                     {canManage ? (
-                      <Button
-                        variant="outlined"
-                        disabled={savingLabel || !labelDraft.trim() || labelDraft.trim() === (chosenFile.label || '')}
-                        onClick={saveLabel}
-                        sx={{ mt: 0.25, flexShrink: 0 }}
-                      >
-                        {savingLabel ? 'Saving' : 'Save'}
-                      </Button>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          variant="outlined"
+                          disabled={savingLabel || !labelDraft.trim() || labelDraft.trim() === (chosenFile.label || '')}
+                          onClick={saveLabel}
+                        >
+                          {savingLabel ? 'Saving…' : 'Save label'}
+                        </Button>
+                        {isSvgPath(chosenFile.path) ? (
+                          <Button variant="outlined" onClick={() => setStudio({ mode: 'revise', path: chosenFile.path, label: chosenFile.label || '' })}>
+                            Revise
+                          </Button>
+                        ) : null}
+                      </Stack>
                     ) : null}
                   </Stack>
                 </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>File: {chosenFile.path}</Typography>
-              </Stack>
+              </Box>
             ) : null}
 
             {canManage ? (
-              <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <Button size="small" variant="contained" startIcon={<GestureIcon />} onClick={() => setStudio({ mode: 'create' })}>
-                  Draw icon
-                </Button>
-                {chosenFile && isSvgPath(chosenFile.path) ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setStudio({ mode: 'revise', path: chosenFile.path, label: chosenFile.label || '' })}
-                  >
-                    Revise
-                  </Button>
-                ) : null}
-              </Stack>
+              <Button variant="contained" startIcon={<GestureIcon />} onClick={() => setStudio({ mode: 'create' })} sx={{ alignSelf: 'flex-start' }}>
+                Draw icon
+              </Button>
             ) : (
-              <Typography variant="caption" color="text.secondary">Drawing icons needs the Manage icons permission.</Typography>
+              <Typography variant="body2" color="text.secondary">Drawing icons needs the Manage icons permission.</Typography>
             )}
           </Stack>
         </Box>
@@ -276,6 +275,14 @@ export function IconsAdminPanel() {
         onSaved={onDrawn}
       />
     </Stack>
+  )
+}
+
+export function IconsPage() {
+  return (
+    <ExerciseLayout kicker="Records" title="Icons">
+      <IconsAdminPanel />
+    </ExerciseLayout>
   )
 }
 

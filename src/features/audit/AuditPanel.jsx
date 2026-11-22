@@ -15,6 +15,8 @@ import { get } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { LoadingState } from '../../shared/ui/LoadingState'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
+import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { useToastStore } from '../feedback/useToastStore'
 
 const EMPTY_FILTERS = { userId: '', action: '', entityType: '', entityId: '' }
@@ -150,22 +152,20 @@ export function AuditPanel() {
             sx={{ width: { xs: '100%', sm: 150 }, minWidth: { sm: 140 } }}
           />
         ))}
-        <TextField
-          select
+        <SearchSelect
           size="small"
           label="Page size"
+          options={SIZES.map((option) => ({ id: option, name: String(option) }))}
           value={size}
-          onChange={(event) => {
-            setSize(Number(event.target.value))
+          onChange={(id) => {
+            setSize(Number(id))
             setPage(0)
           }}
-          slotProps={{ select: { native: true } }}
-          sx={{ width: { xs: '100%', sm: 110 } }}
-        >
-          {SIZES.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </TextField>
+          getOptionLabel={(option) => option.name}
+          getOptionValue={(option) => option.id}
+          sx={{ width: { xs: '100%', sm: 140 } }}
+          fullWidth={false}
+        />
         <Button type="submit" size="small" variant="contained" sx={{ mt: { sm: 0.5 } }}>Filter</Button>
         <Button size="small" onClick={clear} sx={{ mt: { sm: 0.5 } }}>Clear</Button>
       </Stack>
@@ -196,6 +196,14 @@ export function AuditPanel() {
         </Stack>
       ) : null}
     </Stack>
+  )
+}
+
+export function AuditPage() {
+  return (
+    <ExerciseLayout kicker="Records" title="Audit">
+      <AuditPanel />
+    </ExerciseLayout>
   )
 }
 

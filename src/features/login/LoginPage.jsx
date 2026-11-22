@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -7,6 +7,7 @@ import { getLoginContext, login } from '../../shared/api/client'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { PasswordField } from '../../shared/ui/PasswordField'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { useSessionStore } from '../session/useSessionStore'
 
 export default function LoginPage() {
@@ -115,21 +116,15 @@ export default function LoginPage() {
                 {data.purpose}
               </Typography>
             </Box>
-            <TextField
-              select
+            <SearchSelect
               required
-              fullWidth
-              autoFocus
               label="User"
+              options={data.users}
               value={userId}
-              onChange={(event) => setUserId(event.target.value)}
-            >
-              {data.users.map((user) => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.title}
-                </MenuItem>
-              ))}
-            </TextField>
+              onChange={setUserId}
+              getOptionLabel={(user) => user.title}
+              getOptionValue={(user) => user.id}
+            />
             <PasswordField value={password} onChange={setPassword} />
             {notice ? (
               <Alert severity="warning" onClose={clearNotice}>

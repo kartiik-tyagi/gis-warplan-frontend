@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Chip,
-  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -18,6 +17,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { del, get, post, put } from '../../shared/api/http'
 import { loadMoonPhases } from '../../shared/api/moonPhases'
 import { EMPTY_LIST } from '../../shared/lib/empty'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 import { LoadingState } from '../../shared/ui/LoadingState'
@@ -154,23 +154,17 @@ function GameList() {
 
   return (
     <Stack spacing={2.5}>
-      <TextField
-        select
+      <SearchSelect
         label="Scenario"
+        options={scenarios}
         value={scenarioId}
-        onChange={(event) => setSearchParams(event.target.value ? { scenarioId: event.target.value } : {})}
+        onChange={(id) => setSearchParams(id ? { scenarioId: id } : {})}
         disabled={!scenarios.length}
         helperText={!scenarios.length ? 'Create a scenario first' : undefined}
+        getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+        getOptionValue={(item) => String(item.id)}
         sx={{ maxWidth: 420 }}
-      >
-        {!scenarios.length ? <MenuItem value="">No scenarios</MenuItem> : null}
-        {scenarios.map((item) => (
-          <MenuItem key={item.id} value={String(item.id)}>
-            {item.name}
-            {item.active ? ' · active' : ''}
-          </MenuItem>
-        ))}
-      </TextField>
+      />
 
       {!scenarios.length ? (
         <Button variant="outlined" onClick={() => navigate('/exercise/scenarios/new')}>
@@ -414,20 +408,16 @@ function GameEditor() {
     <Stack spacing={2.5}>
       {message ? <Alert severity="error">{message}</Alert> : null}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-        <TextField
-          select
+        <SearchSelect
           label="Scenario"
+          options={scenarios}
           value={scenarioId}
-          onChange={(event) => setScenarioId(event.target.value)}
+          onChange={setScenarioId}
           disabled={!isNew || !scenarios.length}
+          getOptionLabel={(item) => item.name}
+          getOptionValue={(item) => String(item.id)}
           sx={{ minWidth: { sm: 260 }, flex: 1 }}
-        >
-          {scenarios.map((item) => (
-            <MenuItem key={item.id} value={String(item.id)}>
-              {item.name}
-            </MenuItem>
-          ))}
-        </TextField>
+        />
         <TextField
           label="Game name"
           value={form.name}
@@ -478,23 +468,17 @@ function GameEditor() {
           }}
         />
       </Stack>
-      <TextField
-        select
+      <SearchSelect
         label="Moon phase"
+        clearLabel="None"
+        options={phases}
         value={form.moonphases}
-        onChange={(event) => change('moonphases', event.target.value)}
+        onChange={(id) => change('moonphases', id)}
         error={Boolean(errors.moonphases)}
         helperText={errors.moonphases || 'Optional'}
-        fullWidth
-      >
-        <MenuItem value="">None</MenuItem>
-        {phases.map((phase) => (
-          <MenuItem key={phase.code} value={phase.code}>{phase.label}</MenuItem>
-        ))}
-        {form.moonphases && !phases.some((phase) => phase.code === form.moonphases) ? (
-          <MenuItem value={form.moonphases}>{form.moonphases}</MenuItem>
-        ) : null}
-      </TextField>
+        getOptionLabel={(phase) => phase.label}
+        getOptionValue={(phase) => phase.code}
+      />
       <RichTextEditor
         label="Description"
         value={form.description}

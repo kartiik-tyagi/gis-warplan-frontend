@@ -40,7 +40,7 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
         GIS WARPLAN
       </Typography>
       <ViewModes mode={viewMode} onChange={onViewMode} />
-      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', overflow: 'auto' }}>
         <ScenarioContext />
       </Box>
       <Box sx={{ flex: { xs: 1, lg: 0 } }} />

@@ -9,7 +9,6 @@ import {
   FormControlLabel,
   FormHelperText,
   IconButton,
-  MenuItem,
   Stack,
   Switch,
   TextField,
@@ -23,6 +22,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { del, get, post, put } from '../../shared/api/http'
+import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
@@ -202,19 +202,17 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
           sx={{ '& input': { fontFamily: 'ui-monospace, monospace' } }}
           onChange={(event) => onChange({ key: event.target.value.toLowerCase(), keyTouched: true })}
         />
-        <TextField
-          select
+        <SearchSelect
           size="small"
           label="Type"
+          options={[{ id: 'text', name: 'Text' }, { id: 'number', name: 'Number' }, { id: 'choice', name: 'Choice' }]}
           value={field.type}
           error={Boolean(typeError)}
           helperText={typeError || ' '}
-          onChange={(event) => onChange({ type: event.target.value, options: event.target.value === 'choice' ? field.options : [], optionWarning: '' })}
-        >
-          <MenuItem value="text">Text</MenuItem>
-          <MenuItem value="number">Number</MenuItem>
-          <MenuItem value="choice">Choice</MenuItem>
-        </TextField>
+          onChange={(id) => onChange({ type: id, options: id === 'choice' ? field.options : [], optionWarning: '' })}
+          getOptionLabel={(item) => item.name}
+          getOptionValue={(item) => item.id}
+        />
         <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 40 }}>
           <FormControlLabel
             sx={{ ml: 0 }}
@@ -528,9 +526,6 @@ function NodeTypeEditor() {
     })
     return options
   }, [catalogue, parentCodes, id, isNew, catalogueState])
-  const selectedParents = parentCodes.map(
-    (parent) => parentOptions.find((option) => option.code === parent) || { code: parent, name: parent, missing: true },
-  )
   const parentError = firstError(errors, 'properties.parents')
   const placementText = parentsDetail({ properties: { root, parents: parentCodes } })
 
@@ -727,56 +722,35 @@ function NodeTypeEditor() {
               control={<Switch size="small" checked={root} onChange={(event) => { noteEdit(); setRoot(event.target.checked) }} />}
             />
             {errors['properties.root'] ? <FormHelperText error>{errors['properties.root']}</FormHelperText> : null}
-            <Autocomplete
+            <SearchSelect
               multiple
-              disableCloseOnSelect
-              filterSelectedOptions
               size="small"
+              label="Allowed parents"
               loading={catalogueState === 'loading'}
               options={parentOptions}
-              value={selectedParents}
-              getOptionKey={(option) => option.code}
-              getOptionLabel={(option) => (option.missing ? `${option.code} (not found)` : option.name)}
-              isOptionEqualToValue={(left, right) => left.code === right.code}
+              value={parentCodes}
+              placeholder={parentCodes.length ? '' : 'Any parent'}
+              error={Boolean(parentError)}
               noOptionsText={catalogueState === 'error' ? 'Node types could not be loaded' : 'No other node types'}
-              onChange={(_, value) => {
+              helperText={
+                parentError
+                || (catalogueState === 'error'
+                  ? 'The parent list could not be loaded. Parent checks will run when you save.'
+                  : catalogueState === 'loading'
+                    ? 'Loading node types…'
+                    : placementText)
+              }
+              getOptionLabel={(option) => (option.missing ? `${option.code} (not found)` : `${option.name} (${option.code})`)}
+              getOptionValue={(option) => option.code}
+              onChange={(codes) => {
                 noteEdit()
-                const codes = []
-                value.forEach((option) => {
-                  const next = String(option.code || '').toUpperCase()
-                  if (next && !codes.includes(next)) codes.push(next)
+                const next = []
+                codes.forEach((code) => {
+                  const value = String(code || '').toUpperCase()
+                  if (value && !next.includes(value)) next.push(value)
                 })
-                setParentCodes(codes)
+                setParentCodes(next)
               }}
-              renderOption={(props, option) => {
-                const { key, ...rest } = props
-                return (
-                  <li key={key} {...rest}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2">{option.missing ? `${option.code} (not found)` : option.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.code}
-                      </Typography>
-                    </Box>
-                  </li>
-                )
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Allowed parents"
-                  placeholder={parentCodes.length ? '' : 'Any parent'}
-                  error={Boolean(parentError)}
-                  helperText={
-                    parentError
-                    || (catalogueState === 'error'
-                      ? 'The parent list could not be loaded. Parent checks will run when you save.'
-                      : catalogueState === 'loading'
-                        ? 'Loading node types…'
-                        : placementText)
-                  }
-                />
-              )}
             />
           </Stack>
         )}

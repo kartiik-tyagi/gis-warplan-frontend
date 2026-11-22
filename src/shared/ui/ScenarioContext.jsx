@@ -8,12 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  MenuItem,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
@@ -22,12 +17,8 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
+import { SearchSelect } from './SearchSelect'
 import { loadMoonPhases, moonPhaseLabel } from '../api/moonPhases'
-
-const NONE = '__none__'
-const NONE_GAME = '__none_game__'
-const ADD = '__add__'
-const ADD_GAME = '__add_game__'
 
 function Mark({ label, children }) {
   return (
@@ -39,13 +30,44 @@ function Mark({ label, children }) {
   )
 }
 
-function Fact({ label, icon, children }) {
+function Fact({ label, icon, children, fixed = false }) {
   return (
-    <Box sx={{ minWidth: 0, flexShrink: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    <Box
+      sx={{
+        minWidth: fixed ? 'auto' : 0,
+        flexShrink: fixed ? 0 : 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.75,
+      }}
+    >
       <Mark label={label}>{icon}</Mark>
       {children}
     </Box>
   )
+}
+
+/** Compact bar field. Autocomplete otherwise collapses to the popup icon inside a flex row. */
+function barField(width) {
+  return {
+    width,
+    flexShrink: 0,
+    '& .MuiFormControl-root, & .MuiOutlinedInput-root': { width: '100%' },
+    '& .MuiOutlinedInput-root': {
+      height: 32,
+      minHeight: 32,
+      pl: 1,
+      pr: '30px !important',
+      fontSize: 13,
+      bgcolor: 'background.paper',
+    },
+    '& .MuiOutlinedInput-input, & .MuiAutocomplete-input': {
+      py: '0 !important',
+      minWidth: '0 !important',
+      textOverflow: 'ellipsis',
+    },
+    '& .MuiAutocomplete-endAdornment': { right: 4 },
+  }
 }
 
 export function ScenarioContext() {
@@ -91,21 +113,9 @@ export function ScenarioContext() {
   const scenario = scenarios.find((item) => item.id === session.activeScenarioId)
   const game = games.find((item) => item.id === session.activeGame.id) || session.activeGame
   const moonLabel = moonPhaseLabel(phases, game?.moonphases)
-  const scenarioValue = session.activeScenarioId || NONE
-  const gameValue =
-    session.activeScenarioId && session.activeGame.id && games.some((item) => item.id === session.activeGame.id)
-      ? session.activeGame.id
-      : session.activeScenarioId
-        ? NONE_GAME
-        : ''
-
   function askScenario(id) {
     if (busy) return
-    if (id === ADD) {
-      navigate('/exercise/scenarios/new')
-      return
-    }
-    if (id === NONE) {
+    if (!id) {
       if (!session.activeScenarioId) return
       setError('')
       setPending({
@@ -126,12 +136,7 @@ export function ScenarioContext() {
 
   function askGame(id) {
     if (busy) return
-    if (id === ADD_GAME) {
-      const query = session.activeScenarioId ? `?scenarioId=${session.activeScenarioId}` : ''
-      navigate(`/exercise/games/new${query}`)
-      return
-    }
-    if (id === NONE_GAME) {
+    if (!id) {
       if (!session.activeGame?.id) return
       setError('')
       setPending({
@@ -175,33 +180,26 @@ export function ScenarioContext() {
     <>
       <Stack direction="row" spacing={1.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'nowrap', minWidth: 0, width: '100%' }}>
         {session.canSelectScenario ? (
-          <Fact label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
-            <TextField
-              select
+          <Fact fixed label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
+            <SearchSelect
               size="small"
               hiddenLabel
-              value={scenarioValue}
-              disabled={busy}
-              onChange={(event) => askScenario(event.target.value)}
               aria-label="Scenario"
-              sx={{ minWidth: 160, maxWidth: 220, '& .MuiInputBase-root': { minHeight: 36 }, '& .MuiSelect-select': { py: 0.75 } }}
-            >
-              <MenuItem value={NONE}>No active scenario</MenuItem>
-              {scenarios.length ? <Divider /> : null}
-              {scenarios.map((item) => (
-                <MenuItem key={item.id} value={item.id} sx={{ minHeight: 40 }}>
-                  {item.name}
-                  {item.active || item.id === session.activeScenarioId ? ' · active' : ''}
-                </MenuItem>
-              ))}
-              <Divider />
-              <MenuItem value={ADD} sx={{ minHeight: 40 }}>
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  <AddIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Add scenario…" />
-              </MenuItem>
-            </TextField>
+              clearLabel="No active scenario"
+              disableClearable
+              fullWidth={false}
+              placeholder=""
+              options={scenarios}
+              value={session.activeScenarioId || ''}
+              disabled={busy}
+              onChange={askScenario}
+              getOptionLabel={(item) => `${item.name}${item.active || item.id === session.activeScenarioId ? ' · active' : ''}`}
+              getOptionValue={(item) => item.id}
+              sx={barField(240)}
+            />
+            <Button size="small" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')} disabled={busy} sx={{ flexShrink: 0 }}>
+              Add
+            </Button>
           </Fact>
         ) : (
           <Fact label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
@@ -211,47 +209,35 @@ export function ScenarioContext() {
           </Fact>
         )}
         {session.canSelectGame ? (
-          <Fact label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <TextField
-              select
+          <Fact fixed label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
+            <SearchSelect
               size="small"
               hiddenLabel
-              value={gameValue}
-              disabled={busy || !session.activeScenarioId}
-              onChange={(event) => askGame(event.target.value)}
               aria-label="Game"
-              displayEmpty
-              sx={{ minWidth: 140, maxWidth: 200, '& .MuiInputBase-root': { minHeight: 36 }, '& .MuiSelect-select': { py: 0.75 } }}
-            >
-              {!session.activeScenarioId ? (
-                <MenuItem value="" disabled>
-                  Select a scenario first
-                </MenuItem>
-              ) : (
-                <MenuItem value={NONE_GAME}>No active game</MenuItem>
-              )}
-              {session.activeScenarioId && games.length ? <Divider /> : null}
-              {session.activeScenarioId && !games.length ? (
-                <MenuItem value="" disabled>
-                  No games yet
-                </MenuItem>
-              ) : null}
-              {games.map((item) => (
-                <MenuItem key={item.id} value={item.id} disabled={!item.open} sx={{ minHeight: 40 }}>
-                  {item.open ? item.name : `${item.name} · Closed`}
-                  {item.active || item.id === session.activeGame.id ? ' · active' : ''}
-                </MenuItem>
-              ))}
-              {session.activeScenarioId ? <Divider /> : null}
-              {session.activeScenarioId ? (
-                <MenuItem value={ADD_GAME} sx={{ minHeight: 40 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <AddIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary="Add game…" />
-                </MenuItem>
-              ) : null}
-            </TextField>
+              clearLabel={session.activeScenarioId ? 'No active game' : undefined}
+              disableClearable
+              fullWidth={false}
+              placeholder={session.activeScenarioId ? '' : 'Select a scenario first'}
+              options={session.activeScenarioId ? games : []}
+              value={session.activeScenarioId && session.activeGame.id && games.some((item) => item.id === session.activeGame.id) ? session.activeGame.id : ''}
+              disabled={busy || !session.activeScenarioId}
+              onChange={askGame}
+              isOptionDisabled={(item) => item.open === false}
+              getOptionLabel={(item) => `${item.open === false ? `${item.name} · Closed` : item.name}${item.active || item.id === session.activeGame.id ? ' · active' : ''}`}
+              getOptionValue={(item) => item.id}
+              sx={barField(220)}
+            />
+            {session.activeScenarioId ? (
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                disabled={busy}
+                onClick={() => navigate(`/exercise/games/new?scenarioId=${session.activeScenarioId}`)}
+                sx={{ flexShrink: 0 }}
+              >
+                Add
+              </Button>
+            ) : null}
           </Fact>
         ) : (
           <Fact label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>

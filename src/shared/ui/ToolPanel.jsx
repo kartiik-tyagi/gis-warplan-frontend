@@ -4,14 +4,10 @@ import { PanelBody } from './workbench/Panels'
 
 const TITLES = {
   filters: 'Map filters',
-  users: 'Users',
-  roles: 'Roles',
-  icons: 'Icons',
   orbat: 'ORBAT',
   'map-admin': 'Map catalog',
   'scenario-admin': 'Scenario management',
   'game-admin': 'Game',
-  audit: 'Audit',
 }
 
 export function ToolPanel({ panel, onClose }) {
