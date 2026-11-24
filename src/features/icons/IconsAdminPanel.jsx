@@ -280,7 +280,7 @@ export function IconsAdminPanel() {
 
 export function IconsPage() {
   return (
-    <ExerciseLayout kicker="Records" title="Icons">
+    <ExerciseLayout>
       <IconsAdminPanel />
     </ExerciseLayout>
   )

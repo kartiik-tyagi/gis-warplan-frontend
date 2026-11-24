@@ -6,6 +6,7 @@ import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
 import { ApiError } from '../../shared/api/errors'
 import { API_BASE, del, httpBlob } from '../../shared/api/http'
 import { getToken } from '../../shared/api/tokenStore'
+import { appServiceUnreachable } from '../../shared/brand'
 
 const ACCEPT = '.txt,.doc,.docx,.pdf,.jpg,.jpeg,text/plain,application/pdf,image/jpeg,application/msword'
 const MAX_BYTES = 10 * 1024 * 1024
@@ -38,7 +39,7 @@ export async function uploadAttachment(scenarioId, file) {
       body: formData,
     })
   } catch {
-    throw new ApiError('The GIS Warplan service is not reachable.', 'UNAVAILABLE')
+    throw new ApiError(appServiceUnreachable(), 'UNAVAILABLE')
   }
   if (!response.ok) {
     let payload = null

@@ -8,10 +8,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
+import { titleCase } from '../../shared/lib/titleCase'
 import { del, get, patch, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
@@ -99,42 +102,38 @@ function UsersList() {
   const themeName = (id) => themes.find((theme) => String(theme.id) === String(id))?.name
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        Accounts can be created here, or from an ORBAT node with Mark as user. A user on a side inherits that side&apos;s theme until an override is allotted.
-      </Typography>
+    <Stack spacing={1.25}>
       {!rows.length ? (
-        <Box sx={{ py: 8, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>No users yet</Typography>
-          <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>Create the first account for this exercise.</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/users/new')}>New user</Button>
+        <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>{titleCase('No Users Yet')}</Typography>
+          <CreateAction label="New User" onClick={() => navigate('/access/users/new')} />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {rows.map((user) => {
             const home = sideName(user.homeSideId)
             const names = (user.roleIds || []).map(roleName).filter(Boolean)
             return (
-              <Box key={user.id} sx={cardSx}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                  <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>{user.name}</Typography>
-                  <Chip size="small" label={statusOf(user)} color={user.active ? 'success' : 'default'} variant={user.active ? 'filled' : 'outlined'} />
-                  {user.name === 'APEX' ? <Chip size="small" variant="outlined" label="Login Theme" /> : null}
-                </Stack>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                  {names.length ? names.join(', ') : 'No roles'}
-                  {' · '}
-                  {home ? `Side ${home}` : 'No side'}
-                  {' · '}
-                  {themeName(user.displayThemeId) || 'No theme'}
-                  {user.standardNodeId ? ' · From an ORBAT node' : ''}
-                </Typography>
-                {user.name === 'APEX' ? null : (
-                  <Button size="small" variant="outlined" startIcon={<EditOutlinedIcon />} onClick={() => navigate(`/access/users/${user.id}`)}>
-                    Edit
-                  </Button>
-                )}
-              </Box>
+              <EntityCard
+                key={user.id}
+                title={user.name}
+                chip={
+                  <Stack direction="row" spacing={0.5}>
+                    <Chip size="small" label={titleCase(statusOf(user))} color={user.active ? 'success' : 'default'} variant={user.active ? 'filled' : 'outlined'} />
+                    {user.name === 'APEX' ? <Chip size="small" variant="outlined" label="Login Theme" /> : null}
+                  </Stack>
+                }
+                meta={[
+                  names.length ? names.join(', ') : 'No Roles',
+                  home ? `Side ${home}` : 'No Side',
+                  themeName(user.displayThemeId) || 'No Theme',
+                ].join(' · ')}
+                actions={
+                  user.name === 'APEX' ? null : (
+                    <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/access/users/${user.id}`)} />
+                  )
+                }
+              />
             )
           })}
         </Stack>
@@ -274,7 +273,7 @@ function UserEditor() {
     return (
       <Stack spacing={2}>
         <Typography variant="body2" color="text.secondary">This user is no longer available.</Typography>
-        <Button onClick={() => navigate('/access/users')}>Back to list</Button>
+        <Button onClick={() => navigate('/access/users')}>Back To List</Button>
       </Stack>
     )
   }
@@ -322,7 +321,7 @@ function UserEditor() {
         </>
       )}
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/access/users')} disabled={busy}>Back to list</Button>
+        <Button onClick={() => navigate('/access/users')} disabled={busy}>Back To List</Button>
         {apex ? null : (
           <Button
             variant="contained"
@@ -369,33 +368,26 @@ function RolesList() {
   const functionalityName = (id) => catalog.find((item) => item.id === id)?.name
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        Roles are defined here. ORBAT and user management only assign them.
-      </Typography>
+    <Stack spacing={1.25}>
       {!roles.length ? (
-        <Box sx={{ py: 8, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>No roles yet</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/roles/new')} sx={{ mt: 1 }}>New role</Button>
+        <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>{titleCase('No Roles Yet')}</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <CreateAction label="New Role" onClick={() => navigate('/access/roles/new')} />
+          </Box>
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {roles.map((role) => {
             const names = (role.functionalityIds || []).map(functionalityName).filter(Boolean)
             return (
-              <Box key={role.id} sx={cardSx}>
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                  <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>{role.name}</Typography>
-                  <Chip size="small" variant="outlined" label={role.code} />
-                  {role.standard ? <Chip size="small" color="primary" label="Built-in" /> : null}
-                </Stack>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                  {names.length ? names.join(', ') : 'No functionalities'}
-                </Typography>
-                <Button size="small" variant="outlined" startIcon={<EditOutlinedIcon />} onClick={() => navigate(`/access/roles/${role.id}`)}>
-                  Edit
-                </Button>
-              </Box>
+              <EntityCard
+                key={role.id}
+                title={role.name}
+                chip={role.standard ? <Chip size="small" color="primary" label="Built-In" /> : null}
+                meta={names.length ? names.join(', ') : 'No Functionalities'}
+                actions={<IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/access/roles/${role.id}`)} />}
+              />
             )
           })}
         </Stack>
@@ -412,7 +404,6 @@ function RoleEditor() {
   const [ready, setReady] = useState(false)
   const [role, setRole] = useState(null)
   const [catalog, setCatalog] = useState(EMPTY_LIST)
-  const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [functionalityIds, setFunctionalityIds] = useState([])
   const [busy, setBusy] = useState(false)
@@ -432,7 +423,6 @@ function RoleEditor() {
         const found = (roleRows || EMPTY_LIST).find((item) => String(item.id) === String(id))
         setRole(found || null)
         if (found) {
-          setCode(found.code || '')
           setName(found.name || '')
           setFunctionalityIds(found.functionalityIds || [])
         }
@@ -449,13 +439,13 @@ function RoleEditor() {
   }, [id, isNew, push])
 
   const create = async () => {
-    if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(code.trim()) || !name.trim()) {
-      push('Use a role code of letters, digits and underscores, starting with a letter.', 'warning')
+    if (!name.trim()) {
+      push('Enter a role name.', 'warning')
       return
     }
     setBusy(true)
     try {
-      const created = await post('/roles', { code: code.trim(), name: name.trim(), description: '', functionalityIds })
+      const created = await post('/roles', { name: name.trim(), description: '', functionalityIds })
       push('Role created.', 'success')
       navigate(`/access/roles/${created.id}`, { replace: true })
     } catch (error) {
@@ -469,7 +459,7 @@ function RoleEditor() {
     if (!role || !name.trim()) return
     setBusy(true)
     try {
-      await put(`/roles/${role.id}`, { code: role.code, name: name.trim(), description: role.description || '', functionalityIds })
+      await put(`/roles/${role.id}`, { name: name.trim(), description: role.description || '', functionalityIds })
       push('Role saved.', 'success')
       navigate('/access/roles')
     } catch (error) {
@@ -499,14 +489,13 @@ function RoleEditor() {
     return (
       <Stack spacing={2}>
         <Typography variant="body2" color="text.secondary">This role is no longer available.</Typography>
-        <Button onClick={() => navigate('/access/roles')}>Back to list</Button>
+        <Button onClick={() => navigate('/access/roles')}>Back To List</Button>
       </Stack>
     )
   }
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-      <TextField label="Role Code" value={code} onChange={(event) => setCode(event.target.value)} helperText={isNew ? 'Letters, digits, and underscores. It cannot be changed later.' : 'The code cannot be changed.'} disabled={!isNew} fullWidth required />
       <TextField label="Role Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
       <SearchSelect
         multiple
@@ -519,8 +508,8 @@ function RoleEditor() {
         helperText="Choose what this role is allowed to do. Only these features can be selected."
       />
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/access/roles')} disabled={busy}>Back to list</Button>
-        <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || !name.trim() || (isNew && !code.trim())} onClick={isNew ? create : save}>
+        <Button onClick={() => navigate('/access/roles')} disabled={busy}>Back To List</Button>
+        <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || !name.trim()} onClick={isNew ? create : save}>
           {busy ? 'Saving…' : isNew ? 'Create Role' : 'Save Role'}
         </Button>
         {!isNew && role && !role.standard ? (
@@ -547,25 +536,15 @@ function RoleEditor() {
 export function UsersListPage() {
   const navigate = useNavigate()
   return (
-    <ExerciseLayout
-      kicker="Access"
-      title="Users"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/users/new')}>
-          New User
-        </Button>
-      }
-    >
+    <ExerciseLayout actions={<CreateAction label="New User" onClick={() => navigate('/access/users/new')} />}>
       <UsersList />
     </ExerciseLayout>
   )
 }
 
 export function UserEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Access" title={isNew ? 'New User' : 'Edit User'}>
+    <ExerciseLayout>
       <UserEditor />
     </ExerciseLayout>
   )
@@ -574,25 +553,15 @@ export function UserEditorPage() {
 export function RolesListPage() {
   const navigate = useNavigate()
   return (
-    <ExerciseLayout
-      kicker="Access"
-      title="Roles"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/access/roles/new')}>
-          New Role
-        </Button>
-      }
-    >
+    <ExerciseLayout actions={<CreateAction label="New Role" onClick={() => navigate('/access/roles/new')} />}>
       <RolesList />
     </ExerciseLayout>
   )
 }
 
 export function RoleEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Access" title={isNew ? 'New Role' : 'Edit Role'}>
+    <ExerciseLayout>
       <RoleEditor />
     </ExerciseLayout>
   )

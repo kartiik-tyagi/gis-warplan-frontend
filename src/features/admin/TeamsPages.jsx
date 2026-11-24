@@ -9,7 +9,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
@@ -105,15 +107,11 @@ function TeamsList() {
   const alliances = sides.filter((side) => side.kind === 'alliance')
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        A side is a country. Creating one also creates the standard ORBAT whose root is this side.
-      </Typography>
-
+    <Stack spacing={1.25}>
       {!countries.length ? (
         <Box
           sx={{
-            py: 8,
+            py: 6,
             px: 3,
             textAlign: 'center',
             border: 1,
@@ -122,68 +120,42 @@ function TeamsList() {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
             No Sides Yet
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create the first side to start a standard ORBAT.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/teams/new')}>
-            New Side
-          </Button>
+          <CreateAction label="New Side" onClick={() => navigate('/standard/teams/new')} />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {countries.map((side) => (
-            <Box
+            <EntityCard
               key={side.id}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    bgcolor: side.colour || 'text.disabled',
-                    border: 1,
-                    borderColor: 'divider',
-                    flexShrink: 0,
-                  }}
-                />
-                {side.icon ? <IconPreview path={side.icon} size={22} /> : null}
-                <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>
-                  {side.name}
-                </Typography>
-                <Chip size="small" label={themeName(themes, side.themeId)} variant="outlined" />
-              </Stack>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => navigate(`/standard/teams/${side.id}`)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  startIcon={<DeleteOutlinedIcon />}
-                  disabled={busyDelete}
-                  onClick={() => setDeleting(side)}
-                >
-                  Remove
-                </Button>
-              </Stack>
-            </Box>
+              title={side.name}
+              leading={
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Box
+                    sx={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      bgcolor: side.colour || 'text.disabled',
+                      border: 1,
+                      borderColor: 'divider',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {side.icon ? <IconPreview path={side.icon} size={18} /> : null}
+                </Stack>
+              }
+              chip={<Chip size="small" label={themeName(themes, side.themeId)} variant="outlined" />}
+              meta="—"
+              actions={
+                <>
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/standard/teams/${side.id}`)} />
+                  <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busyDelete} onClick={() => setDeleting(side)} />
+                </>
+              }
+            />
           ))}
         </Stack>
       )}
@@ -193,10 +165,7 @@ function TeamsList() {
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Alliances
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            An alliance is created inside a game, from the playing ORBAT.
-          </Typography>
-          <Stack spacing={0.75}>
+          <Stack spacing={0.5}>
             {alliances.map((side) => (
               <Typography key={side.id} variant="body2">
                 {side.name}
@@ -350,7 +319,7 @@ function TeamEditor() {
       />
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button onClick={() => navigate('/standard/teams')} disabled={busy || busyDelete}>
-          Back to list
+          Back To List
         </Button>
         <Button
           variant="contained"
@@ -384,25 +353,15 @@ function TeamEditor() {
 export function TeamsListPage() {
   const navigate = useNavigate()
   return (
-    <ExerciseLayout
-      kicker="Standard Data"
-      title="Sides"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/teams/new')}>
-          New Side
-        </Button>
-      }
-    >
+    <ExerciseLayout actions={<CreateAction label="New Side" onClick={() => navigate('/standard/teams/new')} />}>
       <TeamsList />
     </ExerciseLayout>
   )
 }
 
 export function TeamEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Side' : 'Edit Side'}>
+    <ExerciseLayout>
       <TeamEditor />
     </ExerciseLayout>
   )

@@ -1,14 +1,16 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate, useOutlet } from 'react-router-dom'
-import { Box, IconButton, Typography } from '@mui/material'
+import { Box, IconButton } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { create } from 'zustand'
 import { sectionFromPath } from '../auth/access'
 import { useLocationPick } from '../map/useLocationPick'
+import { SectionSwitcher } from './SectionSwitcher'
 
-const MIN_W = 480
-const MIN_H = 360
+/** Hard floor for resize — forms cannot shrink below this. */
+const MIN_W = 420
+const MIN_H = 320
 const MARGIN = 8
 const MENU_CLEARANCE = 56
 
@@ -35,8 +37,8 @@ function clampWorkBox(box) {
 function defaultWorkBox() {
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const width = Math.round(vw * 0.8)
-  const height = Math.min(Math.round(vh * 0.8), vh - MENU_CLEARANCE - MARGIN)
+  const width = Math.round(vw * 0.62)
+  const height = Math.min(Math.round(vh * 0.68), vh - MENU_CLEARANCE - MARGIN)
   const x = Math.round((vw - width) / 2)
   const y = Math.max(MENU_CLEARANCE, Math.round((vh - height) / 2))
   return clampWorkBox({ x, y, width, height })
@@ -46,6 +48,7 @@ const useWorkWindowStore = create((set) => ({
   box: null,
   place: (box) => set({ box: clampWorkBox(box) }),
   ensure: () => set((state) => ({ box: state.box ? clampWorkBox(state.box) : defaultWorkBox() })),
+  resetDefault: () => set({ box: defaultWorkBox() }),
 }))
 
 function startGesture(event, mode, box, place) {
@@ -125,6 +128,7 @@ export function WorkWindow() {
 
   if (!section) return outlet
   const frame = box ?? defaultWorkBox()
+  const { minW, minH } = viewportLimits()
 
   return (
     <Box
@@ -147,15 +151,15 @@ export function WorkWindow() {
         borderRadius: 1,
         boxShadow: 8,
         overflow: 'hidden',
-        minWidth: 0,
-        minHeight: 0,
+        minWidth: minW,
+        minHeight: minH,
         visibility: picking ? 'hidden' : 'visible',
         pointerEvents: picking ? 'none' : 'auto',
       })}
     >
       <Box
         onPointerDown={(event) => {
-          if (event.target.closest('button')) return
+          if (event.target.closest('button, [role="button"], a')) return
           startGesture(event, 'move', frame, place)
         }}
         sx={{
@@ -175,9 +179,7 @@ export function WorkWindow() {
         }}
       >
         <DragIndicatorIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-        <Typography id="work-window-title" variant="subtitle2" sx={{ flex: 1 }} noWrap>
-          {section.title}
-        </Typography>
+        <SectionSwitcher currentId={section.id} title={section.title} />
         <IconButton aria-label="Close" size="small" onClick={() => navigate('/')}>
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -187,14 +189,14 @@ export function WorkWindow() {
       </Box>
       <ResizeHandle
         mode="e"
-        label="Resize width"
+        label="Resize Width"
         box={frame}
         place={place}
         sx={{ top: 44, right: 0, width: 8, bottom: 8, cursor: 'ew-resize' }}
       />
       <ResizeHandle
         mode="s"
-        label="Resize height"
+        label="Resize Height"
         box={frame}
         place={place}
         sx={{ left: 0, right: 8, bottom: 0, height: 8, cursor: 'ns-resize' }}

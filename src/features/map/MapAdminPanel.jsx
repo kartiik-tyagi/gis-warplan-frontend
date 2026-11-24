@@ -11,15 +11,15 @@ import {
   ListItemText,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { scrollbarSx } from '../../shared/ui/scrollbar'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
-import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
-import MyLocationOutlinedIcon from '@mui/icons-material/MyLocationOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
-import StorageOutlinedIcon from '@mui/icons-material/StorageOutlined'
 import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
@@ -42,13 +42,25 @@ const SERVER_TEXT = [['code', 'Code'], ['name', 'Name'], ['wmsUrl', 'WMS URL'], 
 const LAYER_TEXT = [['code', 'Code'], ['label', 'Label'], ['groupName', 'Group'], ['wmsLayers', 'WMS layers'], ['format', 'Format'], ['cqlFilter', 'CQL filter'], ['attribution', 'Attribution']]
 const LAYER_NUMBER = [['sortOrder', 'Sort order'], ['defaultOpacity', 'Default opacity (0-1)'], ['minZoom', 'Min zoom'], ['maxZoom', 'Max zoom']]
 const LAYER_FLAGS = [['transparent', 'Transparent'], ['baseLayer', 'Base layer'], ['defaultVisible', 'Visible by default'], ['active', 'Active']]
-const VIEW_NUMBER = [['centerLon', 'Center longitude'], ['centerLat', 'Center latitude'], ['zoom', 'Zoom'], ['minZoom', 'Min zoom'], ['maxZoom', 'Max zoom']]
+const VIEW_NUMBER = [['centerLon', 'Center Long'], ['centerLat', 'Center Lat'], ['zoom', 'Zoom'], ['minZoom', 'Min Zoom'], ['maxZoom', 'Max Zoom']]
 
 const TABS = [
-  { id: 'servers', label: 'Servers', icon: StorageOutlinedIcon },
-  { id: 'layers', label: 'Layers', icon: LayersOutlinedIcon },
-  { id: 'view', label: 'Home View', icon: MyLocationOutlinedIcon },
+  { id: 'servers', label: 'Servers' },
+  { id: 'layers', label: 'Layers' },
+  { id: 'view', label: 'Home View' },
 ]
+
+const formTabsSx = {
+  minHeight: 40,
+  '& .MuiTab-root': {
+    minHeight: 40,
+    textTransform: 'none',
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    letterSpacing: '-0.01em',
+    px: 1.5,
+  },
+}
 
 const toNumber = (value) => (value === '' || value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value))
 const orEmpty = (record, fallback) => {
@@ -202,8 +214,16 @@ function useResource(path, empty, toBody, label) {
   return { items, selectedId, form, errors, message, busy, select, change, save, remove }
 }
 
-function ResourceLayout({ resource, title, primary, secondary, status, children, confirmDelete, setConfirmDelete, name }) {
+function ResourceLayout({ resource, title, primary, secondary, status, children, confirmDelete, setConfirmDelete, name, createSignal = 0 }) {
   const { items, selectedId, message, busy, select, save, remove } = resource
+
+  useEffect(() => {
+    if (!createSignal) return
+    select(null)
+    // Intentionally keyed only on createSignal from the header +.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createSignal])
+
   if (!items) return <LoadingState label={`Loading ${title}`} />
 
   return (
@@ -220,15 +240,6 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
           minWidth: 0,
         }}
       >
-        <Button
-          size="small"
-          variant={selectedId === 'new' ? 'contained' : 'outlined'}
-          startIcon={<AddIcon />}
-          onClick={() => select(null)}
-          sx={{ textTransform: 'none', justifyContent: 'flex-start', fontWeight: 600 }}
-        >
-          New {name.charAt(0).toUpperCase() + name.slice(1)}
-        </Button>
         <List
           dense
           disablePadding
@@ -237,9 +248,7 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
             flex: 1,
             maxHeight: { xs: 200, md: 440 },
             overflow: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            '&::-webkit-scrollbar': { display: 'none', width: 0, height: 0 },
+            ...scrollbarSx,
             borderRadius: 2,
             border: 1,
             borderColor: 'divider',
@@ -357,7 +366,7 @@ function ResourceLayout({ resource, title, primary, secondary, status, children,
   )
 }
 
-function ServersTab() {
+function ServersTab({ createSignal = 0 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const resource = useResource(
     '/map/servers',
@@ -371,6 +380,7 @@ function ServersTab() {
       resource={resource}
       title="GIS Servers"
       name="server"
+      createSignal={createSignal}
       primary={(item) => item.name || item.code}
       secondary={(item) => item.code}
       status={(item) => <StatusDot ok={item.enabled !== false} />}
@@ -401,7 +411,7 @@ function ServersTab() {
   )
 }
 
-function LayersTab({ servers }) {
+function LayersTab({ servers, createSignal = 0 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const resource = useResource(
     '/map/layers',
@@ -423,6 +433,7 @@ function LayersTab({ servers }) {
       resource={resource}
       title="Layers"
       name="layer"
+      createSignal={createSignal}
       primary={(item) => item.label || item.code}
       secondary={(item) => `${item.code}${item.groupName ? ` · ${item.groupName}` : ''}`}
       status={(item) => <StatusDot ok={item.active !== false} />}
@@ -534,12 +545,9 @@ function ViewDefaultsTab({ servers }) {
         <Typography variant="subtitle1" sx={{ fontWeight: 650 }}>
           Home View
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Centre, zoom, and default server used when the map opens or when Home extent is pressed.
-        </Typography>
         <Divider />
         {message ? <Alert severity="error">{message}</Alert> : null}
-        <SectionLabel>Centre and zoom</SectionLabel>
+        <SectionLabel>Centre And Zoom</SectionLabel>
         <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
           {VIEW_NUMBER.map(([name, label]) => (
             <Field
@@ -588,6 +596,7 @@ function ViewDefaultsTab({ servers }) {
 export function MapAdminPanel() {
   const [tab, setTab] = useState('servers')
   const [servers, setServers] = useState(EMPTY_LIST)
+  const [createSignal, setCreateSignal] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -599,61 +608,43 @@ export function MapAdminPanel() {
     }
   }, [tab])
 
-  return (
-    <Stack spacing={2} sx={{ minWidth: 0 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-        <Typography variant="body2" color="text.secondary">
-          GeoServer endpoints, WMS layers, and the map home view.
-        </Typography>
-        <Chip
-          size="small"
-          variant="outlined"
-          label={`${servers.length} server${servers.length === 1 ? '' : 's'}`}
-          sx={{ alignSelf: 'flex-start', flexShrink: 0 }}
-        />
-      </Stack>
+  const createLabel = tab === 'layers' ? 'New Layer' : 'New Server'
 
-      <Stack
-        direction="row"
-        spacing={0.75}
-        useFlexGap
+  return (
+    <Stack spacing={0} sx={{ minWidth: 0 }}>
+      <Box
         sx={{
-          p: 0.5,
-          borderRadius: 2,
-          bgcolor: 'action.hover',
-          flexWrap: 'wrap',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 2,
+          pb: 1.25,
+          borderBottom: 1,
+          borderColor: 'divider',
+          minHeight: 44,
         }}
       >
-        {TABS.map((entry) => {
-          const Icon = entry.icon
-          const selected = tab === entry.id
-          return (
-            <Button
-              key={entry.id}
-              size="small"
-              onClick={() => setTab(entry.id)}
-              startIcon={<Icon fontSize="small" />}
-              sx={{
-                textTransform: 'none',
-                fontWeight: selected ? 650 : 500,
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 1.5,
-                color: selected ? 'primary.contrastText' : 'text.primary',
-                bgcolor: selected ? 'primary.main' : 'transparent',
-                '&:hover': {
-                  bgcolor: selected ? 'primary.dark' : 'action.selected',
-                },
-              }}
-            >
-              {entry.label}
-            </Button>
-          )
-        })}
-      </Stack>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Tabs
+            value={tab}
+            onChange={(_, value) => setTab(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={formTabsSx}
+          >
+            {TABS.map((entry) => (
+              <Tab key={entry.id} value={entry.id} label={entry.label} />
+            ))}
+          </Tabs>
+        </Box>
+        {tab === 'view' ? null : (
+          <CreateAction label={createLabel} onClick={() => setCreateSignal((value) => value + 1)} />
+        )}
+      </Box>
 
-      {tab === 'servers' ? <ServersTab /> : null}
-      {tab === 'layers' ? <LayersTab servers={servers} /> : null}
+      {tab === 'servers' ? <ServersTab createSignal={createSignal} /> : null}
+      {tab === 'layers' ? <LayersTab servers={servers} createSignal={createSignal} /> : null}
       {tab === 'view' ? <ViewDefaultsTab servers={servers} /> : null}
     </Stack>
   )
@@ -661,7 +652,7 @@ export function MapAdminPanel() {
 
 export function MapCatalogPage() {
   return (
-    <ExerciseLayout kicker="Map" title="Map Catalog">
+    <ExerciseLayout hideHeader>
       <MapAdminPanel />
     </ExerciseLayout>
   )

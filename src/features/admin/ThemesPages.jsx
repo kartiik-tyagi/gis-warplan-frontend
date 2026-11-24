@@ -11,10 +11,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
+import { titleCase } from '../../shared/lib/titleCase'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
@@ -63,16 +66,11 @@ function ThemesList() {
   if (!rows) return <LoadingState label="Loading themes" />
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        A theme is allotted to one side or one user. Members of a side display the side theme until a user override is
-        allotted. APEX&apos;s theme is the login theme.
-      </Typography>
-
+    <Stack spacing={1.25}>
       {!rows.length ? (
         <Box
           sx={{
-            py: 8,
+            py: 6,
             px: 3,
             textAlign: 'center',
             border: 1,
@@ -81,60 +79,31 @@ function ThemesList() {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            No themes yet
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            No Themes Yet
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create a theme, then allot it from Sides or Users.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/themes/new')}>
-            New Theme
-          </Button>
+          <CreateAction label="New Theme" onClick={() => navigate('/standard/themes/new')} />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {rows.map((row) => (
-            <Box
+            <EntityCard
               key={row.id}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>
-                  {row.name}
-                </Typography>
-                {row.defaultTheme ? <Chip size="small" color="primary" label="Default" /> : null}
-                <Chip size="small" variant="outlined" label={holderLabel(row)} />
-              </Stack>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {row.description || 'No description'}
-              </Typography>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => navigate(`/standard/themes/${row.id}`)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  startIcon={<DeleteOutlinedIcon />}
-                  disabled={busyDelete || row.holderKind !== 'FREE'}
-                  onClick={() => setDeleting(row)}
-                >
-                  Remove
-                </Button>
-              </Stack>
-            </Box>
+              title={row.name}
+              chip={
+                <Stack direction="row" spacing={0.5}>
+                  {row.defaultTheme ? <Chip size="small" color="primary" label="Default" /> : null}
+                  <Chip size="small" variant="outlined" label={titleCase(holderLabel(row))} />
+                </Stack>
+              }
+              meta={row.description || '—'}
+              actions={
+                <>
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/standard/themes/${row.id}`)} />
+                  <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busyDelete || row.holderKind !== 'FREE'} onClick={() => setDeleting(row)} />
+                </>
+              }
+            />
           ))}
         </Stack>
       )}
@@ -275,7 +244,7 @@ function ThemeEditor() {
       </Typography>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button onClick={() => navigate('/standard/themes')} disabled={busy || busyDelete}>
-          Back to list
+          Back To List
         </Button>
         <Button
           variant="contained"
@@ -283,7 +252,7 @@ function ThemeEditor() {
           disabled={busy || busyDelete || !name.trim()}
           onClick={save}
         >
-          {busy ? 'Saving…' : isNew ? 'Create theme' : 'Save theme'}
+          {titleCase(busy ? 'Saving…' : isNew ? 'Create Theme' : 'Save Theme')}
         </Button>
         {!isNew ? (
           <Button
@@ -314,25 +283,15 @@ function ThemeEditor() {
 export function ThemesListPage() {
   const navigate = useNavigate()
   return (
-    <ExerciseLayout
-      kicker="Standard Data"
-      title="Themes"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/themes/new')}>
-          New Theme
-        </Button>
-      }
-    >
+    <ExerciseLayout actions={<CreateAction label="New Theme" onClick={() => navigate('/standard/themes/new')} />}>
       <ThemesList />
     </ExerciseLayout>
   )
 }
 
 export function ThemeEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Theme' : 'Edit Theme'}>
+    <ExerciseLayout>
       <ThemeEditor />
     </ExerciseLayout>
   )

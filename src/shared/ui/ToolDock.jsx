@@ -27,7 +27,7 @@ function readSpan() {
 }
 
 /** Every dock in this layout can be dragged wider or taller. The size is kept for the session. */
-export function ToolDock({ panel, onClose, edge = 'end' }) {
+export function ToolDock({ panel, onClose, edge = 'end', sx }) {
   const theme = useTheme()
   const phone = useMediaQuery(theme.breakpoints.down('md'))
   const picking = useLocationPick((state) => state.armed)
@@ -76,6 +76,7 @@ export function ToolDock({ panel, onClose, edge = 'end' }) {
         boxShadow: phone ? 8 : 0,
         position: 'relative',
         zIndex: phone ? 3 : 1,
+        ...sx,
       }}
     >
       <Box

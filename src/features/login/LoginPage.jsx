@@ -4,6 +4,7 @@ import { alpha } from '@mui/material/styles'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getLoginContext, login } from '../../shared/api/client'
+import { APP_NAME, appOpeningLabel, appUnavailableMessage } from '../../shared/brand'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { PasswordField } from '../../shared/ui/PasswordField'
@@ -20,7 +21,7 @@ export default function LoginPage() {
   const context = useQuery({ queryKey: ['login-context'], queryFn: getLoginContext })
 
   useEffect(() => {
-    document.title = context.data?.applicationName || 'GIS Warplan'
+    document.title = context.data?.applicationName || APP_NAME
   }, [context.data?.applicationName])
 
   useEffect(() => {
@@ -36,12 +37,12 @@ export default function LoginPage() {
     },
   })
 
-  if (context.isPending) return <LoadingState label="Opening GIS Warplan" />
+  if (context.isPending) return <LoadingState label={appOpeningLabel()} />
 
   if (context.isError) {
     return (
       <Box sx={{ p: 3, maxWidth: 560 }}>
-        <ErrorState title="GIS Warplan is unavailable" message={context.error.message} onRetry={() => context.refetch()} />
+        <ErrorState title={`${APP_NAME} is unavailable`} message={context.error.message} onRetry={() => context.refetch()} />
       </Box>
     )
   }
@@ -138,7 +139,7 @@ export default function LoginPage() {
                   : attempt.error.code === 'VALIDATION'
                     ? attempt.error.message
                     : attempt.error.code === 'UNAVAILABLE'
-                      ? 'GIS Warplan is unavailable. Try again shortly.'
+                      ? appUnavailableMessage()
                       : attempt.error.message}
               </Alert>
             ) : null}

@@ -25,8 +25,8 @@ export const useLocationPick = create((set, get) => ({
       armed: false,
       point: {
         owner: state.owner,
-        latitude: Math.round(latitude * 1e5) / 1e5,
-        longitude: Math.round(longitude * 1e5) / 1e5,
+        latitude: Math.round(latitude * 1e4) / 1e4,
+        longitude: Math.round(longitude * 1e4) / 1e4,
       },
       token: state.token + 1,
     }))

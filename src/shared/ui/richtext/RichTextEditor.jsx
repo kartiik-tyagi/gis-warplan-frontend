@@ -91,10 +91,10 @@ export function RichTextEditor({ label, value, onChange, placeholder, error, hel
           <FormatUnderlinedIcon fontSize="small" />
         </Tool>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-        <Tool title="Bullet list" active={editor?.isActive('bulletList')} disabled={!editor} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <Tool title="Bullet List" active={editor?.isActive('bulletList')} disabled={!editor} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <FormatListBulletedIcon fontSize="small" />
         </Tool>
-        <Tool title="Numbered list" active={editor?.isActive('orderedList')} disabled={!editor} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        <Tool title="Numbered List" active={editor?.isActive('orderedList')} disabled={!editor} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
           <FormatListNumberedIcon fontSize="small" />
         </Tool>
       </Stack>

@@ -112,9 +112,6 @@ export function AuditPanel() {
 
   return (
     <Stack spacing={1.5}>
-      <Typography variant="body2" color="text.secondary">
-        Review mutating actions and sign-in sessions.
-      </Typography>
       <Tabs
         value={tab}
         onChange={(_, value) => {
@@ -201,7 +198,7 @@ export function AuditPanel() {
 
 export function AuditPage() {
   return (
-    <ExerciseLayout kicker="Records" title="Audit">
+    <ExerciseLayout>
       <AuditPanel />
     </ExerciseLayout>
   )

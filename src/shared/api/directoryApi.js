@@ -129,19 +129,18 @@ export async function saveRole(userId, draft) {
   if (draft?.id) {
     const current = findRemote('roles', draft.id, userId)
     await put(`/roles/${numericId(draft.id)}`, {
-      code: draft.code || current?.code,
       name,
       description: draft.description ?? current?.description ?? '',
       functionalityIds: draft.functionalityIds ?? current?.functionalityIds ?? [],
     })
     return after(userId, 'role.saved', { roleId: draft.id })
   }
-  const code = String(draft?.newId || draft?.code || '').trim()
-  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(code)) {
-    throw new ApiError('Use a role code of letters, digits and underscores, starting with a letter.', 'VALIDATION')
-  }
-  await post('/roles', { code, name, description: draft?.description || '', functionalityIds: draft?.functionalityIds || [] })
-  return after(userId, 'role.saved', { code })
+  const created = await post('/roles', {
+    name,
+    description: draft?.description || '',
+    functionalityIds: draft?.functionalityIds || [],
+  })
+  return after(userId, 'role.saved', { roleId: created?.id })
 }
 
 export async function deleteRole(userId, roleId) {

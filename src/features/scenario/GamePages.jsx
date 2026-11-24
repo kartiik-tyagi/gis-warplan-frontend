@@ -9,7 +9,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -20,7 +19,11 @@ import { EMPTY_LIST } from '../../shared/lib/empty'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
+import { titleCase } from '../../shared/lib/titleCase'
 import { RichTextEditor } from '../../shared/ui/richtext/RichTextEditor'
 import { richTextPlain } from '../../shared/ui/richtext/RichTextView'
 import { useToastStore } from '../feedback/useToastStore'
@@ -160,22 +163,22 @@ function GameList() {
         value={scenarioId}
         onChange={(id) => setSearchParams(id ? { scenarioId: id } : {})}
         disabled={!scenarios.length}
-        helperText={!scenarios.length ? 'Create a scenario first' : undefined}
-        getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+        helperText={!scenarios.length ? 'Create A Scenario First' : undefined}
+        getOptionLabel={(item) => `${item.name}${item.active ? ' · Active' : ''}`}
         getOptionValue={(item) => String(item.id)}
         sx={{ width: '100%', maxWidth: { xs: '100%', md: '36rem' } }}
       />
 
       {!scenarios.length ? (
         <Button variant="outlined" onClick={() => navigate('/exercise/scenarios/new')}>
-          Create a scenario
+          {titleCase('Create Scenario')}
         </Button>
       ) : !games ? (
-        <LoadingState label="Loading games" />
+        <LoadingState label="Loading Games" />
       ) : !games.length ? (
         <Box
           sx={{
-            py: 7,
+            py: 6,
             px: 3,
             textAlign: 'center',
             border: 1,
@@ -184,75 +187,34 @@ function GameList() {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1, color: 'text.primary' }}>
-            No games for this scenario
+          <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
+            No Games For This Scenario
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
+          <CreateAction
+            label="New Game"
             onClick={() => navigate(`/exercise/games/new?scenarioId=${scenarioId}`)}
-          >
-            New Game
-          </Button>
+          />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {games.map((item) => (
-            <Box
+            <EntityCard
               key={item.id}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: item.active ? 'primary.main' : 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                <Typography
-                  variant="h6"
-                  sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem', color: 'text.primary' }}
-                >
-                  {item.name}
-                </Typography>
-                {item.active ? <Chip size="small" color="success" label="Active" /> : null}
-              </Stack>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {item.dateTime
-                  ? new Date(item.dateTime).toLocaleString()
-                  : richTextPlain(item.description, 120) || 'No schedule yet'}
-              </Typography>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => navigate(`/exercise/games/${item.id}`)}
-                >
-                  Edit
-                </Button>
-                {item.active ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={activatingId != null}
-                    onClick={(event) => deactivate(event, item)}
-                  >
-                    {activatingId === item.id ? 'Deactivating…' : 'Deactivate'}
-                  </Button>
-                ) : (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<CheckCircleOutlinedIcon />}
-                    disabled={activatingId != null}
-                    onClick={(event) => activate(event, item)}
-                  >
-                    {activatingId === item.id ? 'Activating…' : 'Activate'}
-                  </Button>
-                )}
-              </Stack>
-            </Box>
+              title={item.name}
+              chip={item.active ? 'Active' : null}
+              meta={item.dateTime ? new Date(item.dateTime).toLocaleString() : richTextPlain(item.description, 80) || '—'}
+              selected={Boolean(item.active)}
+              actions={
+                <>
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/games/${item.id}`)} />
+                  {item.active ? (
+                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={(event) => deactivate(event, item)} />
+                  ) : (
+                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={(event) => activate(event, item)} />
+                  )}
+                </>
+              }
+            />
           ))}
         </Stack>
       )}
@@ -543,7 +505,7 @@ function GameEditor() {
             Cancel
           </Button>
           <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={save} disabled={busy || !form.name.trim()}>
-            {busy ? 'Saving…' : isNew ? 'Create game' : 'Save game'}
+            {titleCase(busy ? 'Saving…' : isNew ? 'Create Game' : 'Save Game')}
           </Button>
         </Stack>
       </Stack>
@@ -567,17 +529,12 @@ export function GameListPage() {
   const scenarioId = searchParams.get('scenarioId')
   return (
     <ExerciseLayout
-      kicker="Exercise"
-      title="Game Management"
       actions={
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+        <CreateAction
+          label="New Game"
           disabled={!scenarioId}
           onClick={() => navigate(`/exercise/games/new${scenarioId ? `?scenarioId=${scenarioId}` : ''}`)}
-        >
-          New Game
-        </Button>
+        />
       }
     >
       <GameList />
@@ -586,10 +543,8 @@ export function GameListPage() {
 }
 
 export function GameEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Exercise" title={isNew ? 'New Game' : 'Edit Game'}>
+    <ExerciseLayout>
       <GameEditor />
     </ExerciseLayout>
   )

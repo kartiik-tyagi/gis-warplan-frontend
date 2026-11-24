@@ -9,7 +9,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -19,7 +18,12 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
+import { titleCase } from '../../shared/lib/titleCase'
+import { CollapsibleField } from '../../shared/ui/CollapsibleField'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { RichTextEditor } from '../../shared/ui/richtext/RichTextEditor'
 import { RichTextView, richTextPlain } from '../../shared/ui/richtext/RichTextView'
@@ -107,11 +111,11 @@ function ScenarioList() {
   if (!items) return <LoadingState label="Loading scenarios" />
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={1.25}>
       {!items.length ? (
         <Box
           sx={{
-            py: 8,
+            py: 6,
             px: 3,
             textAlign: 'center',
             border: 1,
@@ -120,95 +124,34 @@ function ScenarioList() {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1, color: 'text.primary' }}>
-            No scenarios yet
+          <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>
+            No Scenarios Yet
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create the first scenario to open games against it.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')}>
-            New Scenario
-          </Button>
+          <CreateAction label="New Scenario" onClick={() => navigate('/exercise/scenarios/new')} />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {items.map((item) => (
-            <Box
+            <EntityCard
               key={item.id}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: item.active ? 'primary.main' : 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem', color: 'text.primary' }}>
-                  {item.name}
-                </Typography>
-                {item.active ? <Chip size="small" color="success" label="Active" /> : null}
-              </Stack>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {richTextPlain(item.generalIdea, 140) || 'No general idea yet'}
-              </Typography>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<VisibilityOutlinedIcon />}
-                  onClick={() => navigate(`/exercise/scenarios/${item.id}/preview`)}
-                >
-                  Preview
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => navigate(`/exercise/scenarios/${item.id}`)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<SportsEsportsOutlinedIcon />}
-                  onClick={() => navigate(`/exercise/games?scenarioId=${item.id}`)}
-                >
-                  Manage games
-                </Button>
-                {item.active ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={activatingId != null}
-                    onClick={() => deactivate(item)}
-                  >
-                    {activatingId === item.id ? 'Deactivating…' : 'Deactivate'}
-                  </Button>
-                ) : (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    startIcon={<CheckCircleOutlinedIcon />}
-                    disabled={activatingId != null}
-                    onClick={() => activate(item)}
-                  >
-                    {activatingId === item.id ? 'Activating…' : 'Activate'}
-                  </Button>
-                )}
-                <Button
-                  size="small"
-                  color="error"
-                  variant="outlined"
-                  startIcon={<DeleteOutlinedIcon />}
-                  disabled={Boolean(item.active) || busyDelete}
-                  onClick={() => setDeleting(item)}
-                >
-                  Delete
-                </Button>
-              </Stack>
-            </Box>
+              title={item.name}
+              chip={item.active ? 'Active' : null}
+              meta={richTextPlain(item.generalIdea, 80) || '—'}
+              selected={Boolean(item.active)}
+              actions={
+                <>
+                  <IconAction label="Preview" icon={<VisibilityOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/scenarios/${item.id}/preview`)} />
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/scenarios/${item.id}`)} />
+                  <IconAction label="Manage Games" icon={<SportsEsportsOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/games?scenarioId=${item.id}`)} />
+                  {item.active ? (
+                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={() => deactivate(item)} />
+                  ) : (
+                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={() => activate(item)} />
+                  )}
+                  <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={Boolean(item.active) || busyDelete} onClick={() => setDeleting(item)} />
+                </>
+              }
+            />
           ))}
         </Stack>
       )}
@@ -266,39 +209,25 @@ function ScenarioPreview() {
       </Stack>
 
       {[
-        ['General idea', row.generalIdea],
-        ['Opening narrative', row.openingNarrative],
-        ['Special idea', row.specialIdea],
+        ['General Idea', row.generalIdea],
+        ['Opening Narrative', row.openingNarrative],
+        ['Special Idea', row.specialIdea],
       ].map(([label, html]) => (
-        <Box
-          key={label}
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            border: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
-          }}
-        >
-          <Typography variant="overline" sx={{ letterSpacing: '0.12em', color: 'text.secondary' }}>
-            {label}
-          </Typography>
-          <Box sx={{ mt: 1 }}>
-            <RichTextView html={html} />
-          </Box>
-        </Box>
+        <CollapsibleField key={label} title={label} defaultOpen={false}>
+          <RichTextView html={html} />
+        </CollapsibleField>
       ))}
 
       <ScenarioAttachment scenarioId={id} fileName={row.attachedFile || ''} disabled />
 
       <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/exercise/scenarios')}>Back to list</Button>
+        <Button onClick={() => navigate('/exercise/scenarios')}>Back To List</Button>
         <Button
           variant="outlined"
           startIcon={<SportsEsportsOutlinedIcon />}
           onClick={() => navigate(`/exercise/games?scenarioId=${id}`)}
         >
-          Manage games
+          Manage Games
         </Button>
         <Button variant="contained" startIcon={<EditOutlinedIcon />} onClick={() => navigate(`/exercise/scenarios/${id}`)}>
           Edit
@@ -439,33 +368,39 @@ function ScenarioEditor() {
         {active ? <Chip color="success" label="Active Exercise" /> : null}
       </Stack>
 
-      <RichTextEditor
-        label="General Idea"
-        value={form.generalIdea}
-        onChange={(html) => change('generalIdea', html)}
-        placeholder="Strategic intent for this scenario…"
-        error={Boolean(errors.generalIdea)}
-        helperText={errors.generalIdea}
-        minHeight={120}
-      />
-      <RichTextEditor
-        label="Opening Narrative"
-        value={form.openingNarrative}
-        onChange={(html) => change('openingNarrative', html)}
-        placeholder="How the exercise begins…"
-        error={Boolean(errors.openingNarrative)}
-        helperText={errors.openingNarrative}
-        minHeight={180}
-      />
-      <RichTextEditor
-        label="Special Idea"
-        value={form.specialIdea}
-        onChange={(html) => change('specialIdea', html)}
-        placeholder="Constraints, surprises, and special instructions…"
-        error={Boolean(errors.specialIdea)}
-        helperText={errors.specialIdea}
-        minHeight={120}
-      />
+      <CollapsibleField title="General Idea" error={Boolean(errors.generalIdea)}>
+        <RichTextEditor
+          label=""
+          value={form.generalIdea}
+          onChange={(html) => change('generalIdea', html)}
+          placeholder="Strategic intent for this scenario…"
+          error={Boolean(errors.generalIdea)}
+          helperText={errors.generalIdea}
+          minHeight={120}
+        />
+      </CollapsibleField>
+      <CollapsibleField title="Opening Narrative" error={Boolean(errors.openingNarrative)}>
+        <RichTextEditor
+          label=""
+          value={form.openingNarrative}
+          onChange={(html) => change('openingNarrative', html)}
+          placeholder="How the exercise begins…"
+          error={Boolean(errors.openingNarrative)}
+          helperText={errors.openingNarrative}
+          minHeight={140}
+        />
+      </CollapsibleField>
+      <CollapsibleField title="Special Idea" error={Boolean(errors.specialIdea)}>
+        <RichTextEditor
+          label=""
+          value={form.specialIdea}
+          onChange={(html) => change('specialIdea', html)}
+          placeholder="Constraints, surprises, and special instructions…"
+          error={Boolean(errors.specialIdea)}
+          helperText={errors.specialIdea}
+          minHeight={120}
+        />
+      </CollapsibleField>
       <ScenarioAttachment
         scenarioId={isNew ? null : id}
         fileName={attachedFile}
@@ -528,7 +463,7 @@ function ScenarioEditor() {
             Cancel
           </Button>
           <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={save} disabled={busy || !form.name.trim()}>
-            {busy ? 'Saving…' : isNew ? 'Create scenario' : 'Save scenario'}
+            {titleCase(busy ? 'Saving…' : isNew ? 'Create Scenario' : 'Save Scenario')}
           </Button>
         </Stack>
       </Stack>
@@ -550,13 +485,7 @@ export function ScenarioListPage() {
   const navigate = useNavigate()
   return (
     <ExerciseLayout
-      kicker="Exercise"
-      title="Scenario Management"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/exercise/scenarios/new')}>
-          New Scenario
-        </Button>
-      }
+      actions={<CreateAction label="New Scenario" onClick={() => navigate('/exercise/scenarios/new')} />}
     >
       <ScenarioList />
     </ExerciseLayout>
@@ -565,17 +494,15 @@ export function ScenarioListPage() {
 
 export function ScenarioPreviewPage() {
   return (
-    <ExerciseLayout kicker="Exercise" title="Scenario Preview">
+    <ExerciseLayout>
       <ScenarioPreview />
     </ExerciseLayout>
   )
 }
 
 export function ScenarioEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Exercise" title={isNew ? 'New Scenario' : 'Edit Scenario'}>
+    <ExerciseLayout>
       <ScenarioEditor />
     </ExerciseLayout>
   )

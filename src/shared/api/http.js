@@ -1,3 +1,4 @@
+import { appServiceUnreachable } from '../brand'
 import { logger } from '../lib/logger'
 import { ApiError } from './errors'
 import { clearToken, getToken } from './tokenStore'
@@ -55,7 +56,7 @@ async function send(path, { method = 'GET', body, query, auth = true, token, for
   } catch (error) {
     if (error?.name === 'AbortError') throw error
     logger.warn('http.unreachable', { path, message: error?.message || 'network error' })
-    throw new ApiError('The GIS Warplan service is not reachable.', 'UNAVAILABLE')
+    throw new ApiError(appServiceUnreachable(), 'UNAVAILABLE')
   }
   if (!response.ok) {
     const failure = await toError(response)

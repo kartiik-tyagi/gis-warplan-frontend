@@ -16,6 +16,9 @@ import {
   Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
@@ -299,16 +302,11 @@ function NodeTypesList() {
   if (!rows) return <LoadingState label="Loading node types" />
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        Each type sets where a node can sit and which attributes the node form asks for. Catalogue types keep their
-        parent rules and attributes. You can still change their name, description, and icon.
-      </Typography>
-
+    <Stack spacing={1.25}>
       {!rows.length ? (
         <Box
           sx={{
-            py: 8,
+            py: 6,
             px: 3,
             textAlign: 'center',
             border: 1,
@@ -317,69 +315,34 @@ function NodeTypesList() {
             borderRadius: 2,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            No node types yet
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            No Node Types Yet
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2.5, color: 'text.secondary' }}>
-            Create a node type for ORBAT nodes to use.
-          </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/node-types/new')}>
-            New Node Type
-          </Button>
+          <CreateAction label="New Node Type" onClick={() => navigate('/standard/node-types/new')} />
         </Box>
       ) : (
-        <Stack spacing={1.25}>
+        <Stack spacing={0.75}>
           {rows.map((row) => (
-            <Box
+            <EntityCard
               key={row.id}
-              sx={{
-                p: 2,
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.75 }} flexWrap="wrap" useFlexGap>
-                {row.iconPath ? <IconPreview path={row.iconPath} size={24} /> : null}
-                <Typography variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: '1.05rem' }}>
-                  {row.name}
-                </Typography>
-                <Chip size="small" variant="outlined" label={row.code} />
-                {row.properties?.seeded ? <Chip size="small" color="primary" label="Catalogue" /> : null}
-                <Tooltip title={parentsDetail(row)}>
-                  <Chip size="small" variant="outlined" label={parentsLabel(row)} />
-                </Tooltip>
-                <Tooltip title={fieldsDetail(row)}>
-                  <Chip size="small" variant="outlined" label={fieldsLabel(row)} />
-                </Tooltip>
-              </Stack>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {row.description || 'No description'}
-              </Typography>
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => navigate(`/standard/node-types/${row.id}`)}
-                >
-                  Edit
-                </Button>
-                {!row.properties?.seeded ? (
-                  <Button
-                    size="small"
-                    color="error"
-                    variant="outlined"
-                    startIcon={<DeleteOutlinedIcon />}
-                    disabled={busyDelete}
-                    onClick={() => askDelete(row)}
-                  >
-                    Remove
-                  </Button>
-                ) : null}
-              </Stack>
-            </Box>
+              title={row.name}
+              leading={row.iconPath ? <IconPreview path={row.iconPath} size={20} /> : null}
+              chip={
+                <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                  <Chip size="small" variant="outlined" label={row.code} />
+                  {row.properties?.seeded ? <Chip size="small" color="primary" label="Catalogue" /> : null}
+                </Stack>
+              }
+              meta={`${parentsLabel(row)} · ${fieldsLabel(row)}`}
+              actions={
+                <>
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/standard/node-types/${row.id}`)} />
+                  {!row.properties?.seeded ? (
+                    <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busyDelete} onClick={() => askDelete(row)} />
+                  ) : null}
+                </>
+              }
+            />
           ))}
         </Stack>
       )}
@@ -811,10 +774,10 @@ function NodeTypeEditor() {
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button onClick={() => navigate('/standard/node-types')} disabled={busy || busyDelete}>
-          Back to list
+          Back To List
         </Button>
         <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || busyDelete} onClick={save}>
-          {busy ? 'Saving…' : isNew ? 'Create node type' : 'Save node type'}
+          {busy ? 'Saving…' : isNew ? 'Create Node Type' : 'Save Node Type'}
         </Button>
         {!isNew && !seeded ? (
           <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || busyDelete} onClick={askDelete}>
@@ -845,13 +808,7 @@ export function NodeTypesListPage() {
   const navigate = useNavigate()
   return (
     <ExerciseLayout
-      kicker="Standard Data"
-      title="Node Types"
-      actions={
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/standard/node-types/new')}>
-          New Node Type
-        </Button>
-      }
+      actions={<CreateAction label="New Node Type" onClick={() => navigate('/standard/node-types/new')} />}
     >
       <NodeTypesList />
     </ExerciseLayout>
@@ -859,10 +816,8 @@ export function NodeTypesListPage() {
 }
 
 export function NodeTypeEditorPage() {
-  const { id } = useParams()
-  const isNew = !id || id === 'new'
   return (
-    <ExerciseLayout kicker="Standard Data" title={isNew ? 'New Node Type' : 'Edit Node Type'}>
+    <ExerciseLayout>
       <NodeTypeEditor />
     </ExerciseLayout>
   )

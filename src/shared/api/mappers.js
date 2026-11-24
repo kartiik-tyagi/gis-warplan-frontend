@@ -108,10 +108,10 @@ export function roleFromEntity(role) {
   return {
     id: String(role.id),
     numericId: role.id,
-    code: role.code,
     name: role.name,
     description: role.description || '',
     functionalityIds: role.functionalityIds || [],
+    standard: Boolean(role.standard),
   }
 }
 

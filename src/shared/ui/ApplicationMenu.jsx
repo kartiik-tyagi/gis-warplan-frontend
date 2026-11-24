@@ -1,11 +1,26 @@
-import { useState } from 'react'
-import { Box, Button, IconButton, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Menu, MenuItem, Tooltip, useMediaQuery } from '@mui/material'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Box,
+  Button,
+  Collapse,
+  IconButton,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+  useMediaQuery,
+} from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CloseIcon from '@mui/icons-material/Close'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import MenuIcon from '@mui/icons-material/Menu'
 import { useSections } from '../../features/session/useSections'
 import { NavIcon } from './navIcons'
+import { scrollbarSx } from './scrollbar'
 
 function ItemButton({ section, selected, expanded, onSelect, placement }) {
   const button = (
@@ -45,16 +60,96 @@ function ItemButton({ section, selected, expanded, onSelect, placement }) {
 }
 
 function groupSections(sections) {
-  const entries = []
-  let kicker = ''
+  const groups = []
+  let current = null
   sections.forEach((section) => {
-    if (section.kicker !== kicker) {
-      kicker = section.kicker
-      entries.push({ header: kicker })
+    if (!current || current.header !== section.kicker) {
+      current = { header: section.kicker, items: [] }
+      groups.push(current)
     }
-    entries.push({ section })
+    current.items.push(section)
   })
-  return entries
+  return groups
+}
+
+function PopupMenuGroups({ sections, sectionId, onSelect }) {
+  const groups = useMemo(() => groupSections(sections), [sections])
+  const [openGroups, setOpenGroups] = useState(() => new Set())
+
+  useEffect(() => {
+    if (!sectionId) return
+    const match = groups.find((group) => group.items.some((item) => item.id === sectionId))
+    if (!match) return
+    setOpenGroups((prev) => {
+      if (prev.has(match.header)) return prev
+      const next = new Set(prev)
+      next.add(match.header)
+      return next
+    })
+  }, [groups, sectionId])
+
+  const toggle = (header) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(header)) next.delete(header)
+      else next.add(header)
+      return next
+    })
+  }
+
+  if (!sections.length) {
+    return <MenuItem disabled>No application sections for this role</MenuItem>
+  }
+
+  return groups.map((group) => {
+    const expanded = openGroups.has(group.header)
+    return (
+      <Box key={group.header} sx={{ display: 'block' }}>
+        <ListItemButton
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            toggle(group.header)
+          }}
+          aria-expanded={expanded}
+          sx={{
+            minHeight: 36,
+            py: 0.75,
+            px: 2,
+            typography: 'overline',
+            letterSpacing: '0.08em',
+            fontWeight: 600,
+            color: 'text.secondary',
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 28, color: 'text.secondary' }}>
+            {expanded ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText
+            primary={group.header}
+            slotProps={{ primary: { variant: 'overline', sx: { letterSpacing: '0.08em', fontWeight: 600 } } }}
+          />
+        </ListItemButton>
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          <Box>
+            {group.items.map((section) => (
+              <MenuItem
+                key={section.id}
+                selected={section.id === sectionId}
+                onClick={() => onSelect(section.id)}
+                sx={{ pl: 4.5 }}
+              >
+                <ListItemIcon sx={{ color: section.id === sectionId ? 'primary.main' : 'text.secondary' }}>
+                  <NavIcon name={section.icon} />
+                </ListItemIcon>
+                {section.label}
+              </MenuItem>
+            ))}
+          </Box>
+        </Collapse>
+      </Box>
+    )
+  })
 }
 
 export function ApplicationMenu({ presentation = 'rail', expanded = false, onExpandedChange, onHide, edge = 'start' }) {
@@ -84,26 +179,36 @@ export function ApplicationMenu({ presentation = 'rail', expanded = false, onExp
             Application
           </Button>
         )}
-        <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-          {sections.length ? groupSections(sections).map((entry) => entry.header ? (
-            <ListSubheader key={`group-${entry.header}`} sx={{ lineHeight: '32px' }}>{entry.header}</ListSubheader>
-          ) : (
-            <MenuItem
-              key={entry.section.id}
-              selected={entry.section.id === sectionId}
-              onClick={() => {
-                select(entry.section.id)
-                setAnchor(null)
-              }}
-            >
-              <ListItemIcon sx={{ color: entry.section.id === sectionId ? 'primary.main' : 'text.secondary' }}>
-                <NavIcon name={entry.section.icon} />
-              </ListItemIcon>
-              {entry.section.label}
-            </MenuItem>
-          )) : (
-            <MenuItem disabled>No application sections for this role</MenuItem>
-          )}
+        <Menu
+          anchorEl={anchor}
+          open={Boolean(anchor)}
+          onClose={() => setAnchor(null)}
+          slotProps={{
+            paper: {
+              sx: {
+                maxHeight: 'min(70vh, 480px)',
+                overflowY: 'auto',
+                ...scrollbarSx,
+              },
+            },
+            list: {
+              sx: {
+                py: 0.5,
+                maxHeight: 'inherit',
+                overflowY: 'auto',
+                ...scrollbarSx,
+              },
+            },
+          }}
+        >
+          <PopupMenuGroups
+            sections={sections}
+            sectionId={sectionId}
+            onSelect={(id) => {
+              select(id)
+              setAnchor(null)
+            }}
+          />
         </Menu>
       </>
     )
@@ -125,6 +230,7 @@ export function ApplicationMenu({ presentation = 'rail', expanded = false, onExp
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: 'background.paper',
+          ...scrollbarSx,
         }}
       >
         {sections.map((section) => {
@@ -203,7 +309,7 @@ export function ApplicationMenu({ presentation = 'rail', expanded = false, onExp
           </IconButton>
         </Tooltip>
       </Box>
-      <Box sx={{ overflow: 'auto', flex: 1, pb: 1 }}>
+      <Box sx={{ overflow: 'auto', flex: 1, pb: 1, ...scrollbarSx }}>
         {sections.map((section) => (
           <ItemButton
             key={section.id}

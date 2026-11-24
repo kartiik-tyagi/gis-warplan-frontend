@@ -1,9 +1,10 @@
 import { Box, Typography } from '@mui/material'
+import { formatElevationMeters, useElevation } from '../map/useElevation'
 
 function hemisphere(value, positive, negative) {
   if (value == null || Number.isNaN(Number(value))) return '—'
   const number = Number(value)
-  return `${Math.abs(number).toFixed(5)}° ${number >= 0 ? positive : negative}`
+  return `${Math.abs(number).toFixed(4)}° ${number >= 0 ? positive : negative}`
 }
 
 function formatZoom(zoom) {
@@ -31,6 +32,15 @@ function Field({ label, value, title }) {
 }
 
 export function StatusFooter({ readout }) {
+  const { elevation, kind } = useElevation(readout?.latitude, readout?.longitude)
+  const elevLabel = kind === 'depth' ? 'Depth' : 'Height'
+  const elevValue = formatElevationMeters(elevation)
+  const elevTitle = kind === 'depth'
+    ? 'Ocean depth at the pointer'
+    : kind === 'height'
+      ? 'Land height at the pointer'
+      : 'Elevation at the pointer'
+
   return (
     <Box
       component="footer"
@@ -52,8 +62,8 @@ export function StatusFooter({ readout }) {
       }}
     >
       <Field label="Lat" value={hemisphere(readout?.latitude, 'N', 'S')} />
-      <Field label="Lon" value={hemisphere(readout?.longitude, 'E', 'W')} />
-      <Field label="Height" value="—" title="This picture does not publish elevation." />
+      <Field label="Long" value={hemisphere(readout?.longitude, 'E', 'W')} />
+      <Field label={elevLabel} value={elevValue} title={elevTitle} />
       <Field label="Scale" value={formatScale(readout?.resolution)} />
       <Field label="Zoom" value={formatZoom(readout?.zoom)} />
       <Field label="CRS" value="EPSG:4326 · EPSG:3857" title="Cursor is geographic. The map is Web Mercator." />

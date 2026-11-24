@@ -6,6 +6,9 @@ import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 import './index.css'
 import App from './app/App.jsx'
+import { APP_NAME } from './shared/brand'
+
+document.title = APP_NAME
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

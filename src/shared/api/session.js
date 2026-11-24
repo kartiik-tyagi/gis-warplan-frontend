@@ -1,5 +1,6 @@
 import { FunctionalityCodes, hasFunctionality } from '../auth/functionalityCodes'
 import { navigationForFunctionalities, sectionsForFunctionalities } from '../auth/access'
+import { exerciseTitleFor } from '../brand'
 import { logger } from '../lib/logger'
 import { clockStart, plannedCenters } from './fixtures'
 import { ApiError } from './errors'
@@ -136,7 +137,7 @@ export async function buildSession(me) {
     mapService: mapConfig.server?.wmsUrl || '',
     mapConfig,
     clockStart,
-    exerciseTitle: 'Exercise GIS Warplan',
+    exerciseTitle: exerciseTitleFor(),
     classification: 'EXERCISE',
     demoMode: false,
     functionalities: [...functionalities],
