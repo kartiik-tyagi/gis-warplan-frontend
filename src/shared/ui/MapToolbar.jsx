@@ -7,7 +7,7 @@ import { useNavigation } from '../../features/directory/useNavigation'
 import { NavIcon } from './navIcons'
 
 const GROUP_ICON = {
-  map: 'layers',
+  tools: 'layers',
   plan: 'plan',
   game: 'control',
   admin: 'settings',
@@ -15,8 +15,8 @@ const GROUP_ICON = {
 
 export function ShowMapTools({ onClick, pressed = false }) {
   return (
-    <Tooltip title={pressed ? 'Hide map tools' : 'Show map tools'}>
-      <IconButton aria-label={pressed ? 'Hide map tools' : 'Show map tools'} aria-pressed={pressed} color={pressed ? 'primary' : 'default'} onClick={onClick}>
+    <Tooltip title={pressed ? 'Hide tools' : 'Show tools'}>
+      <IconButton aria-label={pressed ? 'Hide tools' : 'Show tools'} aria-pressed={pressed} color={pressed ? 'primary' : 'default'} onClick={onClick}>
         <LayersOutlinedIcon fontSize="small" />
       </IconButton>
     </Tooltip>
@@ -44,7 +44,7 @@ export function MapToolbar({ orientation = 'horizontal', activeId, onSelect, onH
   const theme = useTheme()
   const compact = useMediaQuery(theme.breakpoints.down('md'))
   const vertical = orientation === 'vertical'
-  const [openGroups, setOpenGroups] = useState(['map', 'admin'])
+  const [openGroups, setOpenGroups] = useState(['tools', 'admin'])
   const placement = vertical ? 'right' : 'bottom'
 
   const toggle = (id) => {
@@ -54,7 +54,7 @@ export function MapToolbar({ orientation = 'horizontal', activeId, onSelect, onH
   return (
     <Box
       role="toolbar"
-      aria-label="Map tools"
+      aria-label="Tools"
       aria-orientation={orientation}
       sx={{
         display: 'flex',
@@ -77,8 +77,8 @@ export function MapToolbar({ orientation = 'horizontal', activeId, onSelect, onH
       }}
     >
       {onHide ? (
-        <Tooltip title="Hide map tools">
-          <IconButton aria-label="Hide map tools" size="small" onClick={onHide}>
+        <Tooltip title="Hide tools">
+          <IconButton aria-label="Hide tools" size="small" onClick={onHide}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Tooltip>

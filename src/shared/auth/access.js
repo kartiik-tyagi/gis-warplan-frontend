@@ -40,7 +40,7 @@ export function navigationForFunctionalities(functionalities) {
   const groups = []
   if (hasFunctionality(functionalities, FunctionalityCodes.MAP_VIEW)) {
     const mapItems = [item('filters', 'Map Filters', 'layers'), item('extent', 'Home Extent', 'extent')]
-    groups.push({ id: 'map', label: 'Map', items: mapItems })
+    groups.push({ id: 'tools', label: 'Tools', items: mapItems })
   }
 
   return groups
