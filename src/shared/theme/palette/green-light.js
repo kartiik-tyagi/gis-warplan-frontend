@@ -1,0 +1,32 @@
+const palette = {
+  "id": "green-light",
+  "name": "Green Light",
+  "family": "Green",
+  "mode": "light",
+  "fontFamily": "\"Roboto\", \"Segoe UI\", sans-serif",
+  "fontWeightLight": 300,
+  "fontWeightRegular": 400,
+  "fontWeightMedium": 500,
+  "fontWeightBold": 700,
+  "borderRadius": 8,
+  "primary": "#15803d",
+  "primaryContrast": "#ffffff",
+  "secondary": "#15803d",
+  "secondaryContrast": "#ffffff",
+  "backgroundDefault": "#dcfce7",
+  "backgroundPaper": "#bbf7d0",
+  "textPrimary": "#0f172a",
+  "textSecondary": "#334155",
+  "textDisabled": "#64748b",
+  "divider": "rgba(15, 23, 42, 0.22)",
+  "error": "#7f1d1d",
+  "errorContrast": "#ffffff",
+  "warning": "#78350f",
+  "warningContrast": "#ffffff",
+  "success": "#14532d",
+  "successContrast": "#ffffff",
+  "info": "#1e3a8a",
+  "infoContrast": "#ffffff"
+}
+
+export default palette

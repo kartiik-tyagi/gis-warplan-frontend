@@ -135,6 +135,8 @@ const sessionSchema = z.object({
     zoom: z.number(),
     minZoom: z.number(),
     maxZoom: z.number(),
+    dataCrs: z.string().optional(),
+    viewCrs: z.string().optional(),
   }),
   plannedCenters: z.array(z.object({
     id: z.string(),

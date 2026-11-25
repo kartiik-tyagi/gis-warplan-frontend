@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
+import { Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material'
+import CheckIcon from '@mui/icons-material/Check'
+import CloseIcon from '@mui/icons-material/Close'
 import { IconField } from '../../shared/ui/IconPicker'
+import { IconAction } from '../../shared/ui/IconAction'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
 import { useLocationPick } from '../../shared/map/useLocationPick'
@@ -166,7 +169,6 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
               type={field.type === 'number' ? 'number' : 'text'}
               label={field.label}
               value={values[field.key] ?? ''}
-              helperText={field.key === 'potential' && !field.required ? 'Leave empty to sum the children' : undefined}
               onChange={(event) => setField(field.key, event.target.value)}
             />
           ))}
@@ -174,8 +176,8 @@ export function NodeFormDialog({ open, title, types = [], parent, initial, prese
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button type="submit" variant="contained" disabled={busy || !typeId}>{busy ? 'Saving' : 'Done'}</Button>
+        <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={onClose} disabled={busy} />
+        <IconAction type="submit" label={busy ? 'Saving' : 'Done'} icon={<CheckIcon fontSize="small" />} variant="contained" disabled={busy || !typeId} />
       </DialogActions>
     </Dialog>
   )

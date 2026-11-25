@@ -1,0 +1,32 @@
+const palette = {
+  "id": "blue",
+  "name": "Blue",
+  "family": "Blue",
+  "mode": "dark",
+  "fontFamily": "\"Roboto\", \"Segoe UI\", sans-serif",
+  "fontWeightLight": 300,
+  "fontWeightRegular": 400,
+  "fontWeightMedium": 500,
+  "fontWeightBold": 700,
+  "borderRadius": 8,
+  "primary": "#60a5fa",
+  "primaryContrast": "#0a0a0a",
+  "secondary": "#60a5fa",
+  "secondaryContrast": "#0a0a0a",
+  "backgroundDefault": "#0b1f3a",
+  "backgroundPaper": "#123056",
+  "textPrimary": "#f8fafc",
+  "textSecondary": "#cbd5e1",
+  "textDisabled": "#94a3b8",
+  "divider": "rgba(248, 250, 252, 0.28)",
+  "error": "#fecaca",
+  "errorContrast": "#0a0a0a",
+  "warning": "#fde68a",
+  "warningContrast": "#0a0a0a",
+  "success": "#bbf7d0",
+  "successContrast": "#0a0a0a",
+  "info": "#bfdbfe",
+  "infoContrast": "#0a0a0a"
+}
+
+export default palette

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,11 +11,16 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
+import CloseIcon from '@mui/icons-material/Close'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { SearchSelect } from './SearchSelect'
+import { IconAction } from './IconAction'
 import { loadMoonPhases, moonPhaseLabel } from '../api/moonPhases'
 
 function Mark({ label, children }) {
@@ -68,6 +72,7 @@ function barField() {
       py: '0 !important',
       minWidth: '0 !important',
       textOverflow: 'ellipsis',
+      fontWeight: 700,
     },
     '& .MuiAutocomplete-endAdornment': { right: 4 },
   }
@@ -204,7 +209,7 @@ export function ScenarioContext() {
           </Fact>
         ) : (
           <Fact label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap color={scenario?.name ? 'text.primary' : 'text.secondary'}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 700 }} color={scenario?.name ? 'text.primary' : 'text.secondary'}>
               {scenario?.name || 'None active'}
             </Typography>
           </Fact>
@@ -232,14 +237,14 @@ export function ScenarioContext() {
           </Fact>
         ) : (
           <Fact label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap color={session.activeGame.name ? 'text.primary' : 'text.secondary'}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 700 }} color={session.activeGame.name ? 'text.primary' : 'text.secondary'}>
               {session.activeGame.name || 'None active'}
             </Typography>
           </Fact>
         )}
         {game?.dateTime ? (
-          <Fact label="Game Time" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <Typography variant="body2" noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Fact label="Game Time" icon={<AccessTimeOutlinedIcon fontSize="small" />}>
+            <Typography variant="body2" noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
               {new Date(game.dateTime).toLocaleString()}
             </Typography>
           </Fact>
@@ -279,12 +284,14 @@ export function ScenarioContext() {
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={close} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={confirm} disabled={busy || !pending}>
-            {busy ? 'Working…' : pending?.clearing ? 'Clear' : 'Activate'}
-          </Button>
+          <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={close} disabled={busy} />
+          <IconAction
+            label={busy ? 'Working…' : pending?.clearing ? 'Clear' : 'Activate'}
+            icon={pending?.clearing ? <BlockOutlinedIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
+            onClick={confirm}
+            disabled={busy || !pending}
+            variant="contained"
+          />
         </DialogActions>
       </Dialog>
     </>

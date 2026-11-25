@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
-import { Box, Button, Typography, useMediaQuery } from '@mui/material'
+import { Box, Typography, useMediaQuery } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import { useDirectoryStore } from '../../features/directory/useDirectoryStore'
 import { EMPTY_LIST } from '../lib/empty'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { FeatureTable } from './workbench/Panels'
+import { IconAction } from './IconAction'
 import { MapStage } from './MapStage'
 
 function AlertStrip() {
@@ -49,9 +52,14 @@ export function PictureWorkspace({ variant = 'plain' }) {
       {showAlerts ? <AlertStrip /> : null}
       <MapStage readout={variant === 'overlay' ? 'overlay' : 'bar'} />
       {variant === 'overlay' && flags?.planningCanvas ? (
-        <Button size="small" variant="contained" onClick={() => setSurface(board ? 'picture' : 'planning')} sx={{ position: 'absolute', zIndex: 3, left: 12, bottom: 48 }}>
-          {board ? 'Picture' : 'Board'}
-        </Button>
+        <Box sx={{ position: 'absolute', zIndex: 3, left: 12, bottom: 48 }}>
+          <IconAction
+            label={board ? 'Picture' : 'Board'}
+            icon={board ? <MapOutlinedIcon fontSize="small" /> : <DashboardOutlinedIcon fontSize="small" />}
+            onClick={() => setSurface(board ? 'picture' : 'planning')}
+            variant="contained"
+          />
+        </Box>
       ) : null}
       {showTable ? (
         <Box sx={{ height: 180, overflow: 'auto', borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', px: 1 }}>

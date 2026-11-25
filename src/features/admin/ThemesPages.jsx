@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
   Chip,
   FormControlLabel,
@@ -11,6 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
@@ -185,12 +185,13 @@ function ThemeEditor() {
         logger.info('theme.created', { id: created.id, name: body.name })
         push('Theme created. Allot it from Sides or Users.', 'success')
         await refreshSession().catch(() => {})
-        navigate(`/standard/themes/${created.id}`, { replace: true })
+        navigate('/standard/themes', { replace: true })
       } else {
         await put(`/themes/${id}`, body)
         logger.info('theme.updated', { id })
         push('Theme saved.', 'success')
         await refreshSession().catch(() => {})
+        navigate('/standard/themes', { replace: true })
       }
     } catch (error) {
       setMessage(error?.message || 'The theme could not be saved.')
@@ -220,6 +221,9 @@ function ThemeEditor() {
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
       {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/standard/themes')} disabled={busy || busyDelete} />
+      </Box>
       {!isNew ? (
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
           <Chip size="small" variant="outlined" label={holderChip} />
@@ -239,30 +243,16 @@ function ThemeEditor() {
         control={<Checkbox checked={defaultTheme} onChange={(event) => setDefaultTheme(event.target.checked)} />}
         label="Default Theme"
       />
-      <Typography variant="body2" color="text.secondary">
-        Allotment is managed from Sides and Users. Free themes can be removed; allotted themes cannot.
-      </Typography>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/standard/themes')} disabled={busy || busyDelete}>
-          Back To List
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<SaveOutlinedIcon />}
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Theme' : 'Save Theme'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
           disabled={busy || busyDelete || !name.trim()}
           onClick={save}
-        >
-          {titleCase(busy ? 'Saving…' : isNew ? 'Create Theme' : 'Save Theme')}
-        </Button>
+          variant="contained"
+        />
         {!isNew ? (
-          <Button
-            color="error"
-            startIcon={<DeleteOutlinedIcon />}
-            disabled={busy || busyDelete || holderKind !== 'FREE'}
-            onClick={() => setDeleting(true)}
-          >
-            Remove
-          </Button>
+          <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy || busyDelete || holderKind !== 'FREE'} onClick={() => setDeleting(true)} />
         ) : null}
       </Stack>
       <ConfirmDialog

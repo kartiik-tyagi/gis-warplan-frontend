@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Avatar, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Menu, MenuItem, TextField, Typography } from '@mui/material'
+import { Avatar, Box, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, Menu, MenuItem, TextField, Typography } from '@mui/material'
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined'
+import CloseIcon from '@mui/icons-material/Close'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { useCommit } from '../../features/directory/useDirectoryStore'
 import { useToastStore } from '../../features/feedback/useToastStore'
 import { useSessionStore } from '../../features/session/useSessionStore'
@@ -7,6 +10,7 @@ import * as api from '../../shared/api/client'
 import { get } from '../api/http'
 import { themeFromEntity } from '../api/mappers'
 import { EMPTY_LIST } from '../lib/empty'
+import { IconAction } from './IconAction'
 import { SearchSelect } from './SearchSelect'
 
 export function UserMenu({ open = false, onOpenChange, buttonRef }) {
@@ -116,9 +120,6 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
       <Dialog open={themeOpen} onClose={themeBusy ? undefined : () => setThemeOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Theme</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            This becomes the login theme. A theme already allotted to a side or to another user is not listed.
-          </Typography>
           <SearchSelect
             label="Theme"
             options={themeChoices}
@@ -129,8 +130,14 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setThemeOpen(false)} disabled={themeBusy}>Cancel</Button>
-          <Button variant="contained" onClick={applyTheme} disabled={themeBusy || !themeId}>{themeBusy ? 'Saving' : 'Use this theme'}</Button>
+          <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={() => setThemeOpen(false)} disabled={themeBusy} />
+          <IconAction
+            label={themeBusy ? 'Saving' : 'Use Theme'}
+            icon={<CheckOutlinedIcon fontSize="small" />}
+            onClick={applyTheme}
+            disabled={themeBusy || !themeId}
+            variant="contained"
+          />
         </DialogActions>
       </Dialog>
       <Dialog open={passwordOpen} onClose={() => setPasswordOpen(false)} fullWidth maxWidth="xs">
@@ -140,8 +147,10 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
           <TextField fullWidth margin="dense" type="password" label="New Password" value={nextPassword} onChange={(event) => setNextPassword(event.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPasswordOpen(false)}>Cancel</Button>
-          <Button
+          <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={() => setPasswordOpen(false)} />
+          <IconAction
+            label="Change"
+            icon={<SaveOutlinedIcon fontSize="small" />}
             variant="contained"
             onClick={() =>
               commit((userId) => api.updatePassword(userId, currentPassword, nextPassword))
@@ -152,9 +161,7 @@ export function UserMenu({ open = false, onOpenChange, buttonRef }) {
                 })
                 .catch(() => {})
             }
-          >
-            Change
-          </Button>
+          />
         </DialogActions>
       </Dialog>
     </>

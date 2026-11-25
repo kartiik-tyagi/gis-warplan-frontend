@@ -3,22 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
-import { titleCase } from '../../shared/lib/titleCase'
 import { CollapsibleField } from '../../shared/ui/CollapsibleField'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 import { CreateAction } from '../../shared/ui/CreateAction'
@@ -26,7 +26,7 @@ import { EntityCard } from '../../shared/ui/EntityCard'
 import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { RichTextEditor } from '../../shared/ui/richtext/RichTextEditor'
-import { RichTextView, richTextPlain } from '../../shared/ui/richtext/RichTextView'
+import { RichTextView } from '../../shared/ui/richtext/RichTextView'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
 import { ExerciseLayout } from './ExerciseLayout'
@@ -135,18 +135,16 @@ function ScenarioList() {
             <EntityCard
               key={item.id}
               title={item.name}
-              chip={item.active ? 'Active' : null}
-              meta={richTextPlain(item.generalIdea, 80) || '—'}
-              selected={Boolean(item.active)}
+              active={Boolean(item.active)}
               actions={
                 <>
                   <IconAction label="Preview" icon={<VisibilityOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/scenarios/${item.id}/preview`)} />
                   <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/scenarios/${item.id}`)} />
                   <IconAction label="Manage Games" icon={<SportsEsportsOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/games?scenarioId=${item.id}`)} />
                   {item.active ? (
-                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={() => deactivate(item)} />
+                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<BlockOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={() => deactivate(item)} />
                   ) : (
-                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={() => activate(item)} />
+                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<PlayArrowIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={() => activate(item)} />
                   )}
                   <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={Boolean(item.active) || busyDelete} onClick={() => setDeleting(item)} />
                 </>
@@ -221,17 +219,18 @@ function ScenarioPreview() {
       <ScenarioAttachment scenarioId={id} fileName={row.attachedFile || ''} disabled />
 
       <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/exercise/scenarios')}>Back To List</Button>
-        <Button
-          variant="outlined"
-          startIcon={<SportsEsportsOutlinedIcon />}
+        <IconAction label="Back To List" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/exercise/scenarios')} />
+        <IconAction
+          label="Manage Games"
+          icon={<SportsEsportsOutlinedIcon fontSize="small" />}
           onClick={() => navigate(`/exercise/games?scenarioId=${id}`)}
-        >
-          Manage Games
-        </Button>
-        <Button variant="contained" startIcon={<EditOutlinedIcon />} onClick={() => navigate(`/exercise/scenarios/${id}`)}>
-          Edit
-        </Button>
+        />
+        <IconAction
+          label="Edit"
+          icon={<EditOutlinedIcon fontSize="small" />}
+          onClick={() => navigate(`/exercise/scenarios/${id}`)}
+          variant="contained"
+        />
       </Stack>
     </Stack>
   )
@@ -312,18 +311,19 @@ function ScenarioEditor() {
             await refreshSession()
             push('Scenario created, but the attachment could not be uploaded.', 'warning')
             push(uploadError?.message || 'Attachment upload failed.', 'error')
-            navigate(`/exercise/scenarios/${created.id}`, { replace: true })
+            navigate('/exercise/scenarios', { replace: true })
             return
           }
         }
         await refreshSession()
         push(pendingFile ? 'Scenario created with attachment.' : 'Scenario created.', 'success')
-        navigate(`/exercise/scenarios/${created.id}`, { replace: true })
+        navigate('/exercise/scenarios', { replace: true })
       } else {
         await put(`/scenarios/${id}`, body)
         logger.info('scenario.updated', { id })
         await refreshSession()
         push('Scenario saved.', 'success')
+        navigate('/exercise/scenarios', { replace: true })
       }
     } catch (error) {
       setErrors(error?.fieldErrors || {})
@@ -354,6 +354,9 @@ function ScenarioEditor() {
   return (
     <Stack spacing={2.5}>
       {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/exercise/scenarios')} disabled={busy} />
+      </Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
         <TextField
           label="Scenario Name"
@@ -368,7 +371,7 @@ function ScenarioEditor() {
         {active ? <Chip color="success" label="Active Exercise" /> : null}
       </Stack>
 
-      <CollapsibleField title="General Idea" error={Boolean(errors.generalIdea)}>
+      <CollapsibleField title="General Idea" defaultOpen={false} error={Boolean(errors.generalIdea)}>
         <RichTextEditor
           label=""
           value={form.generalIdea}
@@ -379,7 +382,7 @@ function ScenarioEditor() {
           minHeight={120}
         />
       </CollapsibleField>
-      <CollapsibleField title="Opening Narrative" error={Boolean(errors.openingNarrative)}>
+      <CollapsibleField title="Opening Narrative" defaultOpen={false} error={Boolean(errors.openingNarrative)}>
         <RichTextEditor
           label=""
           value={form.openingNarrative}
@@ -390,7 +393,7 @@ function ScenarioEditor() {
           minHeight={140}
         />
       </CollapsibleField>
-      <CollapsibleField title="Special Idea" error={Boolean(errors.specialIdea)}>
+      <CollapsibleField title="Special Idea" defaultOpen={false} error={Boolean(errors.specialIdea)}>
         <RichTextEditor
           label=""
           value={form.specialIdea}
@@ -410,62 +413,45 @@ function ScenarioEditor() {
         onChanged={(name) => setAttachedFile(name || '')}
       />
 
-      <Stack direction="row" spacing={1} justifyContent="space-between" useFlexGap flexWrap="wrap">
-        <Box>
-          {!isNew ? (
-            <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || active} onClick={() => setConfirmDelete(true)}>
-              Delete
-            </Button>
-          ) : null}
-        </Box>
-        <Stack direction="row" spacing={1}>
-          {!isNew && active ? (
-            <Button
-              variant="outlined"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true)
-                try {
-                  await changeScenario('')
-                  setActive(false)
-                  push('This scenario is no longer active.', 'success')
-                } catch (error) {
-                  push(error?.message || 'The scenario could not be deactivated.', 'error')
-                } finally {
-                  setBusy(false)
-                }
-              }}
-            >
-              Deactivate
-            </Button>
-          ) : null}
-          {!isNew && !active ? (
-            <Button
-              variant="contained"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true)
-                try {
-                  await changeScenario(String(id))
-                  setActive(true)
-                  push('This scenario is now active.', 'success')
-                } catch (error) {
-                  push(error?.message || 'The scenario could not be activated.', 'error')
-                } finally {
-                  setBusy(false)
-                }
-              }}
-            >
-              Activate
-            </Button>
-          ) : null}
-          <Button onClick={() => navigate('/exercise/scenarios')} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={save} disabled={busy || !form.name.trim()}>
-            {titleCase(busy ? 'Saving…' : isNew ? 'Create Scenario' : 'Save Scenario')}
-          </Button>
-        </Stack>
+      <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
+        {!isNew ? (
+          <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy || active} onClick={() => setConfirmDelete(true)} />
+        ) : null}
+        {!isNew && active ? (
+          <IconAction label="Deactivate" icon={<BlockOutlinedIcon fontSize="small" />} disabled={busy} onClick={async () => {
+            setBusy(true)
+            try {
+              await changeScenario('')
+              setActive(false)
+              push('This scenario is no longer active.', 'success')
+            } catch (error) {
+              push(error?.message || 'The scenario could not be deactivated.', 'error')
+            } finally {
+              setBusy(false)
+            }
+          }} />
+        ) : null}
+        {!isNew && !active ? (
+          <IconAction label="Activate" icon={<PlayArrowIcon fontSize="small" />} disabled={busy} variant="contained" onClick={async () => {
+            setBusy(true)
+            try {
+              await changeScenario(String(id))
+              setActive(true)
+              push('This scenario is now active.', 'success')
+            } catch (error) {
+              push(error?.message || 'The scenario could not be activated.', 'error')
+            } finally {
+              setBusy(false)
+            }
+          }} />
+        ) : null}
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Scenario' : 'Save Scenario'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
+          onClick={save}
+          disabled={busy || !form.name.trim()}
+          variant="contained"
+        />
       </Stack>
 
       <ConfirmDialog

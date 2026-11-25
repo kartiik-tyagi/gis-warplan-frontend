@@ -1,5 +1,10 @@
-import { Button, Stack } from '@mui/material'
+import { Stack } from '@mui/material'
+import PauseIcon from '@mui/icons-material/Pause'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ReplayIcon from '@mui/icons-material/Replay'
+import StopIcon from '@mui/icons-material/Stop'
 import { useSessionStore } from '../../features/session/useSessionStore'
+import { IconAction } from './IconAction'
 
 export function ExerciseControls() {
   const canControl = useSessionStore((state) => state.session?.canControlGame)
@@ -12,25 +17,25 @@ export function ExerciseControls() {
   if (!canControl) return null
 
   const actions = [
-    { id: 'start', label: 'Start', onClick: start, disabled: status === 'running' || status === 'paused' },
-    { id: 'pause', label: 'Pause', onClick: pause, disabled: status !== 'running' },
-    { id: 'resume', label: 'Resume', onClick: resume, disabled: status !== 'paused' },
-    { id: 'restart', label: 'Restart', onClick: restart, disabled: status === 'ready' },
-    { id: 'end', label: 'End', onClick: end, disabled: status === 'ready' || status === 'ended' },
+    { id: 'start', label: 'Start', icon: <PlayArrowIcon fontSize="small" />, onClick: start, disabled: status === 'running' || status === 'paused', variant: 'contained' },
+    { id: 'pause', label: 'Pause', icon: <PauseIcon fontSize="small" />, onClick: pause, disabled: status !== 'running' },
+    { id: 'resume', label: 'Resume', icon: <PlayArrowIcon fontSize="small" />, onClick: resume, disabled: status !== 'paused' },
+    { id: 'restart', label: 'Restart', icon: <ReplayIcon fontSize="small" />, onClick: restart, disabled: status === 'ready' },
+    { id: 'end', label: 'End', icon: <StopIcon fontSize="small" />, onClick: end, disabled: status === 'ready' || status === 'ended', color: 'warning' },
   ]
 
   return (
-    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+    <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
       {actions.map((action) => (
-        <Button
+        <IconAction
           key={action.id}
-          variant={action.id === 'start' ? 'contained' : 'outlined'}
-          color={action.id === 'end' ? 'warning' : 'primary'}
+          label={action.label}
+          icon={action.icon}
+          variant={action.variant}
+          color={action.color}
           disabled={action.disabled}
           onClick={action.onClick}
-        >
-          {action.label}
-        </Button>
+        />
       ))}
     </Stack>
   )

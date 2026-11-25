@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Chip,
   Stack,
   Slider,
@@ -14,6 +13,7 @@ import { useCommit, useDirectoryStore } from '../../features/directory/useDirect
 import { useSessionStore } from '../../features/session/useSessionStore'
 import * as api from '../../shared/api/client'
 import { EMPTY_LIST, EMPTY_OBJECT } from '../lib/empty'
+import { IconAction } from './IconAction'
 
 function groupFilters(filters) {
   const groups = []
@@ -56,8 +56,8 @@ export function FilterList() {
         <Typography variant="subtitle1" sx={{ fontWeight: 650 }}>
           No layers available
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 280 }}>
-          Map layers will appear here once the map catalog has layers for this session.
+        <Typography variant="body2" color="text.secondary">
+          No layers.
         </Typography>
       </Stack>
     )
@@ -84,9 +84,6 @@ export function FilterList() {
           <Typography variant="subtitle1" sx={{ fontWeight: 650, lineHeight: 1.3 }}>
             Map Filters
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
-            Show or hide layers on the picture. Adjust opacity for layers that are on.
-          </Typography>
         </Box>
       </Stack>
 
@@ -105,12 +102,8 @@ export function FilterList() {
           label={`${hidden} hidden`}
         />
         <Box sx={{ flex: 1, minWidth: 8 }} />
-        <Button size="small" onClick={() => setAllFilters(true)} sx={{ textTransform: 'none', fontWeight: 600 }}>
-          Show all
-        </Button>
-        <Button size="small" onClick={() => setAllFilters(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
-          Hide all
-        </Button>
+        <IconAction label="Show all" icon={<VisibilityOutlinedIcon fontSize="small" />} onClick={() => setAllFilters(true)} />
+        <IconAction label="Hide all" icon={<VisibilityOffOutlinedIcon fontSize="small" />} onClick={() => setAllFilters(false)} />
       </Stack>
 
       <Stack spacing={1.75}>

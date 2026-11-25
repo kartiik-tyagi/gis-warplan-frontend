@@ -8,7 +8,7 @@ const SPAN_KEY = 'gis-warplan.dock-span'
 const WIDE = new Set(['orbat', 'scenario-admin', 'game-admin', 'filters'])
 
 function dockWidth(panel) {
-  if (panel === 'orbat') return 'clamp(18rem, 46vw, 56rem)'
+  if (panel === 'orbat') return 'clamp(9rem, 23vw, 28rem)'
   if (panel === 'filters') return 'clamp(16rem, 32vw, 28rem)'
   if (WIDE.has(panel)) return 'min(720px, 58vw)'
   return 340

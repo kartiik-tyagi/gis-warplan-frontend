@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import { Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { SearchSelect } from './SearchSelect'
+import { IconAction } from './IconAction'
 import * as api from '../../shared/api/client'
 import { EMPTY_LIST } from '../lib/empty'
 import { useCommit, useDirectoryStore } from '../../features/directory/useDirectoryStore'
@@ -61,10 +64,8 @@ export function DraftDialog() {
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setPending(null)}>Cancel</Button>
-        <Button variant="contained" onClick={save}>
-          Keep
-        </Button>
+        <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={() => setPending(null)} />
+        <IconAction label="Keep" icon={<SaveOutlinedIcon fontSize="small" />} onClick={save} variant="contained" />
       </DialogActions>
     </Dialog>
   )

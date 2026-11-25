@@ -1,4 +1,6 @@
-import { Alert, AlertTitle, Button } from '@mui/material'
+import { Alert, AlertTitle } from '@mui/material'
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
+import { IconAction } from './IconAction'
 
 export function ErrorState({ title = 'Something went wrong', message, onRetry }) {
   return (
@@ -6,9 +8,7 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry })
       severity="error"
       action={
         onRetry ? (
-          <Button color="inherit" onClick={onRetry}>
-            Try again
-          </Button>
+          <IconAction label="Try again" icon={<RefreshOutlinedIcon fontSize="small" />} onClick={onRetry} />
         ) : null
       }
     >

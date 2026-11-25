@@ -42,11 +42,35 @@ body,
 .situation-map .ol-zoom {
   top: auto;
   left: auto;
-  bottom: 0.5em;
   right: 0.5em;
+  bottom: 0.5em;
 }
 
-.situation-map .ol-scale-line {
+.situation-map .ol-scale-bar {
   left: 0.5em;
+  right: auto;
   bottom: 0.5em;
+  background: transparent;
+}
+
+.situation-map .ol-scale-singlebar {
+  border-color: #111;
+  background-color: #fff;
+}
+
+.situation-map .ol-scale-singlebar-even {
+  background-color: #111;
+}
+
+.situation-map .ol-scale-singlebar-odd {
+  background-color: #fff;
+}
+
+.situation-map .ol-scale-step-marker {
+  background-color: #111;
+}
+
+.situation-map .ol-scale-step-text {
+  color: #111;
+  text-shadow: -1px 0 #fff, 0 1px #fff, 1px 0 #fff, 0 -1px #fff;
 }

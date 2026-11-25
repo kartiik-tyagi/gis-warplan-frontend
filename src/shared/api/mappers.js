@@ -17,7 +17,7 @@ function baseFor(config, name) {
   const byName = palettes.find((item) => wanted.includes(normal(item.id)) || wanted.includes(normal(item.name)))
   if (byName) return byName
   const mode = config.mode === 'light' ? 'light' : 'dark'
-  return palettes.find((item) => item.mode === mode && item.id === (mode === 'light' ? 'field-day' : 'field-night')) || loginPalette
+  return palettes.find((item) => item.mode === mode && item.id === (mode === 'light' ? 'blue-light' : 'blue')) || loginPalette
 }
 
 /**
@@ -50,7 +50,7 @@ export function themeFromEntity(entity) {
 }
 
 export function paletteFallback() {
-  return { ...paletteById('field-night'), id: 'local-default', name: 'Default', family: 'Pine', defaultTheme: true }
+  return { ...paletteById('blue'), id: 'local-default', name: 'Default', family: 'Blue', defaultTheme: true }
 }
 
 export function roleLabel(code) {

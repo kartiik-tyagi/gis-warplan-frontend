@@ -3,7 +3,6 @@ import { SearchSelect } from '../../shared/ui/SearchSelect'
 import {
   Alert,
   Box,
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,7 +11,6 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip,
   Typography,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -34,9 +32,16 @@ import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import GrainIcon from '@mui/icons-material/Grain'
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined'
+import CloseIcon from '@mui/icons-material/Close'
+import DoneIcon from '@mui/icons-material/Done'
+import FlipToBackIcon from '@mui/icons-material/FlipToBack'
+import FlipToFrontIcon from '@mui/icons-material/FlipToFront'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { IconAction } from '../../shared/ui/IconAction'
 import { drawIcon } from '../../shared/api/assets'
 import { httpText } from '../../shared/api/http'
-import { ICON_TOKENS, iconCssVars, tokenColor } from '../../shared/icons/iconTheme'
+import { ICON_TOKENS, iconCssVars } from '../../shared/icons/iconTheme'
 import {
   applyHandle,
   bounds,
@@ -65,17 +70,6 @@ const TOOLS = [
   { id: 'text', label: 'Text', Icon: TitleIcon },
   { id: 'eraser', label: 'Eraser', Icon: CleaningServicesOutlinedIcon },
 ]
-
-const TOOL_HELP = {
-  select: 'Drag a shape to move it. Drag a handle to resize.',
-  freehand: 'Press and drag to draw.',
-  line: 'Press and drag a straight line.',
-  rect: 'Press and drag. Hold Shift for a square.',
-  ellipse: 'Press and drag. Hold Shift for a circle.',
-  polygon: 'Click each corner, then finish the shape.',
-  text: 'Click to place text, then edit the wording.',
-  eraser: 'Drag across the drawing to rub it out.',
-}
 
 const DEFAULT_PAINT = {
   fill: { mode: 'token', token: 'primary' },
@@ -442,7 +436,7 @@ function PaintField({ label, value, onChange }) {
       <SearchSelect
         size="small"
         label={label}
-        options={[{ id: 'theme', name: 'Theme Colour' }, { id: 'fixed', name: 'Fixed Colour' }, { id: 'none', name: 'None' }]}
+        options={[{ id: 'theme', name: 'Side Icon Color' }, { id: 'fixed', name: 'Fixed Colour' }, { id: 'none', name: 'None' }]}
         value={kind}
         onChange={(next) => {
           if (next === 'none') onChange({ mode: 'none' })
@@ -453,52 +447,46 @@ function PaintField({ label, value, onChange }) {
         getOptionValue={(item) => item.id}
       />
       {kind === 'theme' ? (
-        <>
-          <SearchSelect
-            size="small"
-            label="Which Theme Colour"
-            options={ICON_TOKENS}
-            value={token}
-            onChange={(id) => onChange({ mode: 'token', token: id })}
-            getOptionLabel={(item) => item.label}
-            getOptionValue={(item) => item.id}
-          />
-          <Typography variant="caption" color="text.secondary">Follows the theme, in the panel and on the map.</Typography>
-        </>
+        <SearchSelect
+          size="small"
+          label="Which Colour Token"
+          options={ICON_TOKENS}
+          value={token}
+          onChange={(id) => onChange({ mode: 'token', token: id })}
+          getOptionLabel={(item) => item.label}
+          getOptionValue={(item) => item.id}
+        />
       ) : null}
       {kind === 'fixed' ? (
-        <Stack spacing={0.5}>
-          <Stack direction="row" spacing={0.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            {FIXED_COLOURS.map((swatch) => (
-              <Box
-                key={swatch.id}
-                component="button"
-                type="button"
-                aria-label={`${label} ${swatch.label}`}
-                aria-pressed={fixed === swatch.color}
-                onClick={() => onChange({ mode: 'locked', color: swatch.color })}
-                sx={{
-                  width: 22,
-                  height: 22,
-                  p: 0,
-                  borderRadius: 0.5,
-                  bgcolor: swatch.color,
-                  border: 2,
-                  borderColor: fixed === swatch.color ? 'primary.main' : 'divider',
-                  cursor: 'pointer',
-                }}
-              />
-            ))}
+        <Stack direction="row" spacing={0.5} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          {FIXED_COLOURS.map((swatch) => (
             <Box
-              component="input"
-              type="color"
-              aria-label={`${label} fixed colour`}
-              value={fixed}
-              onChange={(event) => onChange({ mode: 'locked', color: event.target.value })}
-              sx={{ width: 28, height: 22, p: 0, border: 1, borderColor: 'divider', bgcolor: 'transparent', cursor: 'pointer' }}
+              key={swatch.id}
+              component="button"
+              type="button"
+              aria-label={`${label} ${swatch.label}`}
+              aria-pressed={fixed === swatch.color}
+              onClick={() => onChange({ mode: 'locked', color: swatch.color })}
+              sx={{
+                width: 22,
+                height: 22,
+                p: 0,
+                borderRadius: 0.5,
+                bgcolor: swatch.color,
+                border: 2,
+                borderColor: fixed === swatch.color ? 'primary.main' : 'divider',
+                cursor: 'pointer',
+              }}
             />
-          </Stack>
-          <Typography variant="caption" color="text.secondary">Stays this colour in every theme and on the map. Use this when a part must stay green, red, or any exact colour.</Typography>
+          ))}
+          <Box
+            component="input"
+            type="color"
+            aria-label={`${label} fixed colour`}
+            value={fixed}
+            onChange={(event) => onChange({ mode: 'locked', color: event.target.value })}
+            sx={{ width: 28, height: 22, p: 0, border: 1, borderColor: 'divider', bgcolor: 'transparent', cursor: 'pointer' }}
+          />
         </Stack>
       ) : null}
     </Stack>
@@ -962,7 +950,6 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
   const opacity = selected ? selected.opacity : paint.opacity
   const originalName = (path.split('/').pop() || '').toLowerCase()
   const nameOk = validFileName(name) && (mode === 'create' || fileNameFrom(name).toLowerCase() !== originalName)
-  const folder = mode === 'create' ? (directory || 'the root folder') : (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : 'the root folder')
   const grid = []
   const step = viewBox.w <= 32 ? 2 : viewBox.w / 12
   for (let x = viewBox.x; x <= viewBox.x + viewBox.w + 0.01; x += step) grid.push({ x1: x, y1: viewBox.y, x2: x, y2: viewBox.y + viewBox.h, key: `v${x}` })
@@ -981,12 +968,6 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
     >
       <DialogTitle sx={{ pb: 0.5 }}>
         {mode === 'create' ? 'Draw an icon' : 'Save a new icon'}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          {mode === 'create'
-            ? `Saves a new SVG into ${folder}. `
-            : `Copies ${path} into a new file. The original icon is not changed. `}
-          Outline leaves the inside empty. A fixed colour stays the same on the map.
-        </Typography>
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={1.5}>
@@ -1024,19 +1005,14 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                     <ToggleButton value="dashed" title="Dashed line" aria-label="Dashed line" sx={{ px: 0.75 }}><MoreHorizIcon fontSize="small" /></ToggleButton>
                     <ToggleButton value="dotted" title="Dotted line" aria-label="Dotted line" sx={{ px: 0.75 }}><GrainIcon fontSize="small" /></ToggleButton>
                   </ToggleButtonGroup>
-                  <Tooltip title="Undo">
-                    <span><Button size="small" aria-label="Undo" disabled={!past.length || busy} onClick={undo} sx={{ minWidth: 36, px: 0.75 }}><UndoIcon fontSize="small" /></Button></span>
-                  </Tooltip>
-                  <Tooltip title="Delete shape">
-                    <span><Button size="small" aria-label="Delete shape" disabled={!selected || busy} onClick={removeSelected} sx={{ minWidth: 36, px: 0.75 }}><DeleteOutlinedIcon fontSize="small" /></Button></span>
-                  </Tooltip>
+                  <IconAction label="Undo" icon={<UndoIcon fontSize="small" />} disabled={!past.length || busy} onClick={undo} />
+                  <IconAction label="Delete shape" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={!selected || busy} onClick={removeSelected} />
                 </Stack>
-                <Typography variant="caption" color="text.secondary">{TOOL_HELP[tool]}</Typography>
                 {tool === 'polygon' && draft?.points?.length ? (
                   <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                     <Typography variant="caption" color="text.secondary">{draft.points.length} corners</Typography>
-                    <Button size="small" variant="outlined" disabled={draft.points.length < 3} onClick={finishPolygon}>Finish</Button>
-                    <Button size="small" onClick={() => { draftRef.current = null; setDraft(null) }}>Cancel</Button>
+                    <IconAction label="Finish" icon={<DoneIcon fontSize="small" />} disabled={draft.points.length < 3} onClick={finishPolygon} variant="contained" />
+                    <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={() => { draftRef.current = null; setDraft(null) }} />
                   </Stack>
                 ) : null}
                 <Box sx={{ width: '100%', maxWidth: 520 }}>
@@ -1155,7 +1131,6 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                       if (selected?.type === 'rect') updateSelected({ rx: corner || undefined, ry: corner || undefined })
                       else changePaint('corner', corner)
                     }}
-                    helperText="0 keeps the corners square. A larger value rounds them."
                     slotProps={{ htmlInput: { min: 0, max: 48, step: 0.5 } }}
                   />
                 ) : null}
@@ -1163,16 +1138,16 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
                   <Stack spacing={0.5}>
                     <Typography variant="caption" color="text.secondary">Rotation {Math.round(Number(selected.rotation) || 0)}°</Typography>
                     <Stack direction="row" spacing={0.5}>
-                      <Button size="small" aria-label="Rotate left" onClick={() => rotateSelected(-15)} sx={{ minWidth: 40 }}><RotateLeftIcon fontSize="small" /></Button>
-                      <Button size="small" aria-label="Rotate right" onClick={() => rotateSelected(15)} sx={{ minWidth: 40 }}><RotateRightIcon fontSize="small" /></Button>
-                      <Button size="small" onClick={() => rotateSelected(-(Number(selected.rotation) || 0))}>Reset</Button>
+                      <IconAction label="Rotate left" icon={<RotateLeftIcon fontSize="small" />} onClick={() => rotateSelected(-15)} />
+                      <IconAction label="Rotate right" icon={<RotateRightIcon fontSize="small" />} onClick={() => rotateSelected(15)} />
+                      <IconAction label="Reset" icon={<RestartAltIcon fontSize="small" />} onClick={() => rotateSelected(-(Number(selected.rotation) || 0))} />
                     </Stack>
                   </Stack>
                 ) : null}
                 {selected ? (
                   <Stack direction="row" spacing={0.5}>
-                    <Button size="small" onClick={() => reorder(1)}>Forward</Button>
-                    <Button size="small" onClick={() => reorder(-1)}>Back</Button>
+                    <IconAction label="Forward" icon={<FlipToFrontIcon fontSize="small" />} onClick={() => reorder(1)} />
+                    <IconAction label="Back" icon={<FlipToBackIcon fontSize="small" />} onClick={() => reorder(-1)} />
                   </Stack>
                 ) : null}
                 <Stack direction="row" spacing={1}>
@@ -1211,13 +1186,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
           value={name}
           onChange={(event) => setName(event.target.value)}
           error={Boolean(name) && !nameOk}
-          helperText={
-            mode !== 'create' && fileNameFrom(name).toLowerCase() === originalName
-              ? 'Choose a new file name. The original icon is left unchanged.'
-              : name && !nameOk
-                ? 'Letters, numbers, dots, underscores, or hyphens.'
-                : 'Saved as a new SVG. The original file is not replaced.'
-          }
+          helperText={name && !nameOk ? 'Letters, numbers, dots, underscores, or hyphens.' : undefined}
           sx={{ minWidth: 220, flex: 1 }}
         />
         <TextField
@@ -1225,13 +1194,16 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
           label="Label"
           value={label}
           onChange={(event) => setLabel(event.target.value.slice(0, 120))}
-          helperText="Shown to you in the picker. Optional."
           sx={{ minWidth: 200, flex: 1 }}
         />
-        <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button variant="contained" disabled={busy || loading || !shapes.length || !nameOk} onClick={save}>
-          {busy ? 'Saving' : 'Save new icon'}
-        </Button>
+        <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={onClose} disabled={busy} />
+        <IconAction
+          label={busy ? 'Saving' : 'Save new icon'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
+          disabled={busy || loading || !shapes.length || !nameOk}
+          onClick={save}
+          variant="contained"
+        />
       </DialogActions>
     </Dialog>
   )

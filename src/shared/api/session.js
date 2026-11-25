@@ -34,6 +34,8 @@ function mapViewFromConfig(mapConfig) {
     zoom: view.zoom,
     minZoom: view.minZoom,
     maxZoom: view.maxZoom,
+    dataCrs: view.dataCrs || 'EPSG:4326',
+    viewCrs: view.viewCrs || 'EPSG:3857',
   }
 }
 

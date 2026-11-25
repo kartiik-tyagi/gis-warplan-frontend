@@ -16,7 +16,11 @@ import {
 } from '@mui/material'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
+import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined'
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined'
+import CloseIcon from '@mui/icons-material/Close'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { FunctionalityCodes, hasFunctionality } from '../auth/functionalityCodes'
 import { listAssets, setAssetLabel } from '../api/assets'
@@ -24,6 +28,7 @@ import { useTheme } from '@mui/material/styles'
 import { httpBlob, httpText } from '../api/http'
 import { iconCssVars } from '../icons/iconTheme'
 import { isSvgPath, sanitizeToNode } from '../icons/svgDocument'
+import { IconAction } from './IconAction'
 
 const previews = new Map()
 const previewListeners = new Set()
@@ -195,9 +200,6 @@ export function IconPicker({ open, value = '', onClose, onSelect, theme = null }
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" slotProps={{ paper: { sx: { borderRadius: 3, overflow: 'hidden' } } }}>
       <DialogTitle sx={{ pb: 0.5 }}>
         Choose an icon
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          Only icons are listed. The label is shown to everyone.
-        </Typography>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         {error ? <Alert severity="error" sx={{ m: 2, mb: 0, borderRadius: 2 }}>{error}</Alert> : null}
@@ -262,12 +264,15 @@ export function IconPicker({ open, value = '', onClose, onSelect, theme = null }
             </Box>
             {chosenFile && canEdit ? (
               <Paper variant="outlined" sx={{ m: 1.5, mt: 0, p: 1.25, borderRadius: 2, bgcolor: 'background.default' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>Label everyone sees</Typography>
-                <Stack direction="row" spacing={1}>
-                  <TextField size="small" value={labelDraft} onChange={(event) => setLabelDraft(event.target.value)} error={!labelDraft.trim()} fullWidth />
-                  <Button variant="contained" disableElevation disabled={savingLabel || !labelDraft.trim()} onClick={saveLabel}>
-                    {savingLabel ? 'Saving' : 'Save'}
-                  </Button>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <TextField size="small" label="Label" value={labelDraft} onChange={(event) => setLabelDraft(event.target.value)} error={!labelDraft.trim()} fullWidth />
+                  <IconAction
+                    label={savingLabel ? 'Saving' : 'Save'}
+                    icon={<SaveOutlinedIcon fontSize="small" />}
+                    disabled={savingLabel || !labelDraft.trim()}
+                    onClick={saveLabel}
+                    variant="contained"
+                  />
                 </Stack>
               </Paper>
             ) : null}
@@ -277,9 +282,17 @@ export function IconPicker({ open, value = '', onClose, onSelect, theme = null }
       <DialogActions sx={{ px: 3, py: 1.5, justifyContent: 'space-between' }}>
         <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>{chosenFile ? (chosenFile.label || fileNameOf(chosen)) : 'Nothing chosen'}</Typography>
         <Stack direction="row" spacing={1}>
-          {value ? <Button color="inherit" onClick={() => onSelect('')}>Clear</Button> : null}
-          <Button color="inherit" onClick={onClose}>Cancel</Button>
-          <Button variant="contained" disableElevation disabled={!chosen} onClick={() => onSelect(chosen)}>Use icon</Button>
+          {value ? (
+            <IconAction label="Clear" icon={<ClearOutlinedIcon fontSize="small" />} onClick={() => onSelect('')} />
+          ) : null}
+          <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={onClose} />
+          <IconAction
+            label="Use icon"
+            icon={<CheckOutlinedIcon fontSize="small" />}
+            disabled={!chosen}
+            onClick={() => onSelect(chosen)}
+            variant="contained"
+          />
         </Stack>
       </DialogActions>
     </Dialog>
@@ -334,9 +347,15 @@ export function IconField({ value, onChange, label = 'Icon', theme = null }) {
   const display = value ? (labels && labels[value]) || fileNameOf(value) : ''
   return (
     <>
-      <Button size="small" variant="outlined" onClick={() => setOpen(true)} startIcon={value ? <IconPreview path={value} size={20} theme={theme} /> : null} sx={{ textTransform: 'none', justifyContent: 'flex-start' }}>
-        {value ? display : `Choose ${label.toLowerCase()}`}
-      </Button>
+      <Stack direction="row" spacing={1} alignItems="center">
+        {value ? <IconPreview path={value} size={20} theme={theme} /> : null}
+        {value ? <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>{display}</Typography> : null}
+        <IconAction
+          label={value ? `Change ${label.toLowerCase()}` : `Choose ${label.toLowerCase()}`}
+          icon={<ImageOutlinedIcon fontSize="small" />}
+          onClick={() => setOpen(true)}
+        />
+      </Stack>
       <IconPicker
         open={open}
         value={value}

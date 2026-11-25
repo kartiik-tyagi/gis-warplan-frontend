@@ -103,6 +103,7 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
     const expanded = openGroups.has(group.header)
     return (
       <Box key={group.header} sx={{ display: 'block' }}>
+        <Box sx={{ px: 1, py: 0.25 }}>
         <ListItemButton
           onClick={(event) => {
             event.preventDefault()
@@ -111,9 +112,12 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
           }}
           aria-expanded={expanded}
           sx={{
-            minHeight: 36,
-            py: 0.75,
-            px: 2,
+            width: 'fit-content',
+            maxWidth: '100%',
+            minHeight: 32,
+            py: 0.5,
+            px: 0.75,
+            borderRadius: 1,
             typography: 'overline',
             letterSpacing: '0.08em',
             fontWeight: 600,
@@ -128,6 +132,7 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
             slotProps={{ primary: { variant: 'overline', sx: { letterSpacing: '0.08em', fontWeight: 600 } } }}
           />
         </ListItemButton>
+        </Box>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <Box>
             {group.items.map((section) => (
@@ -135,7 +140,7 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
                 key={section.id}
                 selected={section.id === sectionId}
                 onClick={() => onSelect(section.id)}
-                sx={{ pl: 4.5 }}
+                sx={{ width: 'fit-content', maxWidth: 'calc(100% - 16px)', mx: 1, my: 0.25, pl: 1.5, borderRadius: 1 }}
               >
                 <ListItemIcon sx={{ color: section.id === sectionId ? 'primary.main' : 'text.secondary' }}>
                   <NavIcon name={section.icon} />

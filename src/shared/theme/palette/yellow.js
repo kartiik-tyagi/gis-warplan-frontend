@@ -1,0 +1,32 @@
+const palette = {
+  "id": "yellow",
+  "name": "Yellow",
+  "family": "Yellow",
+  "mode": "dark",
+  "fontFamily": "\"Roboto\", \"Segoe UI\", sans-serif",
+  "fontWeightLight": 300,
+  "fontWeightRegular": 400,
+  "fontWeightMedium": 500,
+  "fontWeightBold": 700,
+  "borderRadius": 8,
+  "primary": "#facc15",
+  "primaryContrast": "#0a0a0a",
+  "secondary": "#facc15",
+  "secondaryContrast": "#0a0a0a",
+  "backgroundDefault": "#2a2208",
+  "backgroundPaper": "#3f330c",
+  "textPrimary": "#f8fafc",
+  "textSecondary": "#cbd5e1",
+  "textDisabled": "#94a3b8",
+  "divider": "rgba(248, 250, 252, 0.28)",
+  "error": "#fecaca",
+  "errorContrast": "#0a0a0a",
+  "warning": "#fde68a",
+  "warningContrast": "#0a0a0a",
+  "success": "#bbf7d0",
+  "successContrast": "#0a0a0a",
+  "info": "#bfdbfe",
+  "infoContrast": "#0a0a0a"
+}
+
+export default palette

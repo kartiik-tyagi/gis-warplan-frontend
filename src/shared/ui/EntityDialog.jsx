@@ -1,5 +1,7 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import { Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import { useDirectoryStore } from '../../features/directory/useDirectoryStore'
+import { IconAction } from './IconAction'
 
 export function EntityDialog() {
   const data = useDirectoryStore((state) => state.data)
@@ -35,7 +37,7 @@ export function EntityDialog() {
         ) : null}
       </DialogContent>
       <DialogActions>
-        <Button onClick={close}>Close</Button>
+        <IconAction label="Close" icon={<CloseIcon fontSize="small" />} onClick={close} />
       </DialogActions>
     </Dialog>
   )

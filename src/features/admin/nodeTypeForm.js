@@ -59,12 +59,7 @@ export function parentsLabel(type) {
 }
 
 export function parentsDetail(type) {
-  const names = parentNames(type)
-  const root = Boolean(type?.properties?.root)
-  if (root && !names.length) return 'Can only sit at the top of an ORBAT.'
-  if (root) return `Can sit at the top, or under ${names.join(', ')}.`
-  if (!names.length) return 'Can sit under any node. Choose parents to restrict it.'
-  return `Can sit under ${names.join(', ')}.`
+  return parentsLabel(type)
 }
 
 export function fieldsLabel(type) {
@@ -76,7 +71,7 @@ export function fieldsLabel(type) {
 
 export function fieldsDetail(type) {
   const fields = Array.isArray(type?.properties?.fields) ? type.properties.fields : []
-  if (!fields.length) return 'The node form asks for a name and an icon only.'
+  if (!fields.length) return 'No attributes'
   return fields.map((field) => field?.label || field?.key).filter(Boolean).join(', ')
 }
 

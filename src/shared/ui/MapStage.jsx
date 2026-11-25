@@ -98,9 +98,11 @@ export function MapStage({ readout = 'bar', onReadout }) {
       longitude: pointer?.longitude ?? null,
       zoom,
       resolution,
+      dataCrs: session?.mapView?.dataCrs || 'EPSG:4326',
+      viewCrs: session?.mapView?.viewCrs || 'EPSG:3857',
       height: null,
     })
-  }, [pointer, zoom, resolution])
+  }, [pointer, zoom, resolution, session?.mapView?.dataCrs, session?.mapView?.viewCrs])
   if (!session) return null
   const layers = pictureLayers(session, directory)
 

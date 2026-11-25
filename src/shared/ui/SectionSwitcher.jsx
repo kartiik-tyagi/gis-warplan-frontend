@@ -65,11 +65,12 @@ export function SectionSwitcher({ currentId, title }) {
         onClick={openMenu}
         onPointerDown={(event) => event.stopPropagation()}
         sx={{
-          flex: 1,
-          minWidth: 0,
+          flex: '0 1 auto',
+          maxWidth: '100%',
+          width: 'fit-content',
           justifyContent: 'flex-start',
           gap: 0.5,
-          px: 0.5,
+          px: 0.75,
           py: 0.25,
           borderRadius: 1,
           textAlign: 'left',
@@ -92,6 +93,7 @@ export function SectionSwitcher({ currentId, title }) {
           const expanded = openKickers.has(group.kicker)
           return (
             <Box key={group.kicker}>
+              <Box sx={{ px: 1, py: 0.25 }}>
               <Box
                 role="button"
                 tabIndex={0}
@@ -107,11 +109,14 @@ export function SectionSwitcher({ currentId, title }) {
                   }
                 }}
                 sx={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  px: 2,
-                  py: 0.75,
-                  minHeight: 36,
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  px: 0.75,
+                  py: 0.5,
+                  minHeight: 32,
+                  borderRadius: 1,
                   cursor: 'pointer',
                   typography: 'overline',
                   letterSpacing: '0.08em',
@@ -125,13 +130,14 @@ export function SectionSwitcher({ currentId, title }) {
                 </ListItemIcon>
                 {titleCase(group.kicker)}
               </Box>
+              </Box>
               <Collapse in={expanded} timeout="auto" unmountOnExit>
                 {group.items.map((section) => (
                   <MenuItem
                     key={section.id}
                     selected={section.id === currentId}
                     onClick={() => choose(section.id)}
-                    sx={{ pl: 4 }}
+                    sx={{ width: 'fit-content', maxWidth: 'calc(100% - 16px)', mx: 1, my: 0.25, pl: 1.5, borderRadius: 1 }}
                   >
                     <ListItemIcon sx={{ color: section.id === currentId ? 'primary.main' : 'text.secondary' }}>
                       <NavIcon name={section.icon} />

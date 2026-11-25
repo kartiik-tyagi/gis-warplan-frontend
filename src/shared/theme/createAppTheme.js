@@ -64,6 +64,11 @@ export function createAppTheme(themeConfig) {
             backgroundColor: themeConfig.backgroundDefault,
             fontFamily: themeConfig.fontFamily,
           },
+          // Keep the outline closed. The label sits inside the box, so the border
+          // wraps over it instead of opening a gap through the text.
+          '.MuiOutlinedInput-notchedOutline > legend': {
+            maxWidth: '0.01px !important',
+          },
         },
       },
       MuiButton: {
@@ -76,17 +81,63 @@ export function createAppTheme(themeConfig) {
         styleOverrides: { root: { minHeight: 40, color: themeConfig.textPrimary } },
       },
       MuiInputLabel: {
-        styleOverrides: { root: { color: themeConfig.textSecondary } },
+        styleOverrides: {
+          root: {
+            color: themeConfig.textSecondary,
+            lineHeight: 1.2,
+          },
+          outlined: {
+            '&.MuiInputLabel-shrink': {
+              transform: 'translate(14px, 7px) scale(0.75)',
+              backgroundColor: 'transparent',
+              padding: 0,
+              marginLeft: 0,
+              lineHeight: 1.2,
+              maxWidth: 'calc(100% - 28px)',
+            },
+            '&.MuiInputLabel-sizeSmall.MuiInputLabel-shrink': {
+              transform: 'translate(14px, 4px) scale(0.75)',
+            },
+          },
+        },
       },
       MuiFormLabel: {
         styleOverrides: { root: { color: themeConfig.textSecondary } },
+      },
+      MuiFormControl: {
+        styleOverrides: {
+          root: {
+            '&:has(> .MuiInputLabel-shrink) .MuiOutlinedInput-root:not(.MuiOutlinedInput-multiline):not(.MuiAutocomplete-inputRoot) .MuiOutlinedInput-input': {
+              paddingTop: 26,
+              paddingBottom: 8,
+            },
+            '&:has(> .MuiInputLabel-shrink) .MuiOutlinedInput-root.MuiInputBase-sizeSmall:not(.MuiOutlinedInput-multiline):not(.MuiAutocomplete-inputRoot) .MuiOutlinedInput-input': {
+              paddingTop: 20,
+              paddingBottom: 4,
+            },
+            '&:has(> .MuiInputLabel-shrink) .MuiOutlinedInput-multiline': {
+              paddingTop: 26,
+              paddingBottom: 8,
+            },
+            '&:has(> .MuiInputLabel-shrink) .MuiOutlinedInput-multiline.MuiInputBase-sizeSmall': {
+              paddingTop: 20,
+              paddingBottom: 6,
+            },
+            '&:has(> .MuiInputLabel-shrink) .MuiAutocomplete-inputRoot': {
+              paddingTop: 26,
+            },
+            '&:has(> .MuiInputLabel-shrink) .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall': {
+              paddingTop: 20,
+            },
+          },
+        },
       },
       MuiInputBase: {
         styleOverrides: { root: { fontFamily: themeConfig.fontFamily } },
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          root: { color: themeConfig.textPrimary, backgroundColor: themeConfig.backgroundDefault },
+          root: { color: themeConfig.textPrimary, backgroundColor: 'transparent' },
           notchedOutline: { borderColor: themeConfig.divider },
           input: { '&::placeholder': { color: themeConfig.textDisabled, opacity: 1 } },
         },

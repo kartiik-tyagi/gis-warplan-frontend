@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Box,
@@ -9,7 +9,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import DrawOutlinedIcon from '@mui/icons-material/DrawOutlined'
 import GestureIcon from '@mui/icons-material/Gesture'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
 import {
   deleteAsset,
@@ -23,6 +26,7 @@ import {
 import { FunctionalityCodes, hasFunctionality } from '../../shared/auth/functionalityCodes'
 import { isSvgPath } from '../../shared/icons/svgDocument'
 import { logger } from '../../shared/lib/logger'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { IconPreview, forgetIconPreview, invalidateIconLabels } from '../../shared/ui/IconPicker'
 import { useToastStore } from '../feedback/useToastStore'
@@ -31,10 +35,10 @@ import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { IconStudio } from './IconStudio'
 
 const SECTIONS = [
-  { id: 'icon', label: 'Icons', accept: '.svg,.png', hint: 'SVG and PNG symbols used on the map.' },
-  { id: 'image', label: 'Images', accept: '.png,.jpg,.jpeg,.gif,.webp', hint: 'Photographs and other pictures.' },
-  { id: 'document', label: 'Documents', accept: '.txt,.doc,.docx,.pdf', hint: 'Papers attached to a scenario or kept in the library.' },
-  { id: 'application', label: 'Application', accept: '', hint: 'The logo, the favicon, and the sign-in picture.' },
+  { id: 'icon', label: 'Icons', accept: '.svg,.png' },
+  { id: 'image', label: 'Images', accept: '.png,.jpg,.jpeg,.gif,.webp' },
+  { id: 'document', label: 'Documents', accept: '.txt,.doc,.docx,.pdf' },
+  { id: 'application', label: 'Application', accept: '' },
 ]
 
 const SLOTS = [
@@ -42,14 +46,6 @@ const SLOTS = [
   { id: 'favicon', label: 'Favicon', accept: '.svg,.png' },
   { id: 'login-background', label: 'Login picture', accept: '.svg,.png,.jpg,.jpeg,.webp' },
 ]
-
-function humanSize(bytes) {
-  const value = Number(bytes)
-  if (!Number.isFinite(value) || value < 1) return ''
-  if (value % (1024 * 1024) === 0) return `${value / (1024 * 1024)} MB`
-  if (value % 1024 === 0) return `${value / 1024} KB`
-  return `${value} bytes`
-}
 
 export function IconsAdminPanel() {
   const push = useToastStore((state) => state.push)
@@ -65,6 +61,8 @@ export function IconsAdminPanel() {
   const [loading, setLoading] = useState(true)
   const [studio, setStudio] = useState(null)
   const [busy, setBusy] = useState(false)
+  const uploadRef = useRef(null)
+  const replaceRefs = useRef({})
 
   const loadSettings = useCallback(async () => {
     const next = await getAssetSettings()
@@ -109,14 +107,6 @@ export function IconsAdminPanel() {
   useEffect(() => {
     setLabelDraft(chosen?.label || '')
   }, [chosen])
-
-  const limitHint = useMemo(() => {
-    if (!settings) return ''
-    if (section === 'icon') return `Maximum ${humanSize(settings.iconMaxBytes)}.`
-    if (section === 'image') return `Maximum ${humanSize(settings.imageMaxBytes)}.`
-    if (section === 'document') return `Maximum ${humanSize(settings.documentMaxBytes)}.`
-    return ''
-  }, [section, settings])
 
   async function saveSettings() {
     const iconMaxBytes = Number(limits.iconMaxBytes)
@@ -222,35 +212,44 @@ export function IconsAdminPanel() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        Icons, pictures, documents, and the application pictures are stored in one folder.
-      </Typography>
       <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
         <Stack spacing={1.5}>
-          <TextField label="Base folder" value={pathDraft} onChange={(event) => setPathDraft(event.target.value)} disabled={!canManage || busy} helperText="Any writable folder on this server, including another disk." fullWidth />
+          <TextField label="Base folder" value={pathDraft} onChange={(event) => setPathDraft(event.target.value)} disabled={!canManage || busy} fullWidth />
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <TextField label="Icon limit (bytes)" value={limits.iconMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, iconMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
             <TextField label="Image limit (bytes)" value={limits.imageMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, imageMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
             <TextField label="Document limit (bytes)" value={limits.documentMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, documentMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
           </Stack>
-          {canManage ? <Button variant="outlined" disabled={busy} onClick={saveSettings} sx={{ alignSelf: 'flex-start' }}>Save settings</Button> : null}
+          {canManage ? (
+            <IconAction label="Save settings" icon={<SaveOutlinedIcon fontSize="small" />} onClick={saveSettings} disabled={busy} variant="contained" />
+          ) : null}
         </Stack>
       </Box>
       {error ? <Alert severity="error">{error}</Alert> : null}
       <Tabs value={section} onChange={(_event, value) => { setSection(value); setChosen(null) }}>
         {SECTIONS.map((item) => <Tab key={item.id} value={item.id} label={item.label} />)}
       </Tabs>
-      <Typography variant="body2" color="text.secondary">{current?.hint} {limitHint}</Typography>
       {section === 'application' ? (
         <Stack spacing={1.5}>
           {SLOTS.map((slot) => (
             <Stack key={slot.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <Typography sx={{ width: 140 }}>{slot.label}</Typography>
               {canManage ? (
-                <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={busy}>
-                  Replace
-                  <input hidden type="file" accept={slot.accept} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onReplaceSlot(slot.id, file) }} />
-                </Button>
+                <>
+                  <IconAction
+                    label="Replace"
+                    icon={<UploadFileOutlinedIcon fontSize="small" />}
+                    disabled={busy}
+                    onClick={() => replaceRefs.current[slot.id]?.click()}
+                  />
+                  <input
+                    ref={(node) => { replaceRefs.current[slot.id] = node }}
+                    hidden
+                    type="file"
+                    accept={slot.accept}
+                    onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onReplaceSlot(slot.id, file) }}
+                  />
+                </>
               ) : null}
             </Stack>
           ))}
@@ -259,11 +258,27 @@ export function IconsAdminPanel() {
         <Stack spacing={1.5}>
           {canManage ? (
             <Stack direction="row" spacing={1}>
-              <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={busy}>
-                Upload
-                <input hidden type="file" accept={current?.accept} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onUpload(file, section) }} />
-              </Button>
-              {section === 'icon' ? <Button variant="contained" startIcon={<GestureIcon />} onClick={() => setStudio({ mode: 'create' })}>Draw icon</Button> : null}
+              <IconAction
+                label="Upload"
+                icon={<UploadFileOutlinedIcon fontSize="small" />}
+                disabled={busy}
+                onClick={() => uploadRef.current?.click()}
+              />
+              <input
+                ref={uploadRef}
+                hidden
+                type="file"
+                accept={current?.accept}
+                onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onUpload(file, section) }}
+              />
+              {section === 'icon' ? (
+                <IconAction
+                  label="Draw icon"
+                  icon={<GestureIcon fontSize="small" />}
+                  onClick={() => setStudio({ mode: 'create' })}
+                  variant="contained"
+                />
+              ) : null}
             </Stack>
           ) : null}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 1 }}>
@@ -278,12 +293,18 @@ export function IconsAdminPanel() {
           {chosen ? (
             <Stack spacing={1} sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
               <Typography variant="caption" color="text.secondary">{chosen.path}</Typography>
-              <TextField label="Label" value={labelDraft} onChange={(event) => setLabelDraft(event.target.value)} disabled={!canManage || busy} helperText="Shown to everyone." fullWidth />
+              <TextField label="Label" value={labelDraft} onChange={(event) => setLabelDraft(event.target.value)} disabled={!canManage || busy} fullWidth />
               {canManage ? (
                 <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" disabled={busy || !labelDraft.trim()} onClick={saveLabel}>Save label</Button>
-                  <Button color="inherit" disabled={busy} onClick={() => remove(chosen)}>Remove</Button>
-                  {section === 'icon' && isSvgPath(chosen.path) ? <Button variant="outlined" onClick={() => setStudio({ mode: 'revise', path: chosen.path, label: chosen.label || '' })}>Revise as new</Button> : null}
+                  <IconAction label="Save label" icon={<SaveOutlinedIcon fontSize="small" />} disabled={busy || !labelDraft.trim()} onClick={saveLabel} variant="contained" />
+                  <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => remove(chosen)} />
+                  {section === 'icon' && isSvgPath(chosen.path) ? (
+                    <IconAction
+                      label="Revise as new"
+                      icon={<DrawOutlinedIcon fontSize="small" />}
+                      onClick={() => setStudio({ mode: 'revise', path: chosen.path, label: chosen.label || '' })}
+                    />
+                  ) : null}
                 </Stack>
               ) : null}
             </Stack>

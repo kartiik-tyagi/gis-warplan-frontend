@@ -3,15 +3,16 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { del, get, post, put } from '../../shared/api/http'
 import { loadMoonPhases } from '../../shared/api/moonPhases'
@@ -23,9 +24,7 @@ import { CreateAction } from '../../shared/ui/CreateAction'
 import { EntityCard } from '../../shared/ui/EntityCard'
 import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
-import { titleCase } from '../../shared/lib/titleCase'
 import { RichTextEditor } from '../../shared/ui/richtext/RichTextEditor'
-import { richTextPlain } from '../../shared/ui/richtext/RichTextView'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
 import { ExerciseLayout } from './ExerciseLayout'
@@ -72,6 +71,8 @@ function GameList() {
   const [scenarios, setScenarios] = useState(null)
   const [games, setGames] = useState(null)
   const [activatingId, setActivatingId] = useState(null)
+  const [deleting, setDeleting] = useState(null)
+  const [busyDelete, setBusyDelete] = useState(false)
   const scenarioId = searchParams.get('scenarioId') || ''
 
   useEffect(() => {
@@ -163,16 +164,13 @@ function GameList() {
         value={scenarioId}
         onChange={(id) => setSearchParams(id ? { scenarioId: id } : {})}
         disabled={!scenarios.length}
-        helperText={!scenarios.length ? 'Create A Scenario First' : undefined}
         getOptionLabel={(item) => `${item.name}${item.active ? ' · Active' : ''}`}
         getOptionValue={(item) => String(item.id)}
         sx={{ width: '100%', maxWidth: { xs: '100%', md: '36rem' } }}
       />
 
       {!scenarios.length ? (
-        <Button variant="outlined" onClick={() => navigate('/exercise/scenarios/new')}>
-          {titleCase('Create Scenario')}
-        </Button>
+        <CreateAction label="Create Scenario" onClick={() => navigate('/exercise/scenarios/new')} />
       ) : !games ? (
         <LoadingState label="Loading Games" />
       ) : !games.length ? (
@@ -201,23 +199,45 @@ function GameList() {
             <EntityCard
               key={item.id}
               title={item.name}
-              chip={item.active ? 'Active' : null}
-              meta={item.dateTime ? new Date(item.dateTime).toLocaleString() : richTextPlain(item.description, 80) || '—'}
-              selected={Boolean(item.active)}
+              active={Boolean(item.active)}
               actions={
                 <>
                   <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/exercise/games/${item.id}`)} />
                   {item.active ? (
-                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={(event) => deactivate(event, item)} />
+                    <IconAction label={activatingId === item.id ? 'Deactivating…' : 'Deactivate'} icon={<BlockOutlinedIcon fontSize="small" />} disabled={activatingId != null} onClick={(event) => deactivate(event, item)} />
                   ) : (
-                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<CheckCircleOutlinedIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={(event) => activate(event, item)} />
+                    <IconAction label={activatingId === item.id ? 'Activating…' : 'Activate'} icon={<PlayArrowIcon fontSize="small" />} color="primary" disabled={activatingId != null} onClick={(event) => activate(event, item)} />
                   )}
+                  <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={Boolean(item.active) || busyDelete} onClick={() => setDeleting(item)} />
                 </>
               }
             />
           ))}
         </Stack>
       )}
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete This Game?"
+        message={deleting ? `“${deleting.name}” will be removed. The active game cannot be deleted.` : ''}
+        confirmLabel="Delete"
+        busy={busyDelete}
+        onClose={() => { if (!busyDelete) setDeleting(null) }}
+        onConfirm={async () => {
+          if (!deleting) return
+          setBusyDelete(true)
+          try {
+            await del(`/games/${deleting.id}`)
+            push('Game deleted.', 'success')
+            setDeleting(null)
+            await loadGames()
+            await refreshSession()
+          } catch (error) {
+            push(error?.message || 'The game could not be deleted.', 'error')
+          } finally {
+            setBusyDelete(false)
+          }
+        }}
+      />
     </Stack>
   )
 }
@@ -333,12 +353,13 @@ function GameEditor() {
         logger.info('game.created', { id: created.id, scenarioId })
         await refreshSession()
         push('Game created.', 'success')
-        navigate(`/exercise/games/${created.id}`, { replace: true })
+        navigate(scenarioId ? `/exercise/games?scenarioId=${scenarioId}` : '/exercise/games', { replace: true })
       } else {
         await put(`/games/${id}`, body)
         logger.info('game.updated', { id })
         await refreshSession()
         push('Game saved.', 'success')
+        navigate(scenarioId ? `/exercise/games?scenarioId=${scenarioId}` : '/exercise/games', { replace: true })
       }
     } catch (error) {
       setErrors(error?.fieldErrors || {})
@@ -369,6 +390,9 @@ function GameEditor() {
   return (
     <Stack spacing={2.5}>
       {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate(scenarioId ? `/exercise/games?scenarioId=${scenarioId}` : '/exercise/games')} disabled={busy} />
+      </Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
         <SearchSelect
           label="Scenario"
@@ -438,7 +462,7 @@ function GameEditor() {
         value={form.moonphases}
         onChange={(id) => change('moonphases', id)}
         error={Boolean(errors.moonphases)}
-        helperText={errors.moonphases || 'Optional'}
+        helperText={errors.moonphases || undefined}
         getOptionLabel={(phase) => phase.label}
         getOptionValue={(phase) => phase.code}
       />
@@ -452,62 +476,45 @@ function GameEditor() {
         minHeight={140}
       />
 
-      <Stack direction="row" spacing={1} justifyContent="space-between" flexWrap="wrap" useFlexGap>
-        <Box>
-          {!isNew ? (
-            <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || active} onClick={() => setConfirmDelete(true)}>
-              Delete
-            </Button>
-          ) : null}
-        </Box>
-        <Stack direction="row" spacing={1}>
-          {!isNew && active ? (
-            <Button
-              variant="outlined"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true)
-                try {
-                  await changeGame('')
-                  setActive(false)
-                  push('This game is no longer active.', 'success')
-                } catch (error) {
-                  push(error?.message || 'The game could not be deactivated.', 'error')
-                } finally {
-                  setBusy(false)
-                }
-              }}
-            >
-              Deactivate
-            </Button>
-          ) : null}
-          {!isNew && !active ? (
-            <Button
-              variant="contained"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true)
-                try {
-                  await changeGame(String(id))
-                  setActive(true)
-                  push('This game is now active.', 'success')
-                } catch (error) {
-                  push(error?.message || 'The game could not be activated.', 'error')
-                } finally {
-                  setBusy(false)
-                }
-              }}
-            >
-              Activate
-            </Button>
-          ) : null}
-          <Button onClick={() => navigate(scenarioId ? `/exercise/games?scenarioId=${scenarioId}` : '/exercise/games')} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant="contained" startIcon={<SaveOutlinedIcon />} onClick={save} disabled={busy || !form.name.trim()}>
-            {titleCase(busy ? 'Saving…' : isNew ? 'Create Game' : 'Save Game')}
-          </Button>
-        </Stack>
+      <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+        {!isNew ? (
+          <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy || active} onClick={() => setConfirmDelete(true)} />
+        ) : null}
+        {!isNew && active ? (
+          <IconAction label="Deactivate" icon={<BlockOutlinedIcon fontSize="small" />} disabled={busy} onClick={async () => {
+            setBusy(true)
+            try {
+              await changeGame('')
+              setActive(false)
+              push('This game is no longer active.', 'success')
+            } catch (error) {
+              push(error?.message || 'The game could not be deactivated.', 'error')
+            } finally {
+              setBusy(false)
+            }
+          }} />
+        ) : null}
+        {!isNew && !active ? (
+          <IconAction label="Activate" icon={<PlayArrowIcon fontSize="small" />} disabled={busy} variant="contained" onClick={async () => {
+            setBusy(true)
+            try {
+              await changeGame(String(id))
+              setActive(true)
+              push('This game is now active.', 'success')
+            } catch (error) {
+              push(error?.message || 'The game could not be activated.', 'error')
+            } finally {
+              setBusy(false)
+            }
+          }} />
+        ) : null}
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Game' : 'Save Game'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
+          onClick={save}
+          disabled={busy || !form.name.trim()}
+          variant="contained"
+        />
       </Stack>
 
       <ConfirmDialog

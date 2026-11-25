@@ -4,7 +4,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Chip,
   FormControlLabel,
   FormHelperText,
@@ -16,14 +15,15 @@ import {
   Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import { CreateAction } from '../../shared/ui/CreateAction'
-import { EntityCard } from '../../shared/ui/EntityCard'
-import { IconAction } from '../../shared/ui/IconAction'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import { del, get, post, put } from '../../shared/api/http'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { EMPTY_LIST } from '../../shared/lib/empty'
@@ -31,6 +31,7 @@ import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 import { IconField, IconPreview } from '../../shared/ui/IconPicker'
 import { LoadingState } from '../../shared/ui/LoadingState'
+import { HeadingRow } from '../../shared/ui/HeadingRow'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { useToastStore } from '../feedback/useToastStore'
 import {
@@ -38,55 +39,50 @@ import {
   attributeKey,
   blankAttribute,
   commitOptions,
-  fieldsDetail,
   fieldsLabel,
   firstError,
   formFromProperties,
   holdersOf,
   optionLabel,
-  parentsDetail,
   parentsLabel,
   propertiesFromForm,
   unmappedErrors,
   validateNodeType,
 } from './nodeTypeForm'
 
-function Section({ title, description, children, error }) {
+function Section({ title, children, error }) {
   return (
     <Box
       data-field-error={error ? 'true' : undefined}
       sx={{
-        p: { xs: 1.5, sm: 2 },
         border: 1,
         borderColor: error ? 'error.main' : 'divider',
         borderRadius: 2,
         bgcolor: 'background.paper',
+        overflow: 'hidden',
       }}
     >
-      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-        {title}
-      </Typography>
-      {description ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-          {description}
-        </Typography>
-      ) : (
-        <Box sx={{ mb: 2 }} />
-      )}
-      {children}
+      <HeadingRow>
+        <Typography variant="subtitle1">{title}</Typography>
+      </HeadingRow>
+      <Box sx={{ p: { xs: 1.5, sm: 2 } }}>{children}</Box>
     </Box>
   )
 }
 
 function PlacementSummary({ root, parentCodes }) {
-  return <Typography variant="body2">{parentsDetail({ properties: { root, parents: parentCodes } })}</Typography>
+  const parts = []
+  if (root) parts.push('Root')
+  if (parentCodes?.length) parts.push(...parentCodes)
+  else if (!root) parts.push('Any parent')
+  return <Typography variant="body2">{parts.join(' · ') || '—'}</Typography>
 }
 
 function AttributeSummary({ fields }) {
   if (!fields.length) {
     return (
       <Typography variant="body2" color="text.secondary">
-        This catalogue type has no attributes. A node asks for a name and an icon.
+        No attributes.
       </Typography>
     )
   }
@@ -140,15 +136,15 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
     <Box
       data-field-error={cardError ? 'true' : undefined}
       sx={{
-        p: 1.5,
         border: 1,
         borderColor: cardError ? 'error.main' : 'divider',
         borderRadius: 1.5,
         bgcolor: 'background.default',
+        overflow: 'hidden',
       }}
     >
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.25 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>
+      <HeadingRow sx={{ minHeight: 36 }}>
+        <Typography variant="body2" sx={{ flex: 1 }}>
           Attribute {index + 1}
         </Typography>
         <Tooltip title="Move up">
@@ -175,7 +171,8 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
             <DeleteOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      </Stack>
+      </HeadingRow>
+      <Box sx={{ p: 1.5 }}>
       <Box
         sx={{
           display: 'grid',
@@ -190,7 +187,7 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
           value={field.label}
           required
           error={Boolean(labelError)}
-          helperText={labelError || 'Shown on the node form'}
+          helperText={labelError || ' '}
           slotProps={{ htmlInput: { maxLength: LIMITS.label } }}
           onChange={(event) => setLabel(event.target.value)}
         />
@@ -200,7 +197,7 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
           value={field.key}
           required
           error={Boolean(keyError)}
-          helperText={keyError || (field.keyTouched ? 'Stored on the node' : 'Suggested from the label until you edit it')}
+          helperText={keyError || ' '}
           slotProps={{ htmlInput: { maxLength: LIMITS.key, autoComplete: 'off', spellCheck: false } }}
           sx={{ '& input': { fontFamily: 'ui-monospace, monospace' } }}
           onChange={(event) => onChange({ key: event.target.value.toLowerCase(), keyTouched: true })}
@@ -245,11 +242,12 @@ function AttributeRow({ field, index, count, errors, onChange, onMove, onRemove 
               label="Options"
               placeholder="Type an option and press Enter"
               error={Boolean(optionError || field.optionWarning)}
-              helperText={optionError || field.optionWarning || 'Separate several options with commas. They are saved in lower case.'}
+              helperText={optionError || field.optionWarning || ' '}
             />
           )}
         />
       ) : null}
+      </Box>
     </Box>
   )
 }
@@ -490,7 +488,6 @@ function NodeTypeEditor() {
     return options
   }, [catalogue, parentCodes, id, isNew, catalogueState])
   const parentError = firstError(errors, 'properties.parents')
-  const placementText = parentsDetail({ properties: { root, parents: parentCodes } })
 
   const reveal = () => setErrorTick((tick) => tick + 1)
 
@@ -517,13 +514,12 @@ function NodeTypeEditor() {
         const created = await post('/node-types', body)
         logger.info('node_type.admin_saved', { nodeTypeId: created.id, code: body.code })
         push('Node type created.', 'success')
-        navigate(`/standard/node-types/${created.id}`, { replace: true })
+        navigate('/standard/node-types', { replace: true })
       } else {
-        const saved = await put(`/node-types/${id}`, body)
+        await put(`/node-types/${id}`, body)
         logger.info('node_type.admin_saved', { nodeTypeId: id, code: body.code })
-        applyRow(saved)
-        setSubmitted(false)
         push('Node type saved.', 'success')
+        navigate('/standard/node-types', { replace: true })
       }
     } catch (error) {
       const fieldErrors = error?.fieldErrors || {}
@@ -609,11 +605,10 @@ function NodeTypeEditor() {
           ) : null}
         </Alert>
       ) : null}
-      {seeded ? (
-        <Alert severity="info">Catalogue rules stay with this type. You can change the name, description, and icon.</Alert>
-      ) : null}
-
-      <Section title="Identity" description="The code is stored in capitals and used by parent rules." error={Boolean(errors.code || errors.name || errors.description || errors.iconPath)}>
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/standard/node-types')} disabled={busy || busyDelete} />
+      </Box>
+      <Section title="Identity" error={Boolean(errors.code || errors.name || errors.description || errors.iconPath)}>
         <Stack spacing={2}>
           <TextField
             label="Code"
@@ -626,7 +621,7 @@ function NodeTypeEditor() {
             required={!seeded}
             disabled={seeded}
             error={Boolean(errors.code)}
-            helperText={errors.code || (seeded ? 'Catalogue codes cannot be changed.' : 'A letter, then letters, numbers, or underscores.')}
+            helperText={errors.code || ' '}
             slotProps={{ htmlInput: { maxLength: LIMITS.code, autoComplete: 'off' } }}
           />
           <TextField
@@ -665,7 +660,6 @@ function NodeTypeEditor() {
 
       <Section
         title="Where It Can Sit"
-        description="Parent rules decide which nodes this type can be added under."
         error={Boolean(errors['properties.root'] || parentError)}
       >
         {seeded ? (
@@ -673,15 +667,8 @@ function NodeTypeEditor() {
         ) : (
           <Stack spacing={1.5}>
             <FormControlLabel
-              sx={{ ml: 0, alignItems: 'flex-start' }}
-              label={
-                <Box>
-                  <Typography variant="body2">Root type</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Can sit at the top of an ORBAT. With no parents selected, it cannot sit anywhere else.
-                  </Typography>
-                </Box>
-              }
+              sx={{ ml: 0 }}
+              label="Root type"
               control={<Switch size="small" checked={root} onChange={(event) => { noteEdit(); setRoot(event.target.checked) }} />}
             />
             {errors['properties.root'] ? <FormHelperText error>{errors['properties.root']}</FormHelperText> : null}
@@ -695,14 +682,7 @@ function NodeTypeEditor() {
               placeholder={parentCodes.length ? '' : 'Any parent'}
               error={Boolean(parentError)}
               noOptionsText={catalogueState === 'error' ? 'Node types could not be loaded' : 'No other node types'}
-              helperText={
-                parentError
-                || (catalogueState === 'error'
-                  ? 'The parent list could not be loaded. Parent checks will run when you save.'
-                  : catalogueState === 'loading'
-                    ? 'Loading node types…'
-                    : placementText)
-              }
+              helperText={parentError || (catalogueState === 'error' ? 'Could not load.' : catalogueState === 'loading' ? 'Loading…' : ' ')}
               getOptionLabel={(option) => (option.missing ? `${option.code} (not found)` : `${option.name} (${option.code})`)}
               getOptionValue={(option) => option.code}
               onChange={(codes) => {
@@ -721,7 +701,6 @@ function NodeTypeEditor() {
 
       <Section
         title="Attributes"
-        description="These fields appear when someone adds or edits a node of this type. Required attributes must be filled in before the ORBAT can be saved."
         error={Boolean(firstError(errors, 'properties.fields'))}
       >
         {seeded ? (
@@ -741,9 +720,7 @@ function NodeTypeEditor() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               No attributes yet. A node of this type will only ask for a name and an icon.
             </Typography>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={addAttribute}>
-              Add attribute
-            </Button>
+            <IconAction label="Add Attribute" icon={<AddIcon fontSize="small" />} onClick={addAttribute} />
           </Box>
         ) : (
           <Stack spacing={1.25}>
@@ -761,9 +738,7 @@ function NodeTypeEditor() {
               />
             ))}
             <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-              <Button variant="outlined" startIcon={<AddIcon />} disabled={fields.length >= LIMITS.fields} onClick={addAttribute}>
-                Add attribute
-              </Button>
+              <IconAction label="Add Attribute" icon={<AddIcon fontSize="small" />} disabled={fields.length >= LIMITS.fields} onClick={addAttribute} />
               <Typography variant="caption" color="text.secondary">
                 {fields.length} of {LIMITS.fields}
               </Typography>
@@ -773,18 +748,18 @@ function NodeTypeEditor() {
       </Section>
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/standard/node-types')} disabled={busy || busyDelete}>
-          Back To List
-        </Button>
-        <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || busyDelete} onClick={save}>
-          {busy ? 'Saving…' : isNew ? 'Create Node Type' : 'Save Node Type'}
-        </Button>
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Node Type' : 'Save Node Type'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
+          disabled={busy || busyDelete}
+          onClick={save}
+          variant="contained"
+        />
         {!isNew && !seeded ? (
-          <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || busyDelete} onClick={askDelete}>
-            Remove
-          </Button>
+          <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy || busyDelete} onClick={askDelete} />
         ) : null}
       </Stack>
+
       <ConfirmDialog
         open={deleting}
         title="Remove Node Type"

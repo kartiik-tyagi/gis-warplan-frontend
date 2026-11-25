@@ -1,0 +1,32 @@
+const palette = {
+  "id": "yellow-light",
+  "name": "Yellow Light",
+  "family": "Yellow",
+  "mode": "light",
+  "fontFamily": "\"Roboto\", \"Segoe UI\", sans-serif",
+  "fontWeightLight": 300,
+  "fontWeightRegular": 400,
+  "fontWeightMedium": 500,
+  "fontWeightBold": 700,
+  "borderRadius": 8,
+  "primary": "#a16207",
+  "primaryContrast": "#ffffff",
+  "secondary": "#a16207",
+  "secondaryContrast": "#ffffff",
+  "backgroundDefault": "#fef9c3",
+  "backgroundPaper": "#fde68a",
+  "textPrimary": "#0f172a",
+  "textSecondary": "#334155",
+  "textDisabled": "#64748b",
+  "divider": "rgba(15, 23, 42, 0.22)",
+  "error": "#7f1d1d",
+  "errorContrast": "#ffffff",
+  "warning": "#78350f",
+  "warningContrast": "#ffffff",
+  "success": "#14532d",
+  "successContrast": "#ffffff",
+  "info": "#1e3a8a",
+  "infoContrast": "#ffffff"
+}
+
+export default palette

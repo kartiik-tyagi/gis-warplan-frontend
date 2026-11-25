@@ -1,25 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
-  Chip,
   Divider,
   FormControlLabel,
-  List,
-  ListItemButton,
-  ListItemText,
   Stack,
   Switch,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
-import { CreateAction } from '../../shared/ui/CreateAction'
-import { scrollbarSx } from '../../shared/ui/scrollbar'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { CollapsibleField } from '../../shared/ui/CollapsibleField'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import { locationStartAdornment, useSharedMapPick } from '../../shared/map/PickOnMap'
 import { del, get, post, put } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
@@ -36,31 +34,16 @@ const EMPTY_LAYER = {
   gisServerId: '', code: '', label: '', groupName: '', wmsLayers: '', format: 'image/png', transparent: true, baseLayer: false,
   sortOrder: 0, defaultVisible: false, defaultOpacity: 1, minZoom: '', maxZoom: '', cqlFilter: '', attribution: '', active: true,
 }
-const EMPTY_VIEW = { centerLon: 0, centerLat: 0, zoom: 4, minZoom: 0, maxZoom: 19, defaultGisServerId: '' }
+const EMPTY_VIEW = {
+  centerLon: 0, centerLat: 0, zoom: 4, minZoom: 0, maxZoom: 19, defaultGisServerId: '',
+  dataCrs: 'EPSG:4326', viewCrs: 'EPSG:3857', elevationLayerId: '', elevationAttribute: '', elevationPositiveUp: true,
+}
 
 const SERVER_TEXT = [['code', 'Code'], ['name', 'Name'], ['wmsUrl', 'WMS URL'], ['wfsUrl', 'WFS URL'], ['restUrl', 'REST URL'], ['workspaceDefault', 'Default workspace']]
 const LAYER_TEXT = [['code', 'Code'], ['label', 'Label'], ['groupName', 'Group'], ['wmsLayers', 'WMS layers'], ['format', 'Format'], ['cqlFilter', 'CQL filter'], ['attribution', 'Attribution']]
 const LAYER_NUMBER = [['sortOrder', 'Sort order'], ['defaultOpacity', 'Default opacity (0-1)'], ['minZoom', 'Min zoom'], ['maxZoom', 'Max zoom']]
 const LAYER_FLAGS = [['transparent', 'Transparent'], ['baseLayer', 'Base layer'], ['defaultVisible', 'Visible by default'], ['active', 'Active']]
 const VIEW_NUMBER = [['centerLon', 'Center Long'], ['centerLat', 'Center Lat'], ['zoom', 'Zoom'], ['minZoom', 'Min Zoom'], ['maxZoom', 'Max Zoom']]
-
-const TABS = [
-  { id: 'servers', label: 'Servers' },
-  { id: 'layers', label: 'Layers' },
-  { id: 'view', label: 'Home View' },
-]
-
-const formTabsSx = {
-  minHeight: 40,
-  '& .MuiTab-root': {
-    minHeight: 40,
-    textTransform: 'none',
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    letterSpacing: '-0.01em',
-    px: 1.5,
-  },
-}
 
 const toNumber = (value) => (value === '' || value === null || value === undefined || Number.isNaN(Number(value)) ? null : Number(value))
 const orEmpty = (record, fallback) => {
@@ -108,285 +91,109 @@ function SectionLabel({ children }) {
   )
 }
 
-function StatusDot({ ok }) {
-  return (
-    <Box
-      component="span"
-      sx={{
-        width: 8,
-        height: 8,
-        borderRadius: '50%',
-        bgcolor: ok ? 'success.main' : 'text.disabled',
-        display: 'inline-block',
-        flexShrink: 0,
-      }}
-    />
-  )
+function layerGroups(items) {
+  const buckets = new Map()
+  items.forEach((item) => {
+    const name = String(item.groupName || '').trim() || 'Ungrouped'
+    if (!buckets.has(name)) buckets.set(name, [])
+    buckets.get(name).push(item)
+  })
+  for (const rows of buckets.values()) {
+    rows.sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0) || String(left.label || left.code).localeCompare(String(right.label || right.code)))
+  }
+  return [...buckets.entries()].sort(([left], [right]) => {
+    if (left === 'Ungrouped') return 1
+    if (right === 'Ungrouped') return -1
+    return left.localeCompare(right, undefined, { sensitivity: 'base' })
+  })
 }
 
-/** Shared list + form behaviour for a CRUD resource under /map. */
-function useResource(path, empty, toBody, label) {
+function useRecordList(path, label) {
   const push = useToastStore((state) => state.push)
-  const refreshSession = useSessionStore((state) => state.refresh)
   const [items, setItems] = useState(null)
-  const [selectedId, setSelectedId] = useState('new')
-  const [form, setForm] = useState(empty)
-  const [errors, setErrors] = useState({})
-  const [message, setMessage] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const fail = useCallback((error, fallback) => {
-    const text = error?.message || fallback
-    setErrors(error?.fieldErrors || {})
-    setMessage(text)
-    push(text, 'error')
-    logger.warn('map.admin.failed', { path, message: text })
-  }, [path, push])
 
   const load = useCallback(async () => {
     try {
       setItems((await get(path)) || EMPTY_LIST)
     } catch (error) {
       setItems(EMPTY_LIST)
-      fail(error, `The ${label}s could not be loaded.`)
+      push(error?.message || `The ${label} could not be loaded.`, 'error')
     }
-  }, [path, label, fail])
+  }, [path, label, push])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const select = (item) => {
-    setSelectedId(item ? item.id : 'new')
-    setForm(item ? orEmpty(item, empty) : empty)
-    setErrors({})
-    setMessage('')
-  }
-  const change = (name, value) => setForm((current) => ({ ...current, [name]: value }))
-
-  const save = async () => {
-    setBusy(true)
-    setErrors({})
-    setMessage('')
-    try {
-      const isNew = selectedId === 'new'
-      const body = toBody(form)
-      const saved = isNew ? await post(path, body) : await put(`${path}/${selectedId}`, body)
-      logger.info(isNew ? 'map.admin.created' : 'map.admin.updated', { path, id: saved?.id ?? selectedId })
-      push(`${label} saved.`, 'success')
-      await load()
-      try {
-        await refreshSession()
-      } catch {
-        /* shell catalogue is best-effort */
-      }
-      if (saved?.id) {
-        setSelectedId(saved.id)
-        setForm(orEmpty(saved, empty))
-      }
-    } catch (error) {
-      fail(error, `The ${label} could not be saved.`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const remove = async () => {
-    setBusy(true)
-    try {
-      await del(`${path}/${selectedId}`)
-      logger.info('map.admin.deleted', { path, id: selectedId })
-      push(`${label} deleted.`, 'success')
-      select(null)
-      await load()
-      try {
-        await refreshSession()
-      } catch {
-        /* shell catalogue is best-effort */
-      }
-    } catch (error) {
-      fail(error, `The ${label} could not be deleted.`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return { items, selectedId, form, errors, message, busy, select, change, save, remove }
+  return { items, load }
 }
 
-function ResourceLayout({ resource, title, primary, secondary, status, children, confirmDelete, setConfirmDelete, name, createSignal = 0 }) {
-  const { items, selectedId, message, busy, select, save, remove } = resource
+function ServerList() {
+  const navigate = useNavigate()
+  const push = useToastStore((state) => state.push)
+  const refreshSession = useSessionStore((state) => state.refresh)
+  const { items, load } = useRecordList('/map/servers', 'servers')
+  const [deleting, setDeleting] = useState(null)
+  const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!createSignal) return
-    select(null)
-    // Intentionally keyed only on createSignal from the header +.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createSignal])
+  const confirmDelete = async () => {
+    if (!deleting) return
+    setBusy(true)
+    try {
+      await del(`/map/servers/${deleting.id}`)
+      push('Server deleted.', 'success')
+      setDeleting(null)
+      await load()
+      await refreshSession().catch(() => {})
+    } catch (error) {
+      push(error?.message || 'The server could not be deleted.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
 
-  if (!items) return <LoadingState label={`Loading ${title}`} />
+  if (!items) return <LoadingState label="Loading servers" />
 
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: 'stretch' }}>
-      <Box
-        sx={{
-          flex: { xs: '1 1 auto', md: '0 1 18rem' },
-          width: { xs: '100%', md: 'auto' },
-          minWidth: { md: '14rem' },
-          maxWidth: { md: '24rem' },
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1.25,
-          minWidth: 0,
-        }}
-      >
-        <List
-          dense
-          disablePadding
-          aria-label={title}
-          sx={{
-            flex: 1,
-            maxHeight: { xs: 200, md: 440 },
-            overflow: 'auto',
-            ...scrollbarSx,
-            borderRadius: 2,
-            border: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            p: 0.75,
-          }}
-        >
-          {items.map((item) => {
-            const selected = item.id === selectedId
-            return (
-              <ListItemButton
-                key={item.id}
-                selected={selected}
-                onClick={() => select(item)}
-                sx={{
-                  borderRadius: 1.5,
-                  mb: 0.5,
-                  px: 1.25,
-                  py: 1,
-                  alignItems: 'flex-start',
-                  border: 1,
-                  borderColor: selected ? 'primary.main' : 'transparent',
-                  bgcolor: selected ? 'action.selected' : 'background.paper',
-                  '&.Mui-selected': { bgcolor: 'action.selected' },
-                  '&.Mui-selected:hover': { bgcolor: 'action.selected' },
-                }}
-              >
-                <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ width: '100%', minWidth: 0 }}>
-                  {status ? <Box sx={{ mt: 0.7 }}>{status(item)}</Box> : null}
-                  <ListItemText
-                    primary={primary(item)}
-                    secondary={secondary(item)}
-                    slotProps={{
-                      primary: { noWrap: true, fontWeight: selected ? 600 : 500, fontSize: '0.9rem' },
-                      secondary: { noWrap: true, fontSize: '0.75rem' },
-                    }}
-                    sx={{ my: 0, minWidth: 0 }}
-                  />
-                </Stack>
-              </ListItemButton>
-            )
-          })}
-          {!items.length ? (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Nothing here yet. Create the first {name}.
-              </Typography>
-            </Box>
-          ) : null}
-        </List>
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          borderRadius: 2,
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-          p: { xs: 1.75, sm: 2.25 },
-        }}
-      >
-        <Stack spacing={1.75}>
-          <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
-            <Typography variant="subtitle1" sx={{ fontWeight: 650, flex: 1, minWidth: 0 }}>
-              {selectedId === 'new' ? `New ${name.charAt(0).toUpperCase() + name.slice(1)}` : `Edit ${name.charAt(0).toUpperCase() + name.slice(1)}`}
-            </Typography>
-          </Stack>
-          <Divider />
-          {message ? <Alert severity="error">{message}</Alert> : null}
-          {children}
-          <Divider />
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button
-              variant="contained"
-              size="small"
-              disabled={busy}
-              startIcon={<SaveOutlinedIcon />}
-              onClick={save}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {busy ? 'Saving…' : 'Save'}
-            </Button>
-            {selectedId !== 'new' ? (
-              <Button
-                color="error"
-                size="small"
-                variant="outlined"
-                disabled={busy}
-                startIcon={<DeleteOutlinedIcon />}
-                onClick={() => setConfirmDelete(true)}
-                sx={{ textTransform: 'none' }}
-              >
-                Delete
-              </Button>
-            ) : null}
-          </Stack>
+    <Stack spacing={1.25}>
+      {!items.length ? (
+        <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>No Servers Yet</Typography>
+          <CreateAction label="New Server" onClick={() => navigate('/map/servers/new')} />
+        </Box>
+      ) : (
+        <Stack spacing={0.75}>
+          {items.map((item) => (
+            <EntityCard
+              key={item.id}
+              title={item.name || item.code}
+              active={Boolean(item.defaultServer)}
+              actions={
+                <>
+                  <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/map/servers/${item.id}`)} />
+                  <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setDeleting(item)} />
+                </>
+              }
+            />
+          ))}
         </Stack>
-      </Box>
-
+      )}
       <ConfirmDialog
-        open={confirmDelete}
-        title={`Delete ${name}`}
-        message={`Delete this ${name}? This cannot be undone.`}
+        open={Boolean(deleting)}
+        title="Delete This Server?"
+        message={deleting ? `“${deleting.name || deleting.code}” will be removed.` : ''}
         confirmLabel="Delete"
         busy={busy}
-        onClose={() => setConfirmDelete(false)}
-        onConfirm={async () => {
-          await remove()
-          setConfirmDelete(false)
-        }}
+        onClose={() => { if (!busy) setDeleting(null) }}
+        onConfirm={confirmDelete}
       />
     </Stack>
   )
 }
 
-function ServersTab({ createSignal = 0 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const resource = useResource(
-    '/map/servers',
-    EMPTY_SERVER,
-    (form) => ({ ...form, code: form.code.trim(), name: form.name.trim(), enabled: Boolean(form.enabled), defaultServer: Boolean(form.defaultServer) }),
-    'server',
-  )
-  const { form, errors, change } = resource
+function ServerFields({ form, errors, change }) {
   return (
-    <ResourceLayout
-      resource={resource}
-      title="GIS Servers"
-      name="server"
-      createSignal={createSignal}
-      primary={(item) => item.name || item.code}
-      secondary={(item) => item.code}
-      status={(item) => <StatusDot ok={item.enabled !== false} />}
-      confirmDelete={confirmDelete}
-      setConfirmDelete={setConfirmDelete}
-    >
+    <>
       <SectionLabel>Identity</SectionLabel>
       <Stack spacing={1.5}>
         {SERVER_TEXT.slice(0, 2).map(([name, label]) => (
@@ -404,42 +211,177 @@ function ServersTab({ createSignal = 0 }) {
         <Flag name="enabled" label="Enabled" form={form} onChange={change} />
         <Flag name="defaultServer" label="Default Server" form={form} onChange={change} />
       </Stack>
-      {form.defaultServer ? (
-        <Chip size="small" color="primary" variant="outlined" label="This is the default GIS server" sx={{ alignSelf: 'flex-start' }} />
-      ) : null}
-    </ResourceLayout>
+    </>
   )
 }
 
-function LayersTab({ servers, createSignal = 0 }) {
+function ServerEditor() {
+  const { id } = useParams()
+  const isNew = id === 'new' || !id
+  const navigate = useNavigate()
+  const push = useToastStore((state) => state.push)
+  const refreshSession = useSessionStore((state) => state.refresh)
+  const [form, setForm] = useState(EMPTY_SERVER)
+  const [errors, setErrors] = useState({})
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [ready, setReady] = useState(isNew)
+  const [missing, setMissing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const resource = useResource(
-    '/map/layers',
-    EMPTY_LAYER,
-    (form) => ({
-      ...form,
-      gisServerId: toNumber(form.gisServerId),
-      code: form.code.trim(),
-      sortOrder: toNumber(form.sortOrder) ?? 0,
-      defaultOpacity: toNumber(form.defaultOpacity) ?? 1,
-      minZoom: toNumber(form.minZoom),
-      maxZoom: toNumber(form.maxZoom),
-    }),
-    'layer',
-  )
-  const { form, errors, change } = resource
+
+  useEffect(() => {
+    if (isNew) return undefined
+    let live = true
+    get('/map/servers')
+      .then((rows) => {
+        if (!live) return
+        const found = (rows || []).find((row) => String(row.id) === String(id))
+        if (!found) setMissing(true)
+        else setForm(orEmpty(found, EMPTY_SERVER))
+        setReady(true)
+      })
+      .catch((error) => {
+        if (!live) return
+        setMessage(error?.message || 'The server could not be opened.')
+        setReady(true)
+      })
+    return () => { live = false }
+  }, [id, isNew])
+
+  const change = (name, value) => setForm((current) => ({ ...current, [name]: value }))
+
+  const save = async () => {
+    setBusy(true)
+    setErrors({})
+    setMessage('')
+    try {
+      const body = { ...form, code: form.code.trim(), name: form.name.trim(), enabled: Boolean(form.enabled), defaultServer: Boolean(form.defaultServer) }
+      if (isNew) await post('/map/servers', body)
+      else await put(`/map/servers/${id}`, body)
+      logger.info(isNew ? 'map.admin.created' : 'map.admin.updated', { path: '/map/servers', id })
+      push('Server saved.', 'success')
+      await refreshSession().catch(() => {})
+      navigate('/map/servers', { replace: true })
+    } catch (error) {
+      setErrors(error?.fieldErrors || {})
+      setMessage(error?.message || 'The server could not be saved.')
+      push(error?.message || 'The server could not be saved.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async () => {
+    setBusy(true)
+    try {
+      await del(`/map/servers/${id}`)
+      push('Server deleted.', 'success')
+      await refreshSession().catch(() => {})
+      navigate('/map/servers', { replace: true })
+    } catch (error) {
+      push(error?.message || 'The server could not be deleted.', 'error')
+      setConfirmDelete(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!ready) return <LoadingState label="Opening server" />
+  if (missing) {
+    return (
+      <Stack spacing={2}>
+        <Typography variant="body2" color="text.secondary">This server is no longer available.</Typography>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/map/servers')} />
+      </Stack>
+    )
+  }
+
   return (
-    <ResourceLayout
-      resource={resource}
-      title="Layers"
-      name="layer"
-      createSignal={createSignal}
-      primary={(item) => item.label || item.code}
-      secondary={(item) => `${item.code}${item.groupName ? ` · ${item.groupName}` : ''}`}
-      status={(item) => <StatusDot ok={item.active !== false} />}
-      confirmDelete={confirmDelete}
-      setConfirmDelete={setConfirmDelete}
-    >
+    <Stack spacing={2}>
+      {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/map/servers')} disabled={busy} />
+      </Box>
+      <ServerFields form={form} errors={errors} change={change} />
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+        <IconAction label={busy ? 'Saving…' : isNew ? 'Create Server' : 'Save Server'} icon={<SaveOutlinedIcon fontSize="small" />} onClick={save} disabled={busy || !form.code.trim() || !form.name.trim()} variant="contained" />
+        {!isNew ? <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setConfirmDelete(true)} /> : null}
+      </Stack>
+      <ConfirmDialog open={confirmDelete} title="Delete This Server?" message="Delete this server? This cannot be undone." confirmLabel="Delete" busy={busy} onClose={() => { if (!busy) setConfirmDelete(false) }} onConfirm={remove} />
+    </Stack>
+  )
+}
+
+function LayerList() {
+  const navigate = useNavigate()
+  const push = useToastStore((state) => state.push)
+  const refreshSession = useSessionStore((state) => state.refresh)
+  const { items, load } = useRecordList('/map/layers', 'layers')
+  const [deleting, setDeleting] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const groups = items ? layerGroups(items) : []
+
+  const confirmDelete = async () => {
+    if (!deleting) return
+    setBusy(true)
+    try {
+      await del(`/map/layers/${deleting.id}`)
+      push('Layer deleted.', 'success')
+      setDeleting(null)
+      await load()
+      await refreshSession().catch(() => {})
+    } catch (error) {
+      push(error?.message || 'The layer could not be deleted.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!items) return <LoadingState label="Loading layers" />
+
+  return (
+    <Stack spacing={1.25}>
+      {!items.length ? (
+        <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>No Layers Yet</Typography>
+          <CreateAction label="New Layer" onClick={() => navigate('/map/layers/new')} />
+        </Box>
+      ) : (
+        groups.map(([name, rows]) => (
+          <CollapsibleField key={name} title={name} defaultOpen={false}>
+            <Stack spacing={0.75}>
+              {rows.map((item) => (
+                <EntityCard
+                  key={item.id}
+                  title={item.label || item.code}
+                  actions={
+                    <>
+                      <IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/map/layers/${item.id}`)} />
+                      <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setDeleting(item)} />
+                    </>
+                  }
+                />
+              ))}
+            </Stack>
+          </CollapsibleField>
+        ))
+      )}
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete This Layer?"
+        message={deleting ? `“${deleting.label || deleting.code}” will be removed.` : ''}
+        confirmLabel="Delete"
+        busy={busy}
+        onClose={() => { if (!busy) setDeleting(null) }}
+        onConfirm={confirmDelete}
+      />
+    </Stack>
+  )
+}
+
+function LayerFields({ form, errors, change, servers }) {
+  return (
+    <>
       <SectionLabel>Layer</SectionLabel>
       <Stack spacing={1.5}>
         <SearchSelect
@@ -469,23 +411,134 @@ function LayersTab({ servers, createSignal = 0 }) {
           <Flag key={name} name={name} label={label} form={form} onChange={change} />
         ))}
       </Stack>
-    </ResourceLayout>
+    </>
   )
 }
 
-function ViewDefaultsTab({ servers }) {
+function LayerEditor() {
+  const { id } = useParams()
+  const isNew = id === 'new' || !id
+  const navigate = useNavigate()
+  const push = useToastStore((state) => state.push)
+  const refreshSession = useSessionStore((state) => state.refresh)
+  const [form, setForm] = useState(EMPTY_LAYER)
+  const [errors, setErrors] = useState({})
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [ready, setReady] = useState(isNew)
+  const [missing, setMissing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [servers, setServers] = useState(EMPTY_LIST)
+
+  useEffect(() => {
+    let live = true
+    get('/map/servers').then((rows) => live && setServers(rows || EMPTY_LIST)).catch(() => {})
+    if (isNew) return () => { live = false }
+    get('/map/layers')
+      .then((rows) => {
+        if (!live) return
+        const found = (rows || []).find((row) => String(row.id) === String(id))
+        if (!found) setMissing(true)
+        else setForm(orEmpty(found, EMPTY_LAYER))
+        setReady(true)
+      })
+      .catch((error) => {
+        if (!live) return
+        setMessage(error?.message || 'The layer could not be opened.')
+        setReady(true)
+      })
+    return () => { live = false }
+  }, [id, isNew])
+
+  const change = (name, value) => setForm((current) => ({ ...current, [name]: value }))
+
+  const save = async () => {
+    setBusy(true)
+    setErrors({})
+    setMessage('')
+    try {
+      const body = {
+        ...form,
+        gisServerId: toNumber(form.gisServerId),
+        code: form.code.trim(),
+        sortOrder: toNumber(form.sortOrder) ?? 0,
+        defaultOpacity: toNumber(form.defaultOpacity) ?? 1,
+        minZoom: toNumber(form.minZoom),
+        maxZoom: toNumber(form.maxZoom),
+      }
+      if (isNew) await post('/map/layers', body)
+      else await put(`/map/layers/${id}`, body)
+      logger.info(isNew ? 'map.admin.created' : 'map.admin.updated', { path: '/map/layers', id })
+      push('Layer saved.', 'success')
+      await refreshSession().catch(() => {})
+      navigate('/map/layers', { replace: true })
+    } catch (error) {
+      setErrors(error?.fieldErrors || {})
+      setMessage(error?.message || 'The layer could not be saved.')
+      push(error?.message || 'The layer could not be saved.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async () => {
+    setBusy(true)
+    try {
+      await del(`/map/layers/${id}`)
+      push('Layer deleted.', 'success')
+      await refreshSession().catch(() => {})
+      navigate('/map/layers', { replace: true })
+    } catch (error) {
+      push(error?.message || 'The layer could not be deleted.', 'error')
+      setConfirmDelete(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!ready) return <LoadingState label="Opening layer" />
+  if (missing) {
+    return (
+      <Stack spacing={2}>
+        <Typography variant="body2" color="text.secondary">This layer is no longer available.</Typography>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/map/layers')} />
+      </Stack>
+    )
+  }
+
+  return (
+    <Stack spacing={2}>
+      {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/map/layers')} disabled={busy} />
+      </Box>
+      <LayerFields form={form} errors={errors} change={change} servers={servers} />
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+        <IconAction label={busy ? 'Saving…' : isNew ? 'Create Layer' : 'Save Layer'} icon={<SaveOutlinedIcon fontSize="small" />} onClick={save} disabled={busy || !form.code.trim()} variant="contained" />
+        {!isNew ? <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setConfirmDelete(true)} /> : null}
+      </Stack>
+      <ConfirmDialog open={confirmDelete} title="Delete This Layer?" message="Delete this layer? This cannot be undone." confirmLabel="Delete" busy={busy} onClose={() => { if (!busy) setConfirmDelete(false) }} onConfirm={remove} />
+    </Stack>
+  )
+}
+
+function ViewDefaultsTab() {
   const push = useToastStore((state) => state.push)
   const refreshSession = useSessionStore((state) => state.refresh)
   const [form, setForm] = useState(null)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [layers, setLayers] = useState(EMPTY_LIST)
+  const [servers, setServers] = useState(EMPTY_LIST)
   const locationOwner = useSharedMapPick((point) => setForm((current) => (
     current ? { ...current, centerLat: point.latitude, centerLon: point.longitude } : current
   )))
 
   useEffect(() => {
     let live = true
+    get('/map/servers').then((rows) => live && setServers(rows || EMPTY_LIST)).catch(() => {})
+    get('/map/layers').then((rows) => live && setLayers(rows || EMPTY_LIST)).catch(() => {})
     get('/map/view-defaults')
       .then((value) => live && setForm(orEmpty(value, EMPTY_VIEW)))
       .catch((error) => {
@@ -510,6 +563,11 @@ function ViewDefaultsTab({ servers }) {
       const body = { ...form }
       VIEW_NUMBER.forEach(([name]) => { body[name] = toNumber(form[name]) })
       body.defaultGisServerId = toNumber(form.defaultGisServerId)
+      body.elevationLayerId = toNumber(form.elevationLayerId)
+      body.elevationPositiveUp = Boolean(form.elevationPositiveUp)
+      body.dataCrs = String(form.dataCrs || 'EPSG:4326').trim()
+      body.viewCrs = String(form.viewCrs || 'EPSG:3857').trim()
+      body.elevationAttribute = String(form.elevationAttribute || '').trim()
       const saved = await put('/map/view-defaults', body)
       if (saved) setForm(orEmpty(saved, EMPTY_VIEW))
       logger.info('map.admin.view-defaults.updated')
@@ -563,6 +621,24 @@ function ViewDefaultsTab({ servers }) {
             />
           ))}
         </Stack>
+        <SectionLabel>Coordinate system</SectionLabel>
+        <Stack direction="column" spacing={1.5}>
+          <Field name="dataCrs" label="Data CRS" form={form} errors={errors} onChange={change} />
+          <Field name="viewCrs" label="Map CRS" form={form} errors={errors} onChange={change} />
+        </Stack>
+        <SectionLabel>Height and depth</SectionLabel>
+        <SearchSelect
+          size="small"
+          label="Elevation layer"
+          clearLabel="None"
+          options={layers}
+          value={form.elevationLayerId}
+          onChange={(id) => change('elevationLayerId', id)}
+          getOptionLabel={(layer) => layer.label || layer.code}
+          getOptionValue={(layer) => layer.id}
+        />
+        <Field name="elevationAttribute" label="Elevation property" form={form} errors={errors} onChange={change} />
+        <Flag name="elevationPositiveUp" label="Positive value is land height" form={form} onChange={change} />
         <SectionLabel>Default server</SectionLabel>
         <SearchSelect
           size="small"
@@ -577,85 +653,56 @@ function ViewDefaultsTab({ servers }) {
           getOptionValue={(server) => server.id}
         />
         <Divider />
-        <Button
-          variant="contained"
-          size="small"
+        <IconAction
+          label={busy ? 'Saving…' : 'Save Home View'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
           disabled={busy}
-          startIcon={<SaveOutlinedIcon />}
           onClick={save}
-          sx={{ textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}
-        >
-          {busy ? 'Saving…' : 'Save Home View'}
-        </Button>
+          variant="contained"
+        />
       </Stack>
     </Box>
   )
 }
 
-/** Admin panel for GIS servers, layers and the default map view (needs MANAGE_MAP). */
-export function MapAdminPanel() {
-  const [tab, setTab] = useState('servers')
-  const [servers, setServers] = useState(EMPTY_LIST)
-  const [createSignal, setCreateSignal] = useState(0)
-
-  useEffect(() => {
-    let live = true
-    get('/map/servers')
-      .then((rows) => live && setServers(rows || EMPTY_LIST))
-      .catch(() => {})
-    return () => {
-      live = false
-    }
-  }, [tab])
-
-  const createLabel = tab === 'layers' ? 'New Layer' : 'New Server'
-
+export function MapServersPage() {
+  const navigate = useNavigate()
   return (
-    <Stack spacing={0} sx={{ minWidth: 0 }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 2,
-          pb: 1.25,
-          borderBottom: 1,
-          borderColor: 'divider',
-          minHeight: 44,
-        }}
-      >
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Tabs
-            value={tab}
-            onChange={(_, value) => setTab(value)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={formTabsSx}
-          >
-            {TABS.map((entry) => (
-              <Tab key={entry.id} value={entry.id} label={entry.label} />
-            ))}
-          </Tabs>
-        </Box>
-        {tab === 'view' ? null : (
-          <CreateAction label={createLabel} onClick={() => setCreateSignal((value) => value + 1)} />
-        )}
-      </Box>
-
-      {tab === 'servers' ? <ServersTab createSignal={createSignal} /> : null}
-      {tab === 'layers' ? <LayersTab servers={servers} createSignal={createSignal} /> : null}
-      {tab === 'view' ? <ViewDefaultsTab servers={servers} /> : null}
-    </Stack>
-  )
-}
-
-export function MapCatalogPage() {
-  return (
-    <ExerciseLayout hideHeader>
-      <MapAdminPanel />
+    <ExerciseLayout actions={<CreateAction label="New Server" onClick={() => navigate('/map/servers/new')} />}>
+      <ServerList />
     </ExerciseLayout>
   )
 }
 
-export default MapAdminPanel
+export function MapServerEditorPage() {
+  return (
+    <ExerciseLayout>
+      <ServerEditor />
+    </ExerciseLayout>
+  )
+}
+
+export function MapLayersPage() {
+  const navigate = useNavigate()
+  return (
+    <ExerciseLayout actions={<CreateAction label="New Layer" onClick={() => navigate('/map/layers/new')} />}>
+      <LayerList />
+    </ExerciseLayout>
+  )
+}
+
+export function MapLayerEditorPage() {
+  return (
+    <ExerciseLayout>
+      <LayerEditor />
+    </ExerciseLayout>
+  )
+}
+
+export function MapSettingsPage() {
+  return (
+    <ExerciseLayout>
+      <ViewDefaultsTab />
+    </ExerciseLayout>
+  )
+}

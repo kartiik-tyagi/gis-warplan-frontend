@@ -7,7 +7,7 @@ import { TeamEditorPage, TeamsListPage } from '../features/admin/TeamsPages'
 import { ThemeEditorPage, ThemesListPage } from '../features/admin/ThemesPages'
 import { AuditPage } from '../features/audit/AuditPanel'
 import { IconsPage } from '../features/icons/IconsAdminPanel'
-import { MapCatalogPage } from '../features/map/MapAdminPanel'
+import { MapLayerEditorPage, MapLayersPage, MapServerEditorPage, MapServersPage, MapSettingsPage } from '../features/map/MapAdminPanel'
 import LoginPage from '../features/login/LoginPage'
 import { GameEditorPage, GameListPage } from '../features/scenario/GamePages'
 import { ScenarioEditorPage, ScenarioListPage, ScenarioPreviewPage } from '../features/scenario/ScenarioPages'
@@ -84,7 +84,12 @@ export default function Shell() {
         <Route path="/exercise/scenarios/:id" element={<ScenarioEditorPage />} />
         <Route path="/exercise/games" element={<GameListPage />} />
         <Route path="/exercise/games/:id" element={<GameEditorPage />} />
-        <Route path="/map/catalog" element={<MapCatalogPage />} />
+        <Route path="/map/servers" element={<MapServersPage />} />
+        <Route path="/map/servers/:id" element={<MapServerEditorPage />} />
+        <Route path="/map/layers" element={<MapLayersPage />} />
+        <Route path="/map/layers/:id" element={<MapLayerEditorPage />} />
+        <Route path="/map/settings" element={<MapSettingsPage />} />
+        <Route path="/map/catalog" element={<MapSettingsPage />} />
         <Route path="/standard/teams" element={<TeamsListPage />} />
         <Route path="/standard/teams/:id" element={<TeamEditorPage />} />
         <Route path="/standard/themes" element={<ThemesListPage />} />

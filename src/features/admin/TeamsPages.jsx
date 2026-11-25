@@ -3,26 +3,25 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
-import { CreateAction } from '../../shared/ui/CreateAction'
-import { EntityCard } from '../../shared/ui/EntityCard'
-import { IconAction } from '../../shared/ui/IconAction'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import { CreateAction } from '../../shared/ui/CreateAction'
+import { EntityCard } from '../../shared/ui/EntityCard'
+import { IconAction } from '../../shared/ui/IconAction'
 import { del, get, post, put } from '../../shared/api/http'
-import { swatchForColour } from '../../shared/api/mappers'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
-import { swatches } from '../../shared/theme/swatches'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 import { IconField, IconPreview } from '../../shared/ui/IconPicker'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
+import { SideIconColorField, SIDE_ICON_COLOR_FALLBACK } from '../../shared/ui/SideIconColorField'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { useToastStore } from '../feedback/useToastStore'
@@ -40,20 +39,6 @@ function ThemeField({ themes, value, onChange, holderKind, holderId }) {
       onChange={onChange}
       getOptionLabel={(theme) => theme.name}
       getOptionValue={(theme) => String(theme.id)}
-    />
-  )
-}
-
-function ColourField({ value, onChange, allowCustom, customLabel }) {
-  const options = allowCustom && value === 'custom' ? [{ id: 'custom', name: customLabel || 'Current colour' }, ...swatches] : swatches
-  return (
-    <SearchSelect
-      label="Map Colour"
-      options={options}
-      value={value}
-      onChange={onChange}
-      getOptionLabel={(swatch) => swatch.name}
-      getOptionValue={(swatch) => swatch.id}
     />
   )
 }
@@ -207,8 +192,7 @@ function TeamEditor() {
   const [deleting, setDeleting] = useState(false)
   const [busyDelete, setBusyDelete] = useState(false)
   const [name, setName] = useState('')
-  const [swatchId, setSwatchId] = useState('blue')
-  const [customColour, setCustomColour] = useState('')
+  const [colour, setColour] = useState(SIDE_ICON_COLOR_FALLBACK)
   const [icon, setIcon] = useState('')
   const [themeId, setThemeId] = useState('')
 
@@ -231,9 +215,7 @@ function TeamEditor() {
           return
         }
         setName(side.name || '')
-        const match = swatchForColour(side.colour)
-        setSwatchId(match?.id || 'custom')
-        setCustomColour(side.colour || '')
+        setColour(side.colour || SIDE_ICON_COLOR_FALLBACK)
         setIcon(side.icon || '')
         setThemeId(side.themeId == null ? '' : String(side.themeId))
         setReady(true)
@@ -253,12 +235,10 @@ function TeamEditor() {
     setBusy(true)
     setMessage('')
     try {
-      const colour =
-        swatchId === 'custom' ? customColour || '#2f6fed' : swatches.find((item) => item.id === swatchId)?.color || '#2f6fed'
       const body = {
         name: name.trim(),
         description: '',
-        colour,
+        colour: colour || SIDE_ICON_COLOR_FALLBACK,
         icon: icon || null,
         themeId: Number(themeId),
       }
@@ -267,12 +247,13 @@ function TeamEditor() {
         logger.info('team.created', { id: created.id, name: body.name })
         push('Side created. Its standard ORBAT root is ready.', 'success')
         await refreshSession().catch(() => {})
-        navigate(`/standard/teams/${created.id}`, { replace: true })
+        navigate('/standard/teams', { replace: true })
       } else {
         await put(`/sides/${id}`, body)
         logger.info('team.updated', { id })
         push('Side saved.', 'success')
         await refreshSession().catch(() => {})
+        navigate('/standard/teams', { replace: true })
       }
     } catch (error) {
       setMessage(error?.message || 'The side could not be saved.')
@@ -302,13 +283,11 @@ function TeamEditor() {
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 560 }}>
       {message ? <Alert severity="error">{message}</Alert> : null}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/standard/teams')} disabled={busy || busyDelete} />
+      </Box>
       <TextField label="Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
-      <ColourField
-        value={swatchId}
-        onChange={setSwatchId}
-        allowCustom={!isNew}
-        customLabel={customColour || 'Current colour'}
-      />
+      <SideIconColorField colour={colour} onChange={setColour} />
       <IconField value={icon} onChange={setIcon} />
       <ThemeField
         themes={themes}
@@ -318,21 +297,15 @@ function TeamEditor() {
         holderId={isNew ? undefined : id}
       />
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/standard/teams')} disabled={busy || busyDelete}>
-          Back To List
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<SaveOutlinedIcon />}
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Side' : 'Save Side'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
           disabled={busy || busyDelete || !name.trim() || !themeId}
           onClick={save}
-        >
-          {busy ? 'Saving…' : isNew ? 'Create Side' : 'Save Side'}
-        </Button>
+          variant="contained"
+        />
         {!isNew ? (
-          <Button color="error" startIcon={<DeleteOutlinedIcon />} disabled={busy || busyDelete} onClick={() => setDeleting(true)}>
-            Remove
-          </Button>
+          <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy || busyDelete} onClick={() => setDeleting(true)} />
         ) : null}
       </Stack>
       <ConfirmDialog

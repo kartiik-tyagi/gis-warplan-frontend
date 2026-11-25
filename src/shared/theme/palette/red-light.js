@@ -1,0 +1,32 @@
+const palette = {
+  "id": "red-light",
+  "name": "Red Light",
+  "family": "Red",
+  "mode": "light",
+  "fontFamily": "\"Roboto\", \"Segoe UI\", sans-serif",
+  "fontWeightLight": 300,
+  "fontWeightRegular": 400,
+  "fontWeightMedium": 500,
+  "fontWeightBold": 700,
+  "borderRadius": 8,
+  "primary": "#b91c1c",
+  "primaryContrast": "#ffffff",
+  "secondary": "#b91c1c",
+  "secondaryContrast": "#ffffff",
+  "backgroundDefault": "#fee2e2",
+  "backgroundPaper": "#fecaca",
+  "textPrimary": "#0f172a",
+  "textSecondary": "#334155",
+  "textDisabled": "#64748b",
+  "divider": "rgba(15, 23, 42, 0.22)",
+  "error": "#7f1d1d",
+  "errorContrast": "#ffffff",
+  "warning": "#78350f",
+  "warningContrast": "#ffffff",
+  "success": "#14532d",
+  "successContrast": "#ffffff",
+  "info": "#1e3a8a",
+  "infoContrast": "#ffffff"
+}
+
+export default palette

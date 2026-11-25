@@ -6,6 +6,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { create } from 'zustand'
 import { sectionFromPath } from '../auth/access'
 import { useLocationPick } from '../map/useLocationPick'
+import { headingBandColor } from './HeadingRow'
 import { SectionSwitcher } from './SectionSwitcher'
 
 /** Hard floor for resize — forms cannot shrink below this. */
@@ -37,7 +38,7 @@ function clampWorkBox(box) {
 function defaultWorkBox() {
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const width = Math.round(vw * 0.62)
+  const width = Math.round(vw * 0.31)
   const height = Math.min(Math.round(vh * 0.68), vh - MENU_CLEARANCE - MARGIN)
   const x = Math.round((vw - width) / 2)
   const y = Math.max(MENU_CLEARANCE, Math.round((vh - height) / 2))
@@ -171,7 +172,7 @@ export function WorkWindow() {
           flexShrink: 0,
           borderBottom: 1,
           borderColor: 'divider',
-          bgcolor: 'background.paper',
+          bgcolor: headingBandColor,
           cursor: 'grab',
           touchAction: 'none',
           userSelect: 'none',

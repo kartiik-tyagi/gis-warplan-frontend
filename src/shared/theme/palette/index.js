@@ -1,46 +1,40 @@
-import pineNight from './pine/night'
-import pineDay from './pine/day'
-import cobaltNight from './cobalt/night'
-import cobaltDay from './cobalt/day'
-import amberNight from './amber/night'
-import amberDay from './amber/day'
-import graphiteNight from './graphite/night'
-import graphiteDay from './graphite/day'
-import lagoonNight from './lagoon/night'
-import lagoonDay from './lagoon/day'
-import irisNight from './iris/night'
-import irisDay from './iris/day'
-import copperNight from './copper/night'
-import copperDay from './copper/day'
-import mossNight from './moss/night'
-import mossDay from './moss/day'
-import crimsonNight from './crimson/night'
-import crimsonDay from './crimson/day'
-import contrastNight from './contrast/night'
-import contrastDay from './contrast/day'
 import { assertContrast } from './check'
+import black from './black'
+import blue from './blue'
+import blue_dark from './blue-dark'
+import blue_light from './blue-light'
+import green from './green'
+import green_dark from './green-dark'
+import green_light from './green-light'
+import indigo from './indigo'
+import orange from './orange'
+import red from './red'
+import red_dark from './red-dark'
+import red_light from './red-light'
+import violet from './violet'
+import white from './white'
+import yellow from './yellow'
+import yellow_dark from './yellow-dark'
+import yellow_light from './yellow-light'
 
 export const palettes = [
-  pineNight,
-  pineDay,
-  cobaltNight,
-  cobaltDay,
-  amberNight,
-  amberDay,
-  graphiteNight,
-  graphiteDay,
-  lagoonNight,
-  lagoonDay,
-  irisNight,
-  irisDay,
-  copperNight,
-  copperDay,
-  mossNight,
-  mossDay,
-  crimsonNight,
-  crimsonDay,
-  contrastNight,
-  contrastDay,
+  black,
+  blue,
+  blue_dark,
+  blue_light,
+  green,
+  green_dark,
+  green_light,
+  indigo,
+  orange,
+  red,
+  red_dark,
+  red_light,
+  violet,
+  white,
+  yellow,
+  yellow_dark,
+  yellow_light,
 ]
 
 palettes.forEach(assertContrast)
@@ -49,4 +43,4 @@ export function paletteById(id) {
   return palettes.find((item) => item.id === id) || null
 }
 
-export const loginPalette = paletteById('field-night')
+export const loginPalette = paletteById('blue')

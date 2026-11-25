@@ -4,6 +4,7 @@ import { Box, Tab, Tabs } from '@mui/material'
 import { SECTION_ROUTE, sectionFromPath } from '../../shared/auth/access'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { titleCase } from '../../shared/lib/titleCase'
+import { headingBandColor } from '../../shared/ui/HeadingRow'
 import { scrollbarSx } from '../../shared/ui/scrollbar'
 import { useSessionStore } from '../session/useSessionStore'
 
@@ -49,10 +50,14 @@ export function ExerciseLayout({ actions, children, hideHeader = false }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 2,
+                mx: { xs: -2, sm: -3 },
+                mt: -2,
                 mb: 2,
-                pb: 1.25,
+                px: { xs: 2, sm: 3 },
+                py: 1,
                 borderBottom: 1,
                 borderColor: 'divider',
+                bgcolor: headingBandColor,
                 minHeight: 44,
               }}
             >

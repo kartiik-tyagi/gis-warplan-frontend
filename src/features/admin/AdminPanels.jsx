@@ -2,15 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Box,
-  Button,
   Chip,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
+import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined'
 import { CreateAction } from '../../shared/ui/CreateAction'
 import { EntityCard } from '../../shared/ui/EntityCard'
 import { IconAction } from '../../shared/ui/IconAction'
@@ -209,7 +212,7 @@ function UserEditor() {
       })
       logger.info('user.created', { name: name.trim() })
       push('User created.', 'success')
-      navigate(`/access/users/${created.id}`, { replace: true })
+      navigate('/access/users', { replace: true })
     } catch (error) {
       push(error?.message || 'The user could not be created.', 'error')
     } finally {
@@ -273,7 +276,7 @@ function UserEditor() {
     return (
       <Stack spacing={2}>
         <Typography variant="body2" color="text.secondary">This user is no longer available.</Typography>
-        <Button onClick={() => navigate('/access/users')}>Back To List</Button>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/access/users')} />
       </Stack>
     )
   }
@@ -283,6 +286,9 @@ function UserEditor() {
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 640 }}>
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/access/users')} disabled={busy} />
+      </Box>
       {isNew ? (
         <>
           <TextField label="Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
@@ -291,20 +297,13 @@ function UserEditor() {
           <SearchSelect label="Side" clearLabel="No Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
           <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" allowEmpty={Boolean(sideId)} />
         </>
-      ) : apex ? (
-        <Typography variant="body2" color="text.secondary">APEX keeps the login theme and changes it from the user menu.</Typography>
-      ) : (
+      ) : apex ? null : (
         <>
-          <Typography variant="body2" color="text.secondary">
-            {home ? `Side ${home.name}. ` : 'No side. '}
-            {user.standardNodeId ? 'Created from an ORBAT node. The side is locked, and active state follows the game.' : statusOf(user) + '.'}
-          </Typography>
           <SearchSelect multiple label="Roles" options={roles} value={roleIds} onChange={setRoleIds} getOptionLabel={(role) => role.name} getOptionValue={(role) => role.id} />
           {user.standardNodeId ? (
             <TextField
               label="Administers Side"
               value={home?.name || 'The side of this ORBAT node'}
-              helperText="Locked to the ORBAT node. It stays with this account until the user is unmarked."
               fullWidth
               slotProps={{ input: { readOnly: true } }}
             />
@@ -312,30 +311,35 @@ function UserEditor() {
             <SearchSelect label="Administers Side" options={sides} value={sideId} onChange={setSideId} getOptionLabel={(side) => side.name} getOptionValue={(side) => String(side.id)} />
           )}
           <ThemeField themes={themes} value={themeId} onChange={setThemeId} holderKind="USER" holderId={user.id} allowEmpty={Boolean(home)} label="Override Theme" emptyLabel="Inherit the side theme" />
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <TextField type="password" label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} helperText="Leave blank to keep the current password" fullWidth />
-            <Button variant="outlined" disabled={busy || password.length < 3} onClick={setPasswordOnly} sx={{ flexShrink: 0, alignSelf: { sm: 'flex-start' }, mt: { sm: 1 } }}>
-              Set password
-            </Button>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
+            <TextField type="password" label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} fullWidth />
+            <IconAction
+              label="Set Password"
+              icon={<VpnKeyOutlinedIcon fontSize="small" />}
+              disabled={busy || password.length < 3}
+              onClick={setPasswordOnly}
+            />
           </Stack>
         </>
       )}
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/access/users')} disabled={busy}>Back To List</Button>
         {apex ? null : (
-          <Button
-            variant="contained"
-            startIcon={<SaveOutlinedIcon />}
+          <IconAction
+            label={busy ? 'Saving…' : isNew ? 'Create User' : 'Save User'}
+            icon={<SaveOutlinedIcon fontSize="small" />}
             disabled={busy || (isNew && (!name.trim() || password.length < 3 || !roleIds.length))}
             onClick={isNew ? saveNew : saveExisting}
-          >
-            {busy ? 'Saving…' : isNew ? 'Create User' : 'Save User'}
-          </Button>
+            variant="contained"
+          />
         )}
         {!isNew && user && !apex && !user.standardNodeId ? (
-          <Button color={user.active ? 'error' : 'primary'} variant="outlined" disabled={busy} onClick={toggleActive}>
-            {user.active ? 'Deactivate' : 'Activate'}
-          </Button>
+          <IconAction
+            label={user.active ? 'Deactivate' : 'Activate'}
+            icon={user.active ? <PauseCircleOutlinedIcon fontSize="small" /> : <PlayArrowOutlinedIcon fontSize="small" />}
+            color={user.active ? 'error' : 'default'}
+            disabled={busy}
+            onClick={toggleActive}
+          />
         ) : null}
       </Stack>
     </Stack>
@@ -384,7 +388,6 @@ function RolesList() {
               <EntityCard
                 key={role.id}
                 title={role.name}
-                chip={role.standard ? <Chip size="small" color="primary" label="Built-In" /> : null}
                 meta={names.length ? names.join(', ') : 'No Functionalities'}
                 actions={<IconAction label="Edit" icon={<EditOutlinedIcon fontSize="small" />} onClick={() => navigate(`/access/roles/${role.id}`)} />}
               />
@@ -447,7 +450,7 @@ function RoleEditor() {
     try {
       const created = await post('/roles', { name: name.trim(), description: '', functionalityIds })
       push('Role created.', 'success')
-      navigate(`/access/roles/${created.id}`, { replace: true })
+      navigate('/access/roles', { replace: true })
     } catch (error) {
       push(error?.message || 'The role could not be created.', 'error')
     } finally {
@@ -489,13 +492,16 @@ function RoleEditor() {
     return (
       <Stack spacing={2}>
         <Typography variant="body2" color="text.secondary">This role is no longer available.</Typography>
-        <Button onClick={() => navigate('/access/roles')}>Back To List</Button>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/access/roles')} />
       </Stack>
     )
   }
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, py: 0.5, bgcolor: 'background.paper' }}>
+        <IconAction label="Back" icon={<ArrowBackIcon fontSize="small" />} onClick={() => navigate('/access/roles')} disabled={busy} />
+      </Box>
       <TextField label="Role Name" value={name} onChange={(event) => setName(event.target.value)} fullWidth required />
       <SearchSelect
         multiple
@@ -505,17 +511,17 @@ function RoleEditor() {
         onChange={setFunctionalityIds}
         getOptionLabel={(item) => item.name}
         getOptionValue={(item) => item.id}
-        helperText="Choose what this role is allowed to do. Only these features can be selected."
       />
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        <Button onClick={() => navigate('/access/roles')} disabled={busy}>Back To List</Button>
-        <Button variant="contained" startIcon={<SaveOutlinedIcon />} disabled={busy || !name.trim()} onClick={isNew ? create : save}>
-          {busy ? 'Saving…' : isNew ? 'Create Role' : 'Save Role'}
-        </Button>
+        <IconAction
+          label={busy ? 'Saving…' : isNew ? 'Create Role' : 'Save Role'}
+          icon={<SaveOutlinedIcon fontSize="small" />}
+          disabled={busy || !name.trim()}
+          onClick={isNew ? create : save}
+          variant="contained"
+        />
         {!isNew && role && !role.standard ? (
-          <Button color="error" variant="outlined" startIcon={<DeleteOutlinedIcon />} disabled={busy} onClick={() => setRemoving(true)}>
-            Remove
-          </Button>
+          <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setRemoving(true)} />
         ) : null}
       </Stack>
       <ConfirmDialog

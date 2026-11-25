@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { get } from '../api/http'
 
 /**
- * Debounced elevation / bathymetry for the map pointer (GEBCO via OpenTopoData).
- * Positive → land height; zero/negative → ocean depth (absolute).
+ * Land height or ocean depth at the pointer, from the elevation layer chosen in map settings.
+ * No layer chosen, or no reading from that layer, leaves the value empty.
  */
 export function useElevation(latitude, longitude) {
   const [elevation, setElevation] = useState(null)
@@ -19,30 +20,22 @@ export function useElevation(latitude, longitude) {
     const id = ++requestId.current
     const timer = window.setTimeout(async () => {
       try {
-        const url = `https://api.opentopodata.org/v1/gebco2020?locations=${encodeURIComponent(latitude)},${encodeURIComponent(longitude)}`
-        const response = await fetch(url)
-        if (!response.ok) throw new Error('elevation unavailable')
-        const body = await response.json()
-        const value = Number(body?.results?.[0]?.elevation)
+        const body = await get('/map/elevation', { latitude, longitude })
         if (id !== requestId.current) return
-        if (!Number.isFinite(value)) {
+        const value = Number(body?.meters)
+        if (!Number.isFinite(value) || (body?.kind !== 'height' && body?.kind !== 'depth')) {
           setElevation(null)
           setKind(null)
           return
         }
-        if (value > 0) {
-          setKind('height')
-          setElevation(value)
-        } else {
-          setKind('depth')
-          setElevation(Math.abs(value))
-        }
+        setKind(body.kind)
+        setElevation(value)
       } catch {
         if (id !== requestId.current) return
         setElevation(null)
         setKind(null)
       }
-    }, 500)
+    }, 400)
 
     return () => window.clearTimeout(timer)
   }, [latitude, longitude])

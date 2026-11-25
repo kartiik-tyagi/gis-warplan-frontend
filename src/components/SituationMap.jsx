@@ -58,7 +58,9 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
     const map = new Map({
       target: targetRef.current,
       layers: [],
-      controls: showControls ? [new Zoom(), new ScaleLine({ units: 'metric' })] : [],
+      controls: showControls
+        ? [new Zoom(), new ScaleLine({ units: 'metric', bar: true, steps: 4, text: false, minWidth: 100 })]
+        : [],
       view: new View({
         center: fromLonLat([Number(home.longitude) || 0, Number(home.latitude) || 0]),
         zoom: Number(home.zoom) || 5,

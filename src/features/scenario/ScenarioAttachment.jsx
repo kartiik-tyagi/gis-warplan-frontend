@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, Button, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
 import { uploadScenarioAttachment } from '../../shared/api/assets'
 import { del, httpBlob } from '../../shared/api/http'
+import { IconAction } from '../../shared/ui/IconAction'
 
 const ACCEPT = '.txt,.doc,.docx,.pdf,.jpg,.jpeg,.png,.gif,.webp'
 const MAX_BYTES = 50 * 1024 * 1024
@@ -85,11 +86,6 @@ function AttachmentPreview({ fileName, previewUrl, textPreview }) {
         >
           {textPreview}
         </Box>
-      ) : null}
-      {kind === 'document' ? (
-        <Typography variant="body2" color="text.secondary">
-          Word documents open via Download — browsers cannot preview .doc/.docx inline.
-        </Typography>
       ) : null}
     </Box>
   )
@@ -241,6 +237,7 @@ export function ScenarioAttachment({
   }
 
   const hasFile = Boolean(displayName)
+  const chooseLabel = hasFile ? (isCreate ? 'Change file' : 'Replace file') : (isCreate ? 'Choose file' : 'Upload file')
 
   return (
     <Box
@@ -252,39 +249,26 @@ export function ScenarioAttachment({
         p: 2,
       }}
     >
-      <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
         Attachment
-      </Typography>
-      <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'text.secondary' }}>
-        {disabled
-          ? 'Attached file for this scenario.'
-          : isCreate
-            ? 'Choose a document or image. Documents can be up to 50 MB. It uploads when you create the scenario.'
-            : 'Upload a document or image. Documents can be up to 50 MB. It is stored with this scenario and shown below.'}
       </Typography>
 
       <input ref={inputRef} type="file" accept={ACCEPT} hidden onChange={onFile} />
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mb: hasFile ? 2 : 0 }}>
         {!disabled ? (
-          <Button
-            variant="outlined"
-            startIcon={<UploadFileOutlinedIcon />}
+          <IconAction
+            label={chooseLabel}
+            icon={<UploadFileOutlinedIcon fontSize="small" />}
             onClick={pick}
             disabled={busy}
-          >
-            {hasFile ? (isCreate ? 'Change file' : 'Replace file') : isCreate ? 'Choose file' : 'Upload file'}
-          </Button>
+          />
         ) : null}
         {hasFile ? (
           <>
-            <Button startIcon={<DownloadOutlinedIcon />} onClick={download} disabled={busy}>
-              Download
-            </Button>
+            <IconAction label="Download" icon={<DownloadOutlinedIcon fontSize="small" />} onClick={download} disabled={busy} />
             {!disabled ? (
-              <Button color="error" startIcon={<DeleteOutlinedIcon />} onClick={remove} disabled={busy}>
-                Remove
-              </Button>
+              <IconAction label="Remove" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" onClick={remove} disabled={busy} />
             ) : null}
           </>
         ) : null}

@@ -10,12 +10,13 @@ import { fromLonLat } from 'ol/proj'
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
 import { get } from '../shared/api/http'
 import { themeFromEntity } from '../shared/api/mappers'
+import { applySideIconColor } from '../shared/icons/iconTheme'
 import { createAppTheme } from '../shared/theme/createAppTheme'
 import { useOrbatPicture } from '../features/orbat/useOrbatPicture'
 import { useSituation } from '../features/situation/useSituation'
 import { CLUSTER_DISTANCE, CLUSTER_MIN_DISTANCE, cachedIcon, finite, loadIcon, mapSymbol, membersOf, zoomUntilOneSeparates } from './orbatMarkers'
 
-/** Side id -> that side's theme. Sides and themes are already returned to any signed-in user. */
+/** Side id -> theme with Side Icon Color as primary for themed SVG paints. */
 function useTeamIconThemes() {
   const [rows, setRows] = useState({ sides: [], themes: [] })
   useEffect(() => {
@@ -34,7 +35,7 @@ function useTeamIconThemes() {
     const bySide = new Map()
     rows.sides.forEach((side) => {
       const theme = byTheme.get(String(side.themeId))
-      if (theme) bySide.set(String(side.id), theme)
+      if (theme) bySide.set(String(side.id), applySideIconColor(theme, side.colour))
     })
     return bySide
   }, [rows])

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   Alert,
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,10 +11,14 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { IconField } from '../../shared/ui/IconPicker'
+import { IconAction } from '../../shared/ui/IconAction'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
+import { SideIconColorField, SIDE_ICON_COLOR_FALLBACK } from '../../shared/ui/SideIconColorField'
 import { EMPTY_LIST } from '../../shared/lib/empty'
-import { swatches } from '../../shared/theme/swatches'
 import { asTheme, selectableThemes } from '../admin/themeChoices'
 
 /** Runs an async submit, keeps the dialog open and shows the message when it fails. */
@@ -36,7 +39,7 @@ function useSubmit(onSubmit) {
   return { busy, error, setError, run }
 }
 
-function Shell({ open, title, onClose, busy, error, submitLabel, submitDisabled, onSubmit, children, maxWidth = 'xs' }) {
+function Shell({ open, title, onClose, busy, error, submitLabel, submitIcon, submitDisabled, onSubmit, children, maxWidth = 'xs' }) {
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth={maxWidth} component="form" onSubmit={(event) => { event.preventDefault(); if (!submitDisabled) onSubmit() }}>
       <DialogTitle>{title}</DialogTitle>
@@ -47,8 +50,14 @@ function Shell({ open, title, onClose, busy, error, submitLabel, submitDisabled,
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={busy}>Cancel</Button>
-        <Button type="submit" variant="contained" disabled={busy || submitDisabled}>{busy ? 'Working' : submitLabel}</Button>
+        <IconAction label="Cancel" icon={<CloseIcon fontSize="small" />} onClick={onClose} disabled={busy} />
+        <IconAction
+          type="submit"
+          label={busy ? 'Working' : submitLabel}
+          icon={submitIcon || <SaveOutlinedIcon fontSize="small" />}
+          variant="contained"
+          disabled={busy || submitDisabled}
+        />
       </DialogActions>
     </Dialog>
   )
@@ -67,7 +76,7 @@ export function NodeNameDialog({ open, title, submitLabel = 'Save', initialName 
     }
   }, [open, initialName, initialTypeId, setError])
   return (
-    <Shell open={open} title={title} onClose={onClose} busy={busy} error={error} submitLabel={submitLabel} submitDisabled={!name.trim()} onSubmit={() => run({ name: name.trim(), nodeTypeId: typeId === '' ? null : typeId })}>
+    <Shell open={open} title={title} onClose={onClose} busy={busy} error={error} submitLabel={submitLabel} submitIcon={<SaveOutlinedIcon fontSize="small" />} submitDisabled={!name.trim()} onSubmit={() => run({ name: name.trim(), nodeTypeId: typeId === '' ? null : typeId })}>
       <TextField autoFocus required label="Name" value={name} onChange={(event) => setName(event.target.value)} slotProps={{ htmlInput: { maxLength: 200 } }} />
       {withType ? (
         <SearchSelect
@@ -85,7 +94,7 @@ export function NodeNameDialog({ open, title, submitLabel = 'Save', initialName 
 }
 
 /** Creates or updates a user bound to a saved standard ORBAT node. An empty theme inherits the side theme. */
-export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes = EMPTY_LIST, sideName = '', onClose, onSubmit }) {
+export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes = EMPTY_LIST, onClose, onSubmit }) {
   const editing = Boolean(user)
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -108,19 +117,15 @@ export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes 
       open={open}
       title={editing ? 'Update User' : 'Mark as User'}
       submitLabel={editing ? 'Save User' : 'Create User'}
+      submitIcon={editing ? <SaveOutlinedIcon fontSize="small" /> : <AddIcon fontSize="small" />}
       onClose={onClose}
       busy={busy}
       error={error}
       submitDisabled={!name.trim() || !passwordOk || !roleIds.length}
       onSubmit={() => run({ name: name.trim(), password, roleIds, themeId: themeId === '' ? null : Number(themeId) })}
     >
-      <Typography variant="body2" color="text.secondary">
-        {editing
-          ? `Updates the sign-in for ${user.name}. The account stays on ${sideName || 'this side'}. Leave the password blank to keep it, and clear the theme to inherit that side.`
-          : `Creates a sign-in for the node ${node?.name}. The account belongs to ${sideName || 'this side'}, and every role, including Side administrator, applies to that side. The side stays locked until the user is unmarked. Leave the theme empty to inherit it. The account stays off until this node is in the active game.`}
-      </Typography>
       <TextField autoFocus required label="User Name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
-      <TextField required={!editing} type="password" label={editing ? 'New password' : 'Password'} value={password} onChange={(event) => setPassword(event.target.value)} helperText={editing ? 'Leave blank to keep the current password.' : 'At least 3 characters'} autoComplete="new-password" />
+      <TextField required={!editing} type="password" label={editing ? 'New password' : 'Password'} value={password} onChange={(event) => setPassword(event.target.value)} helperText={editing ? undefined : 'At least 3 characters'} autoComplete="new-password" />
       <SearchSelect
         label="Override Theme"
         clearLabel="Inherit the side theme"
@@ -148,7 +153,7 @@ export function MarkAsUserDialog({ open, node, user, roles = EMPTY_LIST, themes 
 /** Creates a country side and the standard ORBAT root in one step. */
 export function ForceDialog({ open, themes = EMPTY_LIST, onClose, onSubmit }) {
   const [name, setName] = useState('')
-  const [swatchId, setSwatchId] = useState('blue')
+  const [colour, setColour] = useState(SIDE_ICON_COLOR_FALLBACK)
   const [icon, setIcon] = useState('')
   const [themeId, setThemeId] = useState('')
   const { busy, error, setError, run } = useSubmit(onSubmit)
@@ -156,34 +161,26 @@ export function ForceDialog({ open, themes = EMPTY_LIST, onClose, onSubmit }) {
   useEffect(() => {
     if (open) {
       setName('')
-      setSwatchId('blue')
+      setColour(SIDE_ICON_COLOR_FALLBACK)
       setIcon('')
       setThemeId('')
       setError('')
     }
   }, [open, setError])
-  const colour = swatches.find((item) => item.id === swatchId)?.color || '#2f6fed'
   return (
     <Shell
       open={open}
       title="New Side"
       submitLabel="Create Side"
+      submitIcon={<AddIcon fontSize="small" />}
       onClose={onClose}
       busy={busy}
       error={error}
       submitDisabled={!name.trim() || !themeId}
       onSubmit={() => run({ name: name.trim(), colour, icon: icon || null, themeId: Number(themeId), description: '' })}
     >
-      <Typography variant="body2" color="text.secondary">The root of the standard ORBAT is this side. The theme cannot be shared with another side or user.</Typography>
       <TextField autoFocus required label="Side Name" value={name} onChange={(event) => setName(event.target.value)} />
-      <SearchSelect
-        label="Map Colour"
-        options={swatches}
-        value={swatchId}
-        onChange={setSwatchId}
-        getOptionLabel={(swatch) => swatch.name}
-        getOptionValue={(swatch) => swatch.id}
-      />
+      <SideIconColorField colour={colour} onChange={setColour} />
       <IconField value={icon} onChange={setIcon} />
       <SearchSelect
         required
@@ -214,7 +211,7 @@ export function PlayingSideDialog({
   const [kind, setKind] = useState('single')
   const [sideId, setSideId] = useState('')
   const [name, setName] = useState('')
-  const [colour, setColour] = useState('#2f6fed')
+  const [colour, setColour] = useState(SIDE_ICON_COLOR_FALLBACK)
   const [icon, setIcon] = useState('')
   const [themeId, setThemeId] = useState('')
   const [members, setMembers] = useState([])
@@ -230,7 +227,7 @@ export function PlayingSideDialog({
     setKind(allowSingle ? 'single' : 'alliance')
     setSideId(sides[0]?.id ?? '')
     setName('')
-    setColour('#2f6fed')
+    setColour(SIDE_ICON_COLOR_FALLBACK)
     setIcon('')
     setThemeId('')
     setMembers([])
@@ -245,6 +242,7 @@ export function PlayingSideDialog({
       open={open}
       title="New Side"
       submitLabel="Add Side"
+      submitIcon={<AddIcon fontSize="small" />}
       onClose={onClose}
       busy={busy}
       error={error}
@@ -271,26 +269,22 @@ export function PlayingSideDialog({
       ) : null}
       {single ? (
         sides.length ? (
-          <>
-            <Typography variant="body2" color="text.secondary">Add a country that already has a standard ORBAT.</Typography>
-            <SearchSelect
-              required
-              label="Side"
-              options={sides}
-              value={sideId}
-              onChange={setSideId}
-              getOptionLabel={(side) => side.name}
-              getOptionValue={(side) => side.id}
-            />
-          </>
+          <SearchSelect
+            required
+            label="Side"
+            options={sides}
+            value={sideId}
+            onChange={setSideId}
+            getOptionLabel={(side) => side.name}
+            getOptionValue={(side) => side.id}
+          />
         ) : (
           <Typography variant="body2" color="text.secondary">Every country side is already playing in this game.</Typography>
         )
       ) : (
         <>
-          <Typography variant="body2" color="text.secondary">An alliance joins country sides that are not already playing in this game.</Typography>
           <TextField autoFocus required label="Alliance Name" value={name} onChange={(event) => setName(event.target.value)} />
-          <TextField label="Map Colour" type="color" value={colour} onChange={(event) => setColour(event.target.value)} />
+          <SideIconColorField colour={colour} onChange={setColour} />
           <IconField value={icon} onChange={setIcon} />
           <SearchSelect
             required

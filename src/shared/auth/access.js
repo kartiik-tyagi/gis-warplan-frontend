@@ -56,7 +56,9 @@ export function sectionsForFunctionalities(functionalities) {
     sections.push({ id: 'game', kicker: 'Exercise', label: 'Game Management', icon: 'control' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_MAP)) {
-    sections.push({ id: 'map-catalog', kicker: 'Map', label: 'Map Catalog', icon: 'settings' })
+    sections.push({ id: 'map-servers', kicker: 'Map', label: 'Map Servers', icon: 'settings' })
+    sections.push({ id: 'map-layers', kicker: 'Map', label: 'Map Layers', icon: 'layers' })
+    sections.push({ id: 'map-settings', kicker: 'Map', label: 'Map Settings', icon: 'extent' })
   }
   if (canOpenOrbat(functionalities)) sections.push({ id: 'orbat', kicker: 'ORBAT', label: 'ORBAT', icon: 'orbat' })
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_SIDES)) {
@@ -87,7 +89,9 @@ export function sectionsForFunctionalities(functionalities) {
 export const SECTION_ROUTE = Object.freeze({
   scenario: '/exercise/scenarios',
   game: '/exercise/games',
-  'map-catalog': '/map/catalog',
+  'map-servers': '/map/servers',
+  'map-layers': '/map/layers',
+  'map-settings': '/map/settings',
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
@@ -100,7 +104,9 @@ export const SECTION_ROUTE = Object.freeze({
 const SECTION_TITLE = Object.freeze({
   scenario: 'Scenario Management',
   game: 'Game Management',
-  'map-catalog': 'Map Catalog',
+  'map-servers': 'Map Servers',
+  'map-layers': 'Map Layers',
+  'map-settings': 'Map Settings',
   teams: 'Sides',
   themes: 'Themes',
   'node-types': 'Node Types',

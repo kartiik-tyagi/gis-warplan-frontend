@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Dialog,
   DialogContent,
@@ -14,6 +13,14 @@ import {
   Tabs,
   Typography,
 } from '@mui/material'
+import AccountTreeIcon from '@mui/icons-material/AccountTree'
+import AddIcon from '@mui/icons-material/Add'
+import CheckIcon from '@mui/icons-material/Check'
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import UndoIcon from '@mui/icons-material/Undo'
 import { FunctionalityCodes, hasFunctionality } from '../../shared/auth/functionalityCodes'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { hasAny } from '../../shared/auth/access'
@@ -21,6 +28,7 @@ import { get, post, put } from '../../shared/api/http'
 import * as directoryApi from '../../shared/api/client'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { useDirectoryStore } from '../directory/useDirectoryStore'
 import { useToastStore } from '../feedback/useToastStore'
@@ -33,10 +41,11 @@ import { childAllowed } from './nodeRules'
 import { OrbatMapChrome } from './OrbatMapChrome'
 import { refreshSituation } from '../situation/useSituation'
 import { useOrbatPicture } from './useOrbatPicture'
-import { swatches } from '../../shared/theme/swatches'
-import { swatchForColour, themeFromEntity } from '../../shared/api/mappers'
+import { themeFromEntity } from '../../shared/api/mappers'
+import { applySideIconColor } from '../../shared/icons/iconTheme'
 import { createAppTheme } from '../../shared/theme/createAppTheme'
 import { IconField } from '../../shared/ui/IconPicker'
+import { SideIconColorField, SIDE_ICON_COLOR_FALLBACK } from '../../shared/ui/SideIconColorField'
 import { OrbatTree } from './OrbatTree'
 import { addChild, descendantIds, indexNodes, nodesOf, removeSubtree, reparent, sameNodes, updateNode } from './orbatDoc'
 
@@ -61,12 +70,12 @@ const fieldGrow = {
 }
 
 function ForceFields({ side, themes, onSave }) {
-  const [swatchId, setSwatchId] = useState(swatchForColour(side?.colour)?.id || 'custom')
+  const [colour, setColour] = useState(side?.colour || SIDE_ICON_COLOR_FALLBACK)
   const [icon, setIcon] = useState(side?.icon || '')
   const [themeId, setThemeId] = useState(side?.themeId == null ? '' : String(side.themeId))
   const [busy, setBusy] = useState(false)
   useEffect(() => {
-    setSwatchId(swatchForColour(side?.colour)?.id || 'custom')
+    setColour(side?.colour || SIDE_ICON_COLOR_FALLBACK)
     setIcon(side?.icon || '')
     setThemeId(side?.themeId == null ? '' : String(side.themeId))
   }, [side?.id, side?.colour, side?.icon, side?.themeId])
@@ -74,16 +83,7 @@ function ForceFields({ side, themes, onSave }) {
   const options = themes.filter((theme) => theme.holderKind === 'FREE' || (theme.holderKind === 'SIDE' && String(theme.holderId) === String(side.id)))
   return (
     <Stack spacing={1}>
-      <Caption>This root is the side. Colour, icon and theme save immediately. Rename the root, then Save the tree, to rename the side.</Caption>
-      <SearchSelect
-        size="small"
-        label="Map Colour"
-        options={swatchId === 'custom' ? [{ id: 'custom', name: side.colour || 'Current colour' }, ...swatches] : swatches}
-        value={swatchId}
-        onChange={setSwatchId}
-        getOptionLabel={(swatch) => swatch.name}
-        getOptionValue={(swatch) => swatch.id}
-      />
+      <SideIconColorField size="small" colour={colour} onChange={setColour} />
       <IconField value={icon} onChange={setIcon} />
       <SearchSelect
         size="small"
@@ -95,25 +95,20 @@ function ForceFields({ side, themes, onSave }) {
         getOptionLabel={(theme) => theme.name}
         getOptionValue={(theme) => String(theme.id)}
       />
-      <Button
-        size="small"
-        variant="outlined"
+      <IconAction
+        label={busy ? 'Saving' : 'Save side'}
+        icon={<SaveOutlinedIcon fontSize="small" />}
+        variant="contained"
         disabled={busy || !themeId}
         onClick={async () => {
           setBusy(true)
           try {
-            await onSave(side, {
-              colour: swatchId === 'custom' ? side.colour : (swatches.find((item) => item.id === swatchId)?.color || side.colour),
-              icon,
-              themeId,
-            })
+            await onSave(side, { colour, icon, themeId })
           } finally {
             setBusy(false)
           }
         }}
-      >
-        {busy ? 'Saving' : 'Save side'}
-      </Button>
+      />
     </Stack>
   )
 }
@@ -367,11 +362,12 @@ export default function OrbatPanel() {
   const selectToken = useOrbatPicture((state) => state.selectToken)
   const pictureSideId = tab === 'standard' ? Number(sideId) : record?.sideId
   const pictureSide = sidesById.get(pictureSideId) || sidesById.get(Number(pictureSideId)) || sidesById.get(String(pictureSideId))
-  const pictureColour = pictureSide?.colour || '#2f6fed'
+  const pictureColour = pictureSide?.colour || SIDE_ICON_COLOR_FALLBACK
   const pictureTheme = useMemo(() => {
     const row = themes.find((theme) => String(theme.id) === String(pictureSide?.themeId))
-    return row ? createAppTheme(themeFromEntity(row)) : null
-  }, [themes, pictureSide?.themeId])
+    if (!row) return null
+    return applySideIconColor(createAppTheme(themeFromEntity(row)), pictureSide?.colour)
+  }, [themes, pictureSide?.themeId, pictureSide?.colour])
   const editingId = tab === 'playing' && record ? record.id : null
 
   useEffect(() => {
@@ -656,10 +652,10 @@ export default function OrbatPanel() {
             sx={fieldGrow}
           />
           {canCreateForce ? (
-            <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'force' })}>New Side</Button>
+            <IconAction label="New Side" icon={<AddIcon fontSize="small" />} onClick={() => setDialog({ kind: 'force' })} />
           ) : null}
           {standard === null && canStandard ? (
-            <Button size="small" variant="outlined" onClick={createStandard} disabled={saving}>Create Standard ORBAT</Button>
+            <IconAction label="Create Standard ORBAT" icon={<AccountTreeIcon fontSize="small" />} onClick={createStandard} disabled={saving} />
           ) : null}
         </Stack>
       ) : (
@@ -703,16 +699,16 @@ export default function OrbatPanel() {
             sx={fieldGrow}
           />
           {canPlaying || canAlliance ? (
-            <Button size="small" variant="outlined" onClick={() => setDialog({ kind: 'playing-side' })} disabled={!gameId}>New Side</Button>
+            <IconAction label="New Side" icon={<AddIcon fontSize="small" />} onClick={() => setDialog({ kind: 'playing-side' })} disabled={!gameId} />
           ) : null}
         </Stack>
       )}
 
       {loadError ? (
-        <Alert severity="error" action={<Button color="inherit" size="small" onClick={reload}>Retry</Button>}>{loadError}</Alert>
+        <Alert severity="error" action={<IconAction label="Retry" icon={<RefreshOutlinedIcon fontSize="small" />} onClick={reload} />}>{loadError}</Alert>
       ) : null}
       {saveError ? (
-        <Alert severity="error" action={<Button color="inherit" size="small" onClick={reload}>Reload</Button>}>{saveError}</Alert>
+        <Alert severity="error" action={<IconAction label="Reload" icon={<RefreshOutlinedIcon fontSize="small" />} onClick={reload} />}>{saveError}</Alert>
       ) : null}
 
       {record ? (
@@ -724,18 +720,18 @@ export default function OrbatPanel() {
           <Box sx={{ flex: 1 }} />
           {editable ? (
             <>
-              <Button size="small" disabled={!dirty || saving} onClick={() => setNodes(serverNodes)}>Discard</Button>
-              <Button size="small" variant="contained" disabled={!dirty || saving} onClick={() => save(undefined)}>{saving ? 'Saving' : 'Save'}</Button>
+              <IconAction label="Discard" icon={<UndoIcon fontSize="small" />} disabled={!dirty || saving} onClick={() => setNodes(serverNodes)} />
+              <IconAction label={saving ? 'Saving' : 'Save'} icon={<SaveOutlinedIcon fontSize="small" />} variant="contained" disabled={!dirty || saving} onClick={() => save(undefined)} />
             </>
           ) : null}
           {canRevise && status === 'finalized' ? (
-            <Button size="small" variant="outlined" disabled={saving} onClick={() => setDialog({ kind: 'reopen' })}>Re-edit</Button>
+            <IconAction label="Re-edit" icon={<EditOutlinedIcon fontSize="small" />} disabled={saving} onClick={() => setDialog({ kind: 'reopen' })} />
           ) : null}
           {canRevise && status !== 'finalized' ? (
-            <Button size="small" color="success" variant="outlined" disabled={saving} onClick={() => setDialog({ kind: 'finalize' })}>Finalize</Button>
+            <IconAction label="Finalize" icon={<CheckIcon fontSize="small" />} color="success" disabled={saving} onClick={() => setDialog({ kind: 'finalize' })} />
           ) : null}
           {canRevise ? (
-            <Button size="small" color="error" disabled={saving} onClick={() => setDialog({ kind: 'delete-orbat' })}>Delete</Button>
+            <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={saving} onClick={() => setDialog({ kind: 'delete-orbat' })} />
           ) : null}
         </Stack>
       ) : null}

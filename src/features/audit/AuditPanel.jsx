@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Divider,
   Stack,
@@ -11,9 +10,15 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined'
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined'
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
+import NavigateNextIcon from '@mui/icons-material/NavigateNext'
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import { get } from '../../shared/api/http'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
@@ -163,11 +168,11 @@ export function AuditPanel() {
           fullWidth={false}
           sx={{ flex: { xs: '1 1 100%', sm: '1 1 8rem' }, minWidth: { xs: '100%', sm: '8rem' }, maxWidth: '100%', width: 'auto' }}
         />
-        <Button type="submit" size="small" variant="contained" sx={{ mt: { sm: 0.5 } }}>Filter</Button>
-        <Button size="small" onClick={clear} sx={{ mt: { sm: 0.5 } }}>Clear</Button>
+        <IconAction type="submit" label="Filter" icon={<FilterAltOutlinedIcon fontSize="small" />} variant="contained" />
+        <IconAction label="Clear" icon={<ClearOutlinedIcon fontSize="small" />} onClick={clear} />
       </Stack>
 
-      {error ? <Alert severity="error" action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>{error}</Alert> : null}
+      {error ? <Alert severity="error" action={<IconAction label="Retry" icon={<RefreshOutlinedIcon fontSize="small" />} onClick={load} />}>{error}</Alert> : null}
       {loading && !data ? <LoadingState label="Loading audit trail" /> : null}
 
       {data ? (
@@ -187,9 +192,9 @@ export function AuditPanel() {
 
       {data ? (
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          <Button size="small" disabled={page <= 0 || loading} onClick={() => setPage((current) => current - 1)}>Previous</Button>
+          <IconAction label="Previous" icon={<NavigateBeforeIcon fontSize="small" />} disabled={page <= 0 || loading} onClick={() => setPage((current) => current - 1)} />
           <Typography variant="caption" color="text.secondary">Page {page + 1} of {pages} · {total} total</Typography>
-          <Button size="small" disabled={page + 1 >= pages || loading} onClick={() => setPage((current) => current + 1)}>Next</Button>
+          <IconAction label="Next" icon={<NavigateNextIcon fontSize="small" />} disabled={page + 1 >= pages || loading} onClick={() => setPage((current) => current + 1)} />
         </Stack>
       ) : null}
     </Stack>

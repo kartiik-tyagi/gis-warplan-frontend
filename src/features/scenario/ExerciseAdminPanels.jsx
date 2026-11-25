@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
-  Button,
   Chip,
   List,
   ListItemButton,
   ListItemText,
   Stack,
   TextField,
-  Typography,
 } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { ApiError } from '../../shared/api/errors'
 import { SearchSelect } from '../../shared/ui/SearchSelect'
 import { del, get, post, put } from '../../shared/api/http'
@@ -17,6 +20,7 @@ import { loadMoonPhases } from '../../shared/api/moonPhases'
 import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
+import { IconAction } from '../../shared/ui/IconAction'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
@@ -193,9 +197,13 @@ function ExerciseCrud({ noun, listPath, itemPath, deactivatePath, empty, toBody,
   return (
     <Stack spacing={1.5} direction={{ xs: 'column', md: 'row' }} useFlexGap sx={{ alignItems: 'stretch' }}>
       <Stack spacing={1} sx={{ width: { md: 280 }, flexShrink: 0 }}>
-        <Button size="small" variant={selectedId === 'new' ? 'contained' : 'outlined'} onClick={() => reset(null)} disabled={busy}>
-          New {noun}
-        </Button>
+        <IconAction
+          label={`New ${noun}`}
+          icon={<AddIcon fontSize="small" />}
+          onClick={() => reset(null)}
+          disabled={busy}
+          variant={selectedId === 'new' ? 'contained' : 'icon'}
+        />
         <List dense disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 360, overflow: 'auto' }}>
           {items.map((item) => (
             <ListItemButton key={item.id} selected={item.id === selectedId} onClick={() => reset(item)} disabled={busy}>
@@ -228,17 +236,21 @@ function ExerciseCrud({ noun, listPath, itemPath, deactivatePath, empty, toBody,
         {extraFields?.({ form, errors, change, selected })}
         {selected && details ? details(selected) : null}
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
-          <Button variant="contained" onClick={save} disabled={busy}>Save</Button>
+          <IconAction label="Save" icon={<SaveOutlinedIcon fontSize="small" />} onClick={save} disabled={busy} variant="contained" />
           {selectedId !== 'new' && selected?.active && deactivatePath ? (
-            <Button variant="outlined" onClick={deactivate} disabled={busy}>Deactivate</Button>
+            <IconAction label="Deactivate" icon={<BlockOutlinedIcon fontSize="small" />} onClick={deactivate} disabled={busy} />
           ) : null}
           {selectedId !== 'new' && !selected?.active ? (
-            <Button variant="outlined" onClick={activate} disabled={busy}>Activate</Button>
+            <IconAction label="Activate" icon={<PlayArrowIcon fontSize="small" />} onClick={activate} disabled={busy} variant="contained" />
           ) : null}
           {selectedId !== 'new' ? (
-            <Button color="error" variant="outlined" onClick={() => setConfirmDelete(true)} disabled={busy || selected?.active}>
-              Delete
-            </Button>
+            <IconAction
+              label="Delete"
+              icon={<DeleteOutlinedIcon fontSize="small" />}
+              color="error"
+              onClick={() => setConfirmDelete(true)}
+              disabled={busy || selected?.active}
+            />
           ) : null}
         </Stack>
       </Stack>
@@ -259,63 +271,55 @@ function ExerciseCrud({ noun, listPath, itemPath, deactivatePath, empty, toBody,
 /** Scenarios: plot fields + activate (needs MANAGE_SCENARIO). */
 export function ScenarioAdminPanel() {
   return (
-    <Stack spacing={1.5}>
-      <Typography variant="body2" color="text.secondary">
-        Create the plot, then activate one scenario for the exercise.
-      </Typography>
-      <ExerciseCrud
-        noun="scenario"
-        listPath="/scenarios"
-        itemPath={(id) => `/scenarios/${id}`}
-        deactivatePath="/scenarios/deactivate"
-        empty={EMPTY_SCENARIO}
-        toBody={(form) => ({
-          name: form.name.trim(),
-          generalIdea: form.generalIdea || null,
-          openingNarrative: form.openingNarrative || null,
-          specialIdea: form.specialIdea || null,
-        })}
-        primary={(item) => item.name}
-        secondary={(item) => clip(item.generalIdea)}
-        extraFields={({ form, errors, change }) => (
-          <>
-            <TextField
-              size="small"
-              label="General Idea"
-              multiline
-              minRows={2}
-              value={form.generalIdea}
-              onChange={(event) => change('generalIdea', event.target.value)}
-              error={Boolean(errors.generalIdea)}
-              helperText={errors.generalIdea || undefined}
-            />
-            <TextField
-              size="small"
-              label="Opening Narrative"
-              multiline
-              minRows={3}
-              value={form.openingNarrative}
-              onChange={(event) => change('openingNarrative', event.target.value)}
-              error={Boolean(errors.openingNarrative)}
-              helperText={errors.openingNarrative || undefined}
-            />
-            <TextField
-              size="small"
-              label="Special Idea"
-              multiline
-              minRows={2}
-              value={form.specialIdea}
-              onChange={(event) => change('specialIdea', event.target.value)}
-              error={Boolean(errors.specialIdea)}
-              helperText={errors.specialIdea || undefined}
-            />
-            <Typography variant="caption" color="text.secondary">
-              Attachments are managed on the full scenario page (txt, doc, pdf, jpg).
-            </Typography>
-          </>
-        )}
-      />
-    </Stack>
+    <ExerciseCrud
+      noun="scenario"
+      listPath="/scenarios"
+      itemPath={(id) => `/scenarios/${id}`}
+      deactivatePath="/scenarios/deactivate"
+      empty={EMPTY_SCENARIO}
+      toBody={(form) => ({
+        name: form.name.trim(),
+        generalIdea: form.generalIdea || null,
+        openingNarrative: form.openingNarrative || null,
+        specialIdea: form.specialIdea || null,
+      })}
+      primary={(item) => item.name}
+      secondary={(item) => clip(item.generalIdea)}
+      extraFields={({ form, errors, change }) => (
+        <>
+          <TextField
+            size="small"
+            label="General Idea"
+            multiline
+            minRows={2}
+            value={form.generalIdea}
+            onChange={(event) => change('generalIdea', event.target.value)}
+            error={Boolean(errors.generalIdea)}
+            helperText={errors.generalIdea || undefined}
+          />
+          <TextField
+            size="small"
+            label="Opening Narrative"
+            multiline
+            minRows={3}
+            value={form.openingNarrative}
+            onChange={(event) => change('openingNarrative', event.target.value)}
+            error={Boolean(errors.openingNarrative)}
+            helperText={errors.openingNarrative || undefined}
+          />
+          <TextField
+            size="small"
+            label="Special Idea"
+            multiline
+            minRows={2}
+            value={form.specialIdea}
+            onChange={(event) => change('specialIdea', event.target.value)}
+            error={Boolean(errors.specialIdea)}
+            helperText={errors.specialIdea || undefined}
+          />
+        </>
+      )}
+    />
   )
 }
 
@@ -362,24 +366,18 @@ export function GameAdminPanel() {
 
   return (
     <Stack spacing={1.5}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { sm: 'center' }, flexWrap: 'wrap' }}>
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-          Games belong to a scenario. Each game owns its playing side. Activate one game for the exercise.
-        </Typography>
-        <SearchSelect
-          size="small"
-          label="Scenario"
-          options={scenarios}
-          value={scenarioId}
-          onChange={setScenarioId}
-          disabled={!scenarios.length}
-          helperText={!scenarios.length ? 'Create a scenario first' : undefined}
-          getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
-          getOptionValue={(item) => item.id}
-          fullWidth={false}
-          sx={{ flex: { xs: '1 1 100%', sm: '1 1 14rem' }, minWidth: { xs: '100%', sm: '14rem' }, maxWidth: '100%', width: 'auto' }}
-        />
-      </Stack>
+      <SearchSelect
+        size="small"
+        label="Scenario"
+        options={scenarios}
+        value={scenarioId}
+        onChange={setScenarioId}
+        disabled={!scenarios.length}
+        getOptionLabel={(item) => `${item.name}${item.active ? ' · active' : ''}`}
+        getOptionValue={(item) => item.id}
+        fullWidth={false}
+        sx={{ flex: { xs: '1 1 100%', sm: '1 1 14rem' }, minWidth: { xs: '100%', sm: '14rem' }, maxWidth: '100%', width: 'auto' }}
+      />
       <ExerciseCrud
         key={scenarioId}
         noun="game"
@@ -443,7 +441,7 @@ export function GameAdminPanel() {
               value={form.moonphases}
               onChange={(id) => change('moonphases', id)}
               error={Boolean(errors.moonphases)}
-              helperText={errors.moonphases || 'Optional'}
+              helperText={errors.moonphases || undefined}
               getOptionLabel={(phase) => phase.label}
               getOptionValue={(phase) => phase.code}
             />
