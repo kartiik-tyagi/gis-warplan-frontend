@@ -1,26 +1,18 @@
-/** Product display name. Change this value to rename the app everywhere in the UI. */
-export const APP_NAME = 'JAYANT'
-
-export const APP_NAME_UPPER = APP_NAME.toUpperCase()
-
 /**
- * Brand mark shown next to the product name.
- * Replace `public/brand-mark.svg` (or point this path at another file under `/public`) to change it.
+ * Brand mark shown next to the product title.
+ * The title itself is `warplan.application-name` on the server. These helpers are
+ * only the words shown before that title has been read, or when the server cannot be reached.
  */
 export const APP_MARK_SRC = '/brand-mark.svg'
 
 export function appUnavailableMessage(detail = 'Try again shortly.') {
-  return `${APP_NAME} is unavailable. ${detail}`
+  return `The application is unavailable. ${detail}`
 }
 
 export function appOpeningLabel() {
-  return `Opening ${APP_NAME}`
+  return 'Opening the application'
 }
 
 export function appServiceUnreachable() {
-  return `The ${APP_NAME} service is not reachable.`
-}
-
-export function exerciseTitleFor(name = APP_NAME) {
-  return `Exercise ${name}`
+  return 'The application service is not reachable.'
 }

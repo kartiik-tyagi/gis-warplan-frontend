@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { APP_NAME } from '../brand'
 import { logger } from '../lib/logger'
 import { ApiError } from './errors'
 import { get, patch, post } from './http'
@@ -142,6 +141,7 @@ const sessionSchema = z.object({
   })).min(1),
   mapService: z.string(),
   clockStart: z.string(),
+  applicationName: z.string().min(1),
   exerciseTitle: z.string(),
   classification: z.string(),
   demoMode: z.boolean(),
@@ -165,7 +165,7 @@ export async function getLoginContext() {
   return {
     applicationName: parsed.data.applicationName,
     exerciseTitle: parsed.data.exerciseTitle,
-    systemName: String(parsed.data.applicationName || APP_NAME).toUpperCase(),
+    systemName: parsed.data.applicationName,
     classification: 'EXERCISE',
     purpose: 'Authorised users only',
     accessNotice: 'Select your account to sign in',

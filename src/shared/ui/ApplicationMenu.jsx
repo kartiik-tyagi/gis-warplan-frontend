@@ -10,9 +10,7 @@ import {
   Menu,
   MenuItem,
   Tooltip,
-  useMediaQuery,
 } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CloseIcon from '@mui/icons-material/Close'
@@ -154,31 +152,21 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
 
 export function ApplicationMenu({ presentation = 'rail', expanded = false, onExpandedChange, onHide, edge = 'start' }) {
   const { sections, sectionId, select } = useSections()
-  const theme = useTheme()
-  const compact = useMediaQuery(theme.breakpoints.down('sm'))
   const [anchor, setAnchor] = useState(null)
 
   if (presentation === 'menu') {
     return (
       <>
-        {compact ? (
-          <Tooltip title="Application">
-            <IconButton aria-label="Application" aria-haspopup="menu" aria-expanded={Boolean(anchor)} onClick={(event) => setAnchor(event.currentTarget)}>
-              <MenuIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        ) : (
-          <Button
-            size="small"
-            startIcon={<MenuIcon />}
+        <Tooltip title="Application menu">
+          <IconButton
+            aria-label="Application menu"
             aria-haspopup="menu"
             aria-expanded={Boolean(anchor)}
             onClick={(event) => setAnchor(event.currentTarget)}
-            sx={{ textTransform: 'none', color: 'text.primary', flexShrink: 0 }}
           >
-            Application
-          </Button>
-        )}
+            <MenuIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Menu
           anchorEl={anchor}
           open={Boolean(anchor)}

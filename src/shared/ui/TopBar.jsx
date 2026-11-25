@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { Box, Checkbox, FormControlLabel, Typography } from '@mui/material'
-import { APP_NAME_UPPER } from '../brand'
+import { useSessionStore } from '../../features/session/useSessionStore'
 import { BrandMark } from './BrandMark'
 import { ScenarioContext } from './ScenarioContext'
 import { UserMenu } from './UserMenu'
@@ -22,6 +23,12 @@ function ViewModes({ mode, onChange }) {
 }
 
 export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating = false, viewMode = 'default', onViewMode }) {
+  const applicationName = useSessionStore((state) => state.session?.applicationName || '')
+
+  useEffect(() => {
+    if (applicationName) document.title = applicationName
+  }, [applicationName])
+
   return (
     <Box
       component="header"
@@ -40,13 +47,13 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
         color: 'text.primary',
       }}
     >
-      {leading}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flexShrink: 1 }}>
-        <BrandMark size={26} />
-        <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.25, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: { xs: '0.75rem', sm: undefined } }}>
-          {APP_NAME_UPPER}
+        <BrandMark size={26} name={applicationName} />
+        <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.25, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {applicationName}
         </Typography>
       </Box>
+      {leading}
       <ViewModes mode={viewMode} onChange={onViewMode} />
       <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', lg: 'flex' }, alignItems: 'center', overflow: 'hidden' }}>
         <ScenarioContext />

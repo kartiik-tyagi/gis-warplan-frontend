@@ -4,7 +4,7 @@ import { alpha } from '@mui/material/styles'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getLoginContext, login } from '../../shared/api/client'
-import { APP_NAME, appOpeningLabel, appUnavailableMessage } from '../../shared/brand'
+import { appOpeningLabel, appUnavailableMessage } from '../../shared/brand'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { LoadingState } from '../../shared/ui/LoadingState'
 import { PasswordField } from '../../shared/ui/PasswordField'
@@ -21,7 +21,7 @@ export default function LoginPage() {
   const context = useQuery({ queryKey: ['login-context'], queryFn: getLoginContext })
 
   useEffect(() => {
-    document.title = context.data?.applicationName || APP_NAME
+    document.title = context.data?.applicationName || 'Application'
   }, [context.data?.applicationName])
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function LoginPage() {
   if (context.isError) {
     return (
       <Box sx={{ p: 3, maxWidth: 560 }}>
-        <ErrorState title={`${APP_NAME} is unavailable`} message={context.error.message} onRetry={() => context.refetch()} />
+        <ErrorState title="The application is unavailable" message={context.error.message} onRetry={() => context.refetch()} />
       </Box>
     )
   }
