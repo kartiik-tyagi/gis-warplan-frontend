@@ -78,7 +78,7 @@ export function sectionsForFunctionalities(functionalities) {
     sections.push({ id: 'audit', kicker: 'Records', label: 'Audit', icon: 'sessions' })
   }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_ICONS)) {
-    sections.push({ id: 'icons', kicker: 'Records', label: 'Icons', icon: 'table' })
+    sections.push({ id: 'icons', kicker: 'Records', label: 'Assets', icon: 'table' })
   }
   return sections
 }
@@ -107,7 +107,7 @@ const SECTION_TITLE = Object.freeze({
   audit: 'Audit',
   users: 'Users',
   roles: 'Roles',
-  icons: 'Icons',
+  icons: 'Assets',
 })
 
 /** The work-window section for a path, or null when the map is showing on its own. */

@@ -63,6 +63,9 @@ const filterSchema = z.object({
 const loginContextSchema = z.object({
   applicationName: z.string(),
   exerciseTitle: z.string(),
+  logoUrl: z.string().nullable().optional(),
+  faviconUrl: z.string().nullable().optional(),
+  loginBackgroundUrl: z.string().nullable().optional(),
   activeUsers: z.array(z.object({ id: z.union([z.number(), z.string()]), name: z.string() })).min(1),
   loginTheme: z.object({
     id: z.union([z.number(), z.string()]),
@@ -142,6 +145,8 @@ const sessionSchema = z.object({
   mapService: z.string(),
   clockStart: z.string(),
   applicationName: z.string().min(1),
+  logoUrl: z.string().optional(),
+  faviconUrl: z.string().optional(),
   exerciseTitle: z.string(),
   classification: z.string(),
   demoMode: z.boolean(),
@@ -165,11 +170,14 @@ export async function getLoginContext() {
   return {
     applicationName: parsed.data.applicationName,
     exerciseTitle: parsed.data.exerciseTitle,
+    logoUrl: parsed.data.logoUrl || '',
+    faviconUrl: parsed.data.faviconUrl || '',
+    loginBackgroundUrl: parsed.data.loginBackgroundUrl || '',
     systemName: parsed.data.applicationName,
     classification: 'EXERCISE',
     purpose: 'Authorised users only',
     accessNotice: 'Select your account to sign in',
-    backgroundImage: '/login-background.png',
+    backgroundImage: parsed.data.loginBackgroundUrl || '',
     theme,
     users: parsed.data.activeUsers.map((user) => ({
       id: String(user.name),
@@ -178,7 +186,7 @@ export async function getLoginContext() {
       name: user.name,
       role: '',
       service: '',
-      avatarUrl: user.name === 'APEX' ? '/avatars/apex.svg' : '',
+      avatarUrl: '',
     })),
   }
 }

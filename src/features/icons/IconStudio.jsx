@@ -649,7 +649,7 @@ export function IconStudio({ open, mode = 'create', directory = '', path = '', i
     let live = true
     setLoading(true)
     setShapesSafe([])
-    httpText('/icons/content', { query: { path } })
+    httpText('/assets/content', { query: { path } })
       .then((markup) => {
         if (!live) return
         const parsed = parseIcon(markup)

@@ -22,7 +22,17 @@ export default function LoginPage() {
 
   useEffect(() => {
     document.title = context.data?.applicationName || 'Application'
-  }, [context.data?.applicationName])
+    const icon = context.data?.faviconUrl
+    if (!icon) return undefined
+    let link = document.querySelector('link[rel="icon"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = icon
+    return undefined
+  }, [context.data?.applicationName, context.data?.faviconUrl])
 
   useEffect(() => {
     const first = context.data?.users?.[0]?.id
@@ -49,6 +59,7 @@ export default function LoginPage() {
 
   const data = context.data
 
+  const picture = data.loginBackgroundUrl || data.backgroundImage
   return (
     <Box
       sx={(theme) => ({
@@ -56,27 +67,12 @@ export default function LoginPage() {
         display: 'flex',
         flexDirection: 'column',
         color: 'text.primary',
-        backgroundImage: `linear-gradient(90deg, ${alpha(theme.palette.background.default, 0.35)}, ${alpha(theme.palette.background.default, 0.72)}), url(${data.backgroundImage})`,
+        bgcolor: picture ? 'transparent' : 'background.default',
+        backgroundImage: picture ? `url(${picture})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       })}
     >
-      <Box
-        sx={{
-          px: 2,
-          minHeight: 32,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          bgcolor: (theme) => alpha(theme.palette.background.paper, 0.72),
-        }}
-      >
-        <Typography variant="caption" sx={{ letterSpacing: '0.16em' }}>
-          {data.classification}
-        </Typography>
-        <Typography variant="caption">{data.accessNotice}</Typography>
-      </Box>
       <Box
         sx={{
           flex: 1,
@@ -106,17 +102,17 @@ export default function LoginPage() {
           }}
         >
           <Stack spacing={2.5}>
-            <Box>
-              <Typography variant="overline" color="primary" sx={{ letterSpacing: '0.2em' }}>
-                {data.systemName}
-              </Typography>
+            <Stack spacing={1} sx={{ alignItems: 'center', textAlign: 'center' }}>
               <Typography variant="h5" component="h1">
-                {data.exerciseTitle}
+                {data.applicationName}
               </Typography>
+              {data.logoUrl ? (
+                <Box component="img" src={data.logoUrl} alt="" sx={{ width: 72, height: 72, objectFit: 'contain' }} />
+              ) : null}
               <Typography variant="body2" color="text.secondary">
                 {data.purpose}
               </Typography>
-            </Box>
+            </Stack>
             <SearchSelect
               required
               label="User"

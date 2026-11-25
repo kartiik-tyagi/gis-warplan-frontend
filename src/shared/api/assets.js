@@ -1,24 +1,69 @@
-import { del, get, post, put } from './http'
+import { appServiceUnreachable } from '../brand'
+import { ApiError } from './errors'
+import { API_BASE, del, get, post, put } from './http'
+import { getToken } from './tokenStore'
 
-/**
- * The single asset-management row: the base icon folder the picker reads from and the per-icon labels.
- * Reading is open to any signed-in user; changes need MANAGE_ICONS on the backend.
- */
-
-/** { id, path, labels: { [relativeIconPath]: label }, lastUpdated, updatedBy }. */
+/** Folder and the three size limits. */
 export const getAssetSettings = () => get('/asset-management')
 
-/** Changes the base icon folder (relative path). */
-export const updateAssetPath = (path) => put('/asset-management', { path })
+/** Changes the base folder and, when given, the size limits. */
+export const updateAssetSettings = (body) => put('/asset-management', body)
 
-/** Sets one icon's label. The label must not be blank. */
-export const setIconLabel = (path, label) => put('/asset-management/labels', { path, label })
+export const listAssets = (kind) => get('/assets', { kind })
 
-/** Clears one icon's label so it falls back to the file name. */
-export const resetIconLabel = (path) => del('/asset-management/labels', { query: { path } })
+export const setAssetLabel = (id, label) => put(`/assets/${id}/label`, { label })
 
-/** Saves a drawing as a new SVG in the icon folder. Name may omit .svg. */
+export const clearAssetLabel = (id) => del(`/assets/${id}/label`)
+
+export const deleteAsset = (id) => del(`/assets/${id}`)
+
+/** Uploads one file into a kind. The server message is the error the person sees. */
+export async function uploadAsset(file, kind, label) {
+  if (!file) throw new ApiError('Choose a file to upload.', 'VALIDATION')
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('kind', kind)
+  if (label) formData.append('label', label)
+  return sendForm('/assets', formData)
+}
+
+export async function replaceApplicationPicture(slot, file) {
+  if (!file) throw new ApiError('Choose a file to upload.', 'VALIDATION')
+  const formData = new FormData()
+  formData.append('file', file)
+  return sendForm(`/assets/application/${slot}`, formData, 'PUT')
+}
+
+/** Attaches a document or image to a scenario through the asset store. */
+export function uploadScenarioAttachment(scenarioId, file) {
+  if (!file) throw new ApiError('Choose a file to upload.', 'VALIDATION')
+  const formData = new FormData()
+  formData.append('file', file)
+  return sendForm(`/scenarios/${scenarioId}/attachment`, formData)
+}
+
+/** Saves a drawing as a new SVG icon. The original file is left unchanged. */
 export const drawIcon = ({ name, directory, label, svg }) => post('/icons/draw', { name, directory, label, svg })
 
-/** Replaces the drawing stored at an existing SVG path. The file name does not change. */
-export const reviseIcon = ({ path, label, svg }) => put('/icons/draw', { path, label, svg })
+async function sendForm(path, formData, method = 'POST') {
+  const headers = { Accept: 'application/json' }
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  let response
+  try {
+    response = await fetch(`${API_BASE}${path}`, { method, headers, body: formData })
+  } catch {
+    throw new ApiError(appServiceUnreachable(), 'UNAVAILABLE')
+  }
+  if (!response.ok) {
+    let payload = null
+    try {
+      payload = await response.json()
+    } catch {
+      payload = null
+    }
+    throw new ApiError(payload?.message || `Upload failed (${response.status}).`, payload?.code || 'HTTP_' + response.status)
+  }
+  if (response.status === 204) return null
+  return response.json()
+}

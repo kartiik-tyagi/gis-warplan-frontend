@@ -24,10 +24,24 @@ function ViewModes({ mode, onChange }) {
 
 export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating = false, viewMode = 'default', onViewMode }) {
   const applicationName = useSessionStore((state) => state.session?.applicationName || '')
+  const logoUrl = useSessionStore((state) => state.session?.logoUrl || '')
+  const faviconUrl = useSessionStore((state) => state.session?.faviconUrl || '')
 
   useEffect(() => {
     if (applicationName) document.title = applicationName
   }, [applicationName])
+
+  useEffect(() => {
+    if (!faviconUrl) return undefined
+    let link = document.querySelector('link[rel="icon"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = faviconUrl
+    return undefined
+  }, [faviconUrl])
 
   return (
     <Box
@@ -48,7 +62,7 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flexShrink: 1 }}>
-        <BrandMark size={26} name={applicationName} />
+        <BrandMark size={26} name={applicationName} src={logoUrl} />
         <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.25, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {applicationName}
         </Typography>

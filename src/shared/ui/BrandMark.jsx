@@ -1,12 +1,12 @@
 import { Box } from '@mui/material'
-import { APP_MARK_SRC } from '../brand'
 
-/** Product mark next to the brand name. Swap the file via `APP_MARK_SRC` in `shared/brand.js`. */
-export function BrandMark({ size = 28, name = '', sx }) {
+/** Product mark. The address comes from the asset store. */
+export function BrandMark({ size = 28, name = '', src = '', sx }) {
+  if (!src) return null
   return (
     <Box
       component="img"
-      src={APP_MARK_SRC}
+      src={src}
       alt={name || 'Application'}
       width={size}
       height={size}

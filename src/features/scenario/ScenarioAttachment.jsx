@@ -3,13 +3,11 @@ import { Box, Button, Stack, Typography } from '@mui/material'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
-import { ApiError } from '../../shared/api/errors'
-import { API_BASE, del, httpBlob } from '../../shared/api/http'
-import { getToken } from '../../shared/api/tokenStore'
-import { appServiceUnreachable } from '../../shared/brand'
+import { uploadScenarioAttachment } from '../../shared/api/assets'
+import { del, httpBlob } from '../../shared/api/http'
 
-const ACCEPT = '.txt,.doc,.docx,.pdf,.jpg,.jpeg,text/plain,application/pdf,image/jpeg,application/msword'
-const MAX_BYTES = 10 * 1024 * 1024
+const ACCEPT = '.txt,.doc,.docx,.pdf,.jpg,.jpeg,.png,.gif,.webp'
+const MAX_BYTES = 50 * 1024 * 1024
 
 function extensionOf(name) {
   const parts = String(name || '').toLowerCase().split('.')
@@ -18,7 +16,7 @@ function extensionOf(name) {
 
 function kindOf(name) {
   const ext = extensionOf(name)
-  if (ext === 'jpg' || ext === 'jpeg') return 'image'
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif' || ext === 'webp') return 'image'
   if (ext === 'pdf') return 'pdf'
   if (ext === 'txt') return 'text'
   if (ext === 'doc' || ext === 'docx') return 'document'
@@ -26,31 +24,7 @@ function kindOf(name) {
 }
 
 export async function uploadAttachment(scenarioId, file) {
-  const formData = new FormData()
-  formData.append('file', file)
-  const headers = { Accept: 'application/json' }
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
-  let response
-  try {
-    response = await fetch(`${API_BASE}/scenarios/${scenarioId}/attachment`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    })
-  } catch {
-    throw new ApiError(appServiceUnreachable(), 'UNAVAILABLE')
-  }
-  if (!response.ok) {
-    let payload = null
-    try {
-      payload = await response.json()
-    } catch {
-      payload = null
-    }
-    throw new ApiError(payload?.message || `Upload failed (${response.status}).`, payload?.code || 'HTTP_' + response.status)
-  }
-  return response.json()
+  return uploadScenarioAttachment(scenarioId, file)
 }
 
 function AttachmentPreview({ fileName, previewUrl, textPreview }) {
@@ -202,7 +176,7 @@ export function ScenarioAttachment({
     if (!file) return
 
     if (file.size > MAX_BYTES) {
-      setError('The attachment is too large (max 10 MB).')
+      setError('The file is larger than 50 MB.')
       return
     }
 
@@ -285,8 +259,8 @@ export function ScenarioAttachment({
         {disabled
           ? 'Attached file for this scenario.'
           : isCreate
-            ? 'Choose a txt, doc, docx, pdf, or jpg file (max 10 MB). It uploads when you create the scenario.'
-            : 'Upload a txt, doc, docx, pdf, or jpg file (max 10 MB). It is stored with this scenario and shown below.'}
+            ? 'Choose a document or image. Documents can be up to 50 MB. It uploads when you create the scenario.'
+            : 'Upload a document or image. Documents can be up to 50 MB. It is stored with this scenario and shown below.'}
       </Typography>
 
       <input ref={inputRef} type="file" accept={ACCEPT} hidden onChange={onFile} />

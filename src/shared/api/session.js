@@ -58,7 +58,7 @@ export function profileFromMe(me, sides) {
     title: me.name,
     role: roles.join(', ') || 'User',
     service: side?.name || (admin ? 'Exercise control' : ''),
-    avatarUrl: me.name === 'APEX' ? '/avatars/apex.svg' : '',
+    avatarUrl: '',
   }
 }
 
@@ -141,6 +141,8 @@ export async function buildSession(me) {
     mapConfig,
     clockStart,
     applicationName,
+    logoUrl: me.logoUrl || '',
+    faviconUrl: me.faviconUrl || '',
     exerciseTitle: applicationName,
     classification: 'EXERCISE',
     demoMode: false,

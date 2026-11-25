@@ -78,7 +78,7 @@ export function loadIcon(path, theme) {
   const key = iconKey(path, theme)
   if (iconUrls.has(key)) return Promise.resolve(iconUrls.get(key))
   const request = isSvgPath(path)
-    ? httpText('/icons/content', { query: { path } }).then((markup) => {
+    ? httpText('/assets/content', { query: { path } }).then((markup) => {
         const presented = presentSvg(markup, theme)
         return {
           url: URL.createObjectURL(new Blob([presented.markup], { type: 'image/svg+xml' })),
@@ -86,7 +86,7 @@ export function loadIcon(path, theme) {
           height: presented.height,
         }
       })
-    : httpBlob('/icons/content', { query: { path } }).then((blob) => {
+    : httpBlob('/assets/content', { query: { path } }).then((blob) => {
         const url = URL.createObjectURL(blob)
         return measureImage(url).then((size) => ({ url, ...size }))
       })

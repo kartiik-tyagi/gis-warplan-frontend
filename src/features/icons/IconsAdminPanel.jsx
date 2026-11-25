@@ -3,276 +3,300 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
-  List,
-  ListItemButton,
-  ListItemText,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined'
 import GestureIcon from '@mui/icons-material/Gesture'
-import { getAssetSettings, setIconLabel, updateAssetPath } from '../../shared/api/assets'
-import { get } from '../../shared/api/http'
+import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
+import {
+  deleteAsset,
+  getAssetSettings,
+  listAssets,
+  replaceApplicationPicture,
+  setAssetLabel,
+  updateAssetSettings,
+  uploadAsset,
+} from '../../shared/api/assets'
 import { FunctionalityCodes, hasFunctionality } from '../../shared/auth/functionalityCodes'
 import { isSvgPath } from '../../shared/icons/svgDocument'
-import { EMPTY_LIST } from '../../shared/lib/empty'
 import { logger } from '../../shared/lib/logger'
 import { LoadingState } from '../../shared/ui/LoadingState'
-import { IconPreview } from '../../shared/ui/IconPicker'
+import { IconPreview, forgetIconPreview, invalidateIconLabels } from '../../shared/ui/IconPicker'
 import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
 import { IconStudio } from './IconStudio'
 
-function directories(node, depth = 0, found = []) {
-  if (!node || node.type !== 'directory') return found
-  found.push({ path: node.path || '', name: node.name || 'All icons', depth, children: node.children || EMPTY_LIST })
-  ;(node.children || EMPTY_LIST).forEach((child) => directories(child, depth + 1, found))
-  return found
+const SECTIONS = [
+  { id: 'icon', label: 'Icons', accept: '.svg,.png', hint: 'SVG and PNG symbols used on the map.' },
+  { id: 'image', label: 'Images', accept: '.png,.jpg,.jpeg,.gif,.webp', hint: 'Photographs and other pictures.' },
+  { id: 'document', label: 'Documents', accept: '.txt,.doc,.docx,.pdf', hint: 'Papers attached to a scenario or kept in the library.' },
+  { id: 'application', label: 'Application', accept: '', hint: 'The logo, the favicon, and the sign-in picture.' },
+]
+
+const SLOTS = [
+  { id: 'logo', label: 'Logo', accept: '.svg,.png' },
+  { id: 'favicon', label: 'Favicon', accept: '.svg,.png' },
+  { id: 'login-background', label: 'Login picture', accept: '.svg,.png,.jpg,.jpeg,.webp' },
+]
+
+function humanSize(bytes) {
+  const value = Number(bytes)
+  if (!Number.isFinite(value) || value < 1) return ''
+  if (value % (1024 * 1024) === 0) return `${value / (1024 * 1024)} MB`
+  if (value % 1024 === 0) return `${value / 1024} KB`
+  return `${value} bytes`
 }
 
-/** Browse the icon folders and draw new SVG icons (drawing needs MANAGE_ICONS). */
 export function IconsAdminPanel() {
   const push = useToastStore((state) => state.push)
   const canManage = useSessionStore((state) => hasFunctionality(state.session?.functionalities, FunctionalityCodes.MANAGE_ICONS))
-  const [tree, setTree] = useState(null)
-  const [folder, setFolder] = useState('')
-  const [chosen, setChosen] = useState('')
-  const [basePath, setBasePath] = useState('')
-  const [basePathDraft, setBasePathDraft] = useState('')
-  const [savingPath, setSavingPath] = useState(false)
+  const [section, setSection] = useState('icon')
+  const [settings, setSettings] = useState(null)
+  const [pathDraft, setPathDraft] = useState('')
+  const [limits, setLimits] = useState({ iconMaxBytes: '', imageMaxBytes: '', documentMaxBytes: '' })
+  const [rows, setRows] = useState([])
+  const [chosen, setChosen] = useState(null)
   const [labelDraft, setLabelDraft] = useState('')
-  const [savingLabel, setSavingLabel] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
   const [studio, setStudio] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  const loadSettings = useCallback(async () => {
+    const next = await getAssetSettings()
+    setSettings(next)
+    setPathDraft(next?.path || '')
+    setLimits({
+      iconMaxBytes: String(next?.iconMaxBytes ?? ''),
+      imageMaxBytes: String(next?.imageMaxBytes ?? ''),
+      documentMaxBytes: String(next?.documentMaxBytes ?? ''),
+    })
+    return next
+  }, [])
+
+  const loadRows = useCallback(async (kind) => {
+    if (kind === 'application') {
+      setRows([])
+      return
+    }
+    const list = await listAssets(kind)
+    setRows(Array.isArray(list) ? list : [])
+  }, [])
 
   const load = useCallback(async () => {
     setError('')
-    // Load the stored base path first, so a bad folder (which makes /icons fail) is still shown and fixable.
-    const settings = await getAssetSettings().catch(() => null)
-    if (settings?.path != null) {
-      setBasePath(settings.path)
-      setBasePathDraft(settings.path)
-    }
+    setLoading(true)
     try {
-      setTree(await get('/icons'))
+      await loadSettings()
+      await loadRows(section)
     } catch (failure) {
-      const text = failure?.message || 'The icons could not be listed.'
+      const text = failure?.message || 'The assets could not be loaded.'
       setError(text)
-      push(text, 'error')
-      logger.warn('icons.admin.list.failed', { message: text })
+      logger.warn('assets.load_failed', { message: text })
+    } finally {
+      setLoading(false)
     }
-  }, [push])
+  }, [loadRows, loadSettings, section])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const folders = useMemo(() => directories(tree), [tree])
-  const files = useMemo(() => {
-    const current = folders.find((item) => item.path === folder)
-    return (current?.children || EMPTY_LIST).filter((child) => child.type === 'file')
-  }, [folders, folder])
-  const chosenFile = useMemo(() => files.find((file) => file.path === chosen) || null, [files, chosen])
-
   useEffect(() => {
-    setLabelDraft(chosenFile?.label || '')
-  }, [chosenFile])
+    setLabelDraft(chosen?.label || '')
+  }, [chosen])
 
-  const openFolder = (path) => {
-    setFolder(path)
-    setChosen('')
-  }
+  const limitHint = useMemo(() => {
+    if (!settings) return ''
+    if (section === 'icon') return `Maximum ${humanSize(settings.iconMaxBytes)}.`
+    if (section === 'image') return `Maximum ${humanSize(settings.imageMaxBytes)}.`
+    if (section === 'document') return `Maximum ${humanSize(settings.documentMaxBytes)}.`
+    return ''
+  }, [section, settings])
 
-  async function savePath() {
-    const next = basePathDraft.trim()
-    if (!next) {
-      setError('The base icon folder is required.')
-      push('The base icon folder is required.', 'error')
+  async function saveSettings() {
+    const iconMaxBytes = Number(limits.iconMaxBytes)
+    const imageMaxBytes = Number(limits.imageMaxBytes)
+    const documentMaxBytes = Number(limits.documentMaxBytes)
+    if (!pathDraft.trim() || !iconMaxBytes || !imageMaxBytes || !documentMaxBytes) {
+      setError('The folder and all three size limits are required.')
       return
     }
-    setSavingPath(true)
+    setBusy(true)
     setError('')
     try {
-      await updateAssetPath(next)
-      logger.info('icons.admin.base_path.updated', { path: next })
-      push('Base icon folder updated.', 'success')
-      setFolder('')
-      setChosen('')
+      await updateAssetSettings({ path: pathDraft.trim(), iconMaxBytes, imageMaxBytes, documentMaxBytes })
+      push('Asset settings saved.', 'success')
       await load()
     } catch (failure) {
-      const text = failure?.message || 'The base icon folder could not be changed.'
+      const text = failure?.message || 'The asset settings could not be saved.'
       setError(text)
       push(text, 'error')
-      logger.warn('icons.admin.base_path.failed', { message: text })
     } finally {
-      setSavingPath(false)
+      setBusy(false)
+    }
+  }
+
+  async function onUpload(file, kind) {
+    if (!file) return
+    setBusy(true)
+    setError('')
+    try {
+      await uploadAsset(file, kind)
+      invalidateIconLabels()
+      push('File stored.', 'success')
+      await loadRows(kind)
+    } catch (failure) {
+      const text = failure?.message || 'The file could not be stored.'
+      setError(text)
+      push(text, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onReplaceSlot(slot, file) {
+    if (!file) return
+    setBusy(true)
+    setError('')
+    try {
+      await replaceApplicationPicture(slot, file)
+      push('Picture updated.', 'success')
+    } catch (failure) {
+      const text = failure?.message || 'The picture could not be stored.'
+      setError(text)
+      push(text, 'error')
+    } finally {
+      setBusy(false)
     }
   }
 
   async function saveLabel() {
-    const next = labelDraft.trim()
-    if (!chosen || !next) {
+    if (!chosen?.id || !labelDraft.trim()) {
       setError('A label is required.')
-      push('A label is required.', 'error')
       return
     }
-    setSavingLabel(true)
+    setBusy(true)
     setError('')
     try {
-      await setIconLabel(chosen, next)
-      logger.info('icons.admin.label.saved', { path: chosen })
+      await setAssetLabel(chosen.id, labelDraft.trim())
+      invalidateIconLabels()
+      if (chosen.path) forgetIconPreview(chosen.path)
       push('Label saved.', 'success')
-      await load()
+      await loadRows(section)
     } catch (failure) {
       const text = failure?.message || 'The label could not be saved.'
       setError(text)
       push(text, 'error')
-      logger.warn('icons.admin.label.failed', { message: text })
     } finally {
-      setSavingLabel(false)
+      setBusy(false)
     }
   }
 
-  async function onDrawn(savedPath) {
-    setStudio(null)
-    await load()
-    if (!savedPath) return
-    const parent = savedPath.includes('/') ? savedPath.slice(0, savedPath.lastIndexOf('/')) : ''
-    setFolder(parent)
-    setChosen(savedPath)
+  async function remove(row) {
+    setBusy(true)
+    setError('')
+    try {
+      await deleteAsset(row.id)
+      if (row.path) forgetIconPreview(row.path)
+      invalidateIconLabels()
+      setChosen(null)
+      push('File removed.', 'success')
+      await loadRows(section)
+    } catch (failure) {
+      const text = failure?.message || 'The file could not be removed.'
+      setError(text)
+      push(text, 'error')
+    } finally {
+      setBusy(false)
+    }
   }
 
-  if (!tree && !error) return <LoadingState label="Loading icons" />
+  if (loading && !settings) return <LoadingState label="Loading assets" />
+
+  const current = SECTIONS.find((item) => item.id === section)
 
   return (
-    <Stack spacing={2.5}>
-      <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center' }}>
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-          Browse the icon folders. New icons are drawn here and stored on the server.
-        </Typography>
-        <Chip size="small" variant="outlined" label={canManage ? 'Can draw' : 'Read only'} />
-      </Stack>
-
-      <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { sm: 'flex-start' } }}>
-          <TextField
-            label="Base Icon Folder"
-            value={basePathDraft}
-            onChange={(event) => setBasePathDraft(event.target.value)}
-            disabled={!canManage || savingPath}
-            error={canManage && !basePathDraft.trim()}
-            helperText={canManage ? 'Folder the icon store reads from. Created if missing; must be writable.' : `Icons are read from ${basePath || '…'}.`}
-            fullWidth
-          />
-          {canManage ? (
-            <Button
-              variant="outlined"
-              disabled={savingPath || !basePathDraft.trim() || basePathDraft.trim() === basePath}
-              onClick={savePath}
-              sx={{ flexShrink: 0, mt: { sm: 1 } }}
-            >
-              {savingPath ? 'Saving…' : 'Save folder'}
-            </Button>
-          ) : null}
+    <Stack spacing={2}>
+      <Typography variant="body2" color="text.secondary">
+        Icons, pictures, documents, and the application pictures are stored in one folder.
+      </Typography>
+      <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
+        <Stack spacing={1.5}>
+          <TextField label="Base folder" value={pathDraft} onChange={(event) => setPathDraft(event.target.value)} disabled={!canManage || busy} helperText="Any writable folder on this server, including another disk." fullWidth />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <TextField label="Icon limit (bytes)" value={limits.iconMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, iconMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
+            <TextField label="Image limit (bytes)" value={limits.imageMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, imageMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
+            <TextField label="Document limit (bytes)" value={limits.documentMaxBytes} onChange={(event) => setLimits((current) => ({ ...current, documentMaxBytes: event.target.value }))} disabled={!canManage || busy} fullWidth />
+          </Stack>
+          {canManage ? <Button variant="outlined" disabled={busy} onClick={saveSettings} sx={{ alignSelf: 'flex-start' }}>Save settings</Button> : null}
         </Stack>
       </Box>
-
       {error ? <Alert severity="error">{error}</Alert> : null}
-
-      {tree ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2, alignItems: 'start' }}>
-          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-            <Typography variant="subtitle2" sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}>Folders</Typography>
-            <List dense disablePadding aria-label="Icon folders" sx={{ maxHeight: 480, overflow: 'auto' }}>
-              {folders.map((item) => (
-                <ListItemButton key={item.path || 'root'} selected={item.path === folder} onClick={() => openFolder(item.path)} sx={{ pl: 2 + item.depth * 1.5 }}>
-                  <FolderOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                  <ListItemText primary={item.name} slotProps={{ primary: { variant: 'body2', noWrap: true } }} />
-                </ListItemButton>
-              ))}
-            </List>
-          </Box>
-
-          <Stack spacing={2} sx={{ minWidth: 0 }}>
-            {files.length ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', gap: 1.25 }}>
-                {files.map((file) => (
-                  <Button
-                    key={file.path}
-                    variant={chosen === file.path ? 'contained' : 'outlined'}
-                    color={chosen === file.path ? 'primary' : 'inherit'}
-                    onClick={() => setChosen(file.path)}
-                    aria-pressed={chosen === file.path}
-                    sx={{ flexDirection: 'column', gap: 0.75, minHeight: 104, textTransform: 'none', borderRadius: 2, p: 1 }}
-                  >
-                    <IconPreview path={file.path} size={40} alt={file.label || file.name} />
-                    <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{file.label || file.name}</Typography>
-                  </Button>
-                ))}
-              </Box>
-            ) : (
-              <Box sx={{ py: 6, px: 3, textAlign: 'center', border: 1, borderColor: 'divider', borderStyle: 'dashed', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary">No icons in {folder || 'the root folder'}.</Typography>
-              </Box>
-            )}
-
-            {chosenFile ? (
-              <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'flex-start' } }}>
-                  <IconPreview path={chosenFile.path} size={64} alt={chosenFile.label || chosenFile.name} />
-                  <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-                    <TextField
-                      label="Label"
-                      value={labelDraft}
-                      onChange={(event) => setLabelDraft(event.target.value)}
-                      disabled={!canManage || savingLabel}
-                      error={canManage && !labelDraft.trim()}
-                      helperText={canManage ? 'Shown in the picker instead of the file name.' : ' '}
-                      fullWidth
-                    />
-                    <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>File: {chosenFile.path}</Typography>
-                    {canManage ? (
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          variant="outlined"
-                          disabled={savingLabel || !labelDraft.trim() || labelDraft.trim() === (chosenFile.label || '')}
-                          onClick={saveLabel}
-                        >
-                          {savingLabel ? 'Saving…' : 'Save label'}
-                        </Button>
-                        {isSvgPath(chosenFile.path) ? (
-                          <Button variant="outlined" onClick={() => setStudio({ mode: 'revise', path: chosenFile.path, label: chosenFile.label || '' })}>
-                            Revise as new
-                          </Button>
-                        ) : null}
-                      </Stack>
-                    ) : null}
-                  </Stack>
-                </Stack>
-              </Box>
-            ) : null}
-
-            {canManage ? (
-              <Button variant="contained" startIcon={<GestureIcon />} onClick={() => setStudio({ mode: 'create' })} sx={{ alignSelf: 'flex-start' }}>
-                Draw icon
+      <Tabs value={section} onChange={(_event, value) => { setSection(value); setChosen(null) }}>
+        {SECTIONS.map((item) => <Tab key={item.id} value={item.id} label={item.label} />)}
+      </Tabs>
+      <Typography variant="body2" color="text.secondary">{current?.hint} {limitHint}</Typography>
+      {section === 'application' ? (
+        <Stack spacing={1.5}>
+          {SLOTS.map((slot) => (
+            <Stack key={slot.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Typography sx={{ width: 140 }}>{slot.label}</Typography>
+              {canManage ? (
+                <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={busy}>
+                  Replace
+                  <input hidden type="file" accept={slot.accept} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onReplaceSlot(slot.id, file) }} />
+                </Button>
+              ) : null}
+            </Stack>
+          ))}
+        </Stack>
+      ) : (
+        <Stack spacing={1.5}>
+          {canManage ? (
+            <Stack direction="row" spacing={1}>
+              <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={busy}>
+                Upload
+                <input hidden type="file" accept={current?.accept} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; onUpload(file, section) }} />
               </Button>
-            ) : (
-              <Typography variant="body2" color="text.secondary">Drawing icons needs the Manage icons permission.</Typography>
-            )}
-          </Stack>
-        </Box>
-      ) : null}
+              {section === 'icon' ? <Button variant="contained" startIcon={<GestureIcon />} onClick={() => setStudio({ mode: 'create' })}>Draw icon</Button> : null}
+            </Stack>
+          ) : null}
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 1 }}>
+            {rows.map((row) => (
+              <Button key={row.id} variant={chosen?.id === row.id ? 'contained' : 'outlined'} onClick={() => setChosen(row)} sx={{ flexDirection: 'column', minHeight: 96, textTransform: 'none' }}>
+                {section === 'icon' || section === 'image' ? <IconPreview path={row.path} size={36} alt={row.label || row.name} /> : null}
+                <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{row.label || row.name}</Typography>
+              </Button>
+            ))}
+          </Box>
+          {!rows.length ? <Typography variant="body2" color="text.secondary">Nothing stored in this section.</Typography> : null}
+          {chosen ? (
+            <Stack spacing={1} sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
+              <Typography variant="caption" color="text.secondary">{chosen.path}</Typography>
+              <TextField label="Label" value={labelDraft} onChange={(event) => setLabelDraft(event.target.value)} disabled={!canManage || busy} helperText="Shown to everyone." fullWidth />
+              {canManage ? (
+                <Stack direction="row" spacing={1}>
+                  <Button variant="outlined" disabled={busy || !labelDraft.trim()} onClick={saveLabel}>Save label</Button>
+                  <Button color="inherit" disabled={busy} onClick={() => remove(chosen)}>Remove</Button>
+                  {section === 'icon' && isSvgPath(chosen.path) ? <Button variant="outlined" onClick={() => setStudio({ mode: 'revise', path: chosen.path, label: chosen.label || '' })}>Revise as new</Button> : null}
+                </Stack>
+              ) : null}
+            </Stack>
+          ) : null}
+        </Stack>
+      )}
       <IconStudio
         open={Boolean(studio)}
         mode={studio?.mode || 'create'}
-        directory={folder}
         path={studio?.path || ''}
         initialLabel={studio?.label || ''}
         onClose={() => setStudio(null)}
-        onSaved={onDrawn}
+        onSaved={async () => { setStudio(null); await loadRows('icon') }}
       />
     </Stack>
   )

@@ -1,10 +1,7 @@
 /**
- * Brand mark shown next to the product title.
- * The title itself is `warplan.application-name` on the server. These helpers are
- * only the words shown before that title has been read, or when the server cannot be reached.
+ * Words shown before the server has answered, or when it cannot be reached.
+ * The title, logo, favicon, and login picture come from the asset store.
  */
-export const APP_MARK_SRC = '/brand-mark.svg'
-
 export function appUnavailableMessage(detail = 'Try again shortly.') {
   return `The application is unavailable. ${detail}`
 }
