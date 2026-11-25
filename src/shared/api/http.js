@@ -3,7 +3,16 @@ import { logger } from '../lib/logger'
 import { ApiError } from './errors'
 import { clearToken, getToken } from './tokenStore'
 
-export const API_BASE = '/api/v1'
+function readApiBase() {
+  const configured = window.warplan && window.warplan.apiBase
+  if (typeof configured === 'string' && configured.trim()) {
+    return configured.trim().replace(/\/+$/, '')
+  }
+  return '/api/v1'
+}
+
+/** Set in /config.js. Dev uses /api/v1 through the Vite proxy. A deployed copy points at the real API. */
+export const API_BASE = readApiBase()
 
 let unauthorizedHandler = null
 
@@ -13,7 +22,9 @@ export function setUnauthorizedHandler(handler) {
 }
 
 function urlFor(path, query) {
-  const url = path.startsWith('/api/') ? path : `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
+  const url = /^https?:\/\//i.test(path)
+    ? path
+    : `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
   if (!query) return url
   const params = new URLSearchParams()
   Object.entries(query).forEach(([key, value]) => {
