@@ -258,7 +258,7 @@ export function ScenarioContext() {
             {moonPhase?.icon ? (
               <Tooltip title={moonPhase.label}>
                 <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}>
-                  <IconPreview path={moonPhase.icon} size={28} alt={moonPhase.label} />
+                  <IconPreview path={moonPhase.icon} size={32} alt={moonPhase.label} />
                 </Box>
               </Tooltip>
             ) : null}
