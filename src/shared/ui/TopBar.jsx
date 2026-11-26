@@ -23,7 +23,7 @@ function ViewModes({ mode, onChange }) {
   )
 }
 
-export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating = false, viewMode = 'default', onViewMode }) {
+export function TopBar({ menu, leading, trailing, menuOpen, onMenuOpenChange, floating = false, viewMode = 'default', onViewMode }) {
   const applicationName = useSessionStore((state) => state.session?.applicationName || '')
   const logoUrl = useSessionStore((state) => state.session?.logoUrl || '')
   const faviconUrl = useSessionStore((state) => state.session?.faviconUrl || '')
@@ -62,6 +62,7 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
         color: 'text.primary',
       }}
     >
+      {menu}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flexShrink: 1 }}>
         {SHOW_TOPBAR_APPLICATION_ICON ? <BrandMark size={26} name={applicationName} src={logoUrl} /> : null}
         <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.25, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>

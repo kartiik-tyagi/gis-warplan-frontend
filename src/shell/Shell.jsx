@@ -34,12 +34,8 @@ function Frame() {
   return (
     <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', bgcolor: 'background.default', color: 'text.primary' }}>
       <TopBar
-        leading={
-          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-            <ApplicationMenu presentation="menu" />
-            <ShowMapTools pressed={toolsOpen} onClick={() => setToolsOpen((open) => !open)} />
-          </Box>
-        }
+        menu={<ApplicationMenu presentation="menu" />}
+        leading={<ShowMapTools pressed={toolsOpen} onClick={() => setToolsOpen((open) => !open)} />}
       />
       <ContextStrip />
       {toolsOpen ? <MapToolbar activeId={panel} onSelect={select} /> : null}
