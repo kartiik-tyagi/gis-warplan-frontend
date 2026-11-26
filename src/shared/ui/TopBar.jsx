@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Box, Checkbox, FormControlLabel, Typography } from '@mui/material'
 import { useSessionStore } from '../../features/session/useSessionStore'
+import { SHOW_TOPBAR_APPLICATION_ICON } from '../brand'
 import { BrandMark } from './BrandMark'
 import { ScenarioContext } from './ScenarioContext'
 import { UserMenu } from './UserMenu'
@@ -62,7 +63,7 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flexShrink: 1 }}>
-        <BrandMark size={26} name={applicationName} src={logoUrl} />
+        {SHOW_TOPBAR_APPLICATION_ICON ? <BrandMark size={26} name={applicationName} src={logoUrl} /> : null}
         <Typography variant="subtitle2" noWrap sx={{ letterSpacing: { xs: '0.08em', sm: '0.14em' }, px: 0.25, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {applicationName}
         </Typography>

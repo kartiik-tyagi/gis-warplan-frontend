@@ -140,7 +140,7 @@ function PopupMenuGroups({ sections, sectionId, onSelect }) {
                 key={section.id}
                 selected={section.id === sectionId}
                 onClick={() => onSelect(section.id)}
-                sx={{ width: 'fit-content', maxWidth: 'calc(100% - 16px)', mx: 1, my: 0.25, pl: 1.5, borderRadius: 1 }}
+                sx={{ width: 'fit-content', maxWidth: 'calc(100% - 16px)', mx: 1, my: 0.25, pl: 1.5, borderRadius: 1, fontSize: 12, lineHeight: '16px', minHeight: 32 }}
               >
                 <ListItemIcon sx={{ color: section.id === sectionId ? 'primary.main' : 'text.secondary' }}>
                   <NavIcon name={section.icon} />
