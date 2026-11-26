@@ -1,0 +1,679 @@
+================================================================================
+GIS WARPLAN — MAP LAYERS, GEOSERVER, PUBLISH & IMPORT
+Complete how-to guide for application users
+================================================================================
+
+Who this document is for
+------------------------
+This guide is written for people who use GIS Warplan every day and may never
+have opened GeoServer itself. You do not need to know GIS jargon to follow it.
+Everything below is done from inside the Warplan application menus.
+
+If something fails, go to the section "What errors mean" near the end.
+
+
+================================================================================
+1. Big picture (start here)
+================================================================================
+
+Warplan shows a map. The pictures on that map (countries, roads, elevation,
+satellite imagery, and so on) do not live inside Warplan. They live on a
+separate map engine called GeoServer.
+
+Think of it like this:
+
+  GeoServer  = the library that holds the map books (the real data)
+  Warplan    = the reading desk that shows which books are open, and in what order
+
+Warplan can:
+  - Point at an existing GeoServer and register layers already published there
+  - Upload new files (or PostGIS tables) and publish them onto GeoServer
+  - Organize layers into groups
+  - Let users turn groups and layers on/off on the live map
+
+Warplan does NOT replace GeoServer. GeoServer must be running and reachable.
+Warplan talks to it using the addresses and password you configure under
+Map Servers.
+
+
+Important words (plain English)
+-------------------------------
+
+  Layer
+      One map theme you can turn on or off, for example "Countries" or "Roads".
+      On the map it usually appears as images (tiles) drawn from GeoServer.
+
+  WMS
+      The way the browser asks GeoServer for map pictures. You do not need to
+      configure WMS by hand; Warplan builds the requests.
+
+  WMS layer name
+      A technical name GeoServer uses, often like:  ne:countries
+      The part before the colon is the workspace. The part after is the layer.
+      When you type or import a layer, this is the name that must match GeoServer.
+
+  Workspace
+      A folder/namespace on GeoServer (for example "ne"). New publishes go into
+      the workspace you choose (usually the server’s default workspace).
+
+  Layer group
+      A named bundle of layers. Turning the group on can show all of them as
+      one map unit (smoother) instead of many separate switches.
+
+  Style / SLD
+      How a layer is colored and drawn (line thickness, fill color, labels).
+      Warplan can upload an SLD file and keep a list of styles. Fancy visual
+      style editing is not built into Warplan; you upload SLD text/files.
+
+  Publish
+      Take a file (or database table) and create a new layer on GeoServer,
+      then register it in Warplan so the map can use it.
+
+  Import
+      The layer (or group) already exists on GeoServer. You only register it
+      inside Warplan (and optionally put it in a Warplan group). No re-upload.
+
+
+================================================================================
+2. Who can do what (permissions)
+================================================================================
+
+Your account needs the right functionality codes. An administrator assigns these.
+
+  MAP_VIEW
+      Use the map, open Map Filters, turn layers/groups on and off, change
+      opacity (if enabled). You cannot publish or change the catalog.
+
+  MANAGE_MAP
+      Everything under the Application menu → Map section:
+        Map Servers
+        Map Layers
+        Publish Layers
+        Import GeoServer
+        Layer Groups
+        Styles
+        Map Settings
+
+If you do not see those menu items, ask an admin for MANAGE_MAP.
+
+
+================================================================================
+3. First-time setup — connect Warplan to GeoServer
+================================================================================
+
+Do this once per GeoServer (or whenever the address/password changes).
+
+Step A — Open Map Servers
+  Application menu → Map → Map Servers → New Server (or edit the existing one).
+
+Step B — Fill identity
+  Code          Short unique id, for example: local
+  Name          Friendly name, for example: Local GeoServer
+
+Step C — Fill endpoints (ask your IT/GIS person if unsure)
+  WMS URL       Example: http://127.0.0.1:8080/geoserver/wms
+                This is what the map uses to draw tiles. Required.
+  WFS URL       Optional. Stored for the future; the map does not need it today.
+  REST URL      Example: http://127.0.0.1:8080/geoserver/rest
+                Required for Publish, Import, Styles, and Test REST.
+  Default workspace
+                Example: ne
+                New publishes go here unless you override in the wizard.
+
+Step D — GeoServer REST login
+  REST username     Usually "admin" on a fresh GeoServer (your site may differ).
+  REST password     The GeoServer password.
+                    When editing an existing server, leave password blank to
+                    keep the password already stored. Passwords are never shown
+                    again in the form after save.
+
+Step E — Options
+  Enabled           Must be on for the server to be used.
+  Default Server    The one Warplan uses for the main map catalog.
+
+Step F — Save, then Test REST
+  Save the server first.
+  Open it again → click "Test REST".
+  Success means Warplan can talk to GeoServer’s admin API with your credentials.
+  If the test fails, fix URL/username/password before publishing or importing.
+
+Step G — Map Settings (optional but recommended)
+  Application menu → Map → Map Settings
+  Set the home center, zoom, CRS, default GIS server, and (if you use it)
+  elevation layer. Save Home View.
+
+
+Checklist before first publish/import
+-------------------------------------
+  [ ] GeoServer is running
+  [ ] You can open GeoServer in a browser (optional check)
+  [ ] Map Server has WMS URL and REST URL
+  [ ] REST username/password saved
+  [ ] Test REST succeeds
+  [ ] Default workspace is set
+  [ ] Your user has MANAGE_MAP
+
+
+================================================================================
+4. Two ways to get layers into Warplan
+================================================================================
+
+Path 1 — Import (layer already on GeoServer)
+  Use: Application menu → Map → Import GeoServer
+  When: Someone already published the data in GeoServer (or it came with a
+        sample catalog like Natural Earth).
+  Result: Warplan learns the names and can show them. No file upload.
+
+Path 2 — Publish (create the layer from Warplan)
+  Use: Application menu → Map → Publish Layers
+  When: You have shapefile zip / GeoJSON / GeoTIFF files, or PostGIS tables,
+        and you want Warplan to create them on GeoServer for you.
+  Result: GeoServer gets new layers; Warplan registers them; groups can be
+          created automatically.
+
+Path 3 — Manual Map Layers form (still available)
+  Use: Application menu → Map → Map Layers → New Layer
+  When: You already know the exact WMS name (for example ne:countries) and
+        just want to type it in.
+  Result: Same as a tiny one-layer import by hand. This older path was not
+          removed; Publish/Import are additions.
+
+
+================================================================================
+5. Map Layers — manual catalog (add an already-published name)
+================================================================================
+
+1. Application menu → Map → Map Layers → New Layer
+2. Choose the GIS Server.
+3. Fill:
+     Code          Unique short id inside Warplan (example: countries)
+     Label         What users see (example: Countries)
+     Group         Optional text label for older grouping; prefer Layer Groups
+                   for real groups going forward
+     WMS layers    Exact GeoServer name, example: ne:countries
+     Format        Usually image/png
+     Flags         Transparent, Base layer, Visible by default, Active
+4. Save.
+
+If the WMS name is wrong or not published on GeoServer, the map will show a
+blank/broken tile for that layer. Fix the name or publish/import the correct
+layer.
+
+Deleting a layer only removes it from Warplan’s catalog. It does not delete
+the data from GeoServer.
+
+
+================================================================================
+6. Publish Layers — upload files (bulk)
+================================================================================
+
+Open: Application menu → Map → Publish Layers
+Tab: Files
+
+This is a step-by-step wizard. You can jump steps with the chips at the top,
+but the normal order is safest.
+
+STEP 0 — Source
+  - Choose the GIS server (must have working REST credentials).
+  - Click "Add files" and select one or many files.
+  - Supported types:
+        .zip     Shapefile archive (must contain the shapefile parts, typically
+                 .shp, .shx, .dbf, and ideally .prj)
+        .geojson / .json
+        .tif / .tiff   GeoTIFF raster
+  - Unsupported files are rejected with a warning toast.
+  - Limits (defaults; your install may change them):
+        Up to 100 items per job
+        Up to about 100 MB per file
+  - Click Next.
+
+STEP 1 — Names
+  - Each file gets a Type (detected) and a Layer name (editable).
+  - Layer names should be simple letters, numbers, underscore, hyphen.
+  - Click Next.
+
+STEP 2 — Groups
+  - For each layer, type a Group code (example: terrain, infra).
+  - Layers that share the same group code become one Warplan layer group
+    after a successful publish, and Warplan also creates/updates that group
+    on GeoServer.
+  - Leave group blank if the layer should stay ungrouped.
+  - Different layers can use different groups in the same job
+    (example: 15 layers → terrain, 10 → infra).
+  - Click Next.
+
+STEP 3 — Options
+  - Workspace          Usually the server default (example: ne)
+  - Overwrite policy   What to do if the layer name already exists on GeoServer:
+        Skip existing     Leave the old layer; mark this item SKIPPED
+        Rename            Publish as name_2, name_3, …
+        Overwrite         Replace/configure the existing store (use carefully)
+  - Default CRS        Used when needed (example: EPSG:4326)
+  - Click Dry-run.
+
+STEP 4 — Dry-run
+  - Checks connection and each item BEFORE writing to GeoServer.
+  - Read the list: OK vs problems (missing name, connection error, already exists).
+  - You may still Publish if some items have warnings; failed items are reported.
+  - Click Publish.
+
+STEP 5 — Run
+  - A background job starts. Progress updates automatically.
+  - You see per-item status (see section 8).
+  - Cancel stops items that have not started yet.
+  - Retry failed re-queues only failed items.
+  - When finished: "Done — open map" refreshes your session so Map Filters
+    show the new layers/groups. "Manage groups" opens Layer Groups.
+
+
+Tips for a clean bulk publish
+-----------------------------
+  - Use clear group codes before you publish; you will not need to regroup later.
+  - Keep layer names unique and readable.
+  - Prefer Skip existing until you are sure Overwrite is what you want.
+  - If Test REST failed earlier, do not start a large job.
+
+
+================================================================================
+7. Publish Layers — PostGIS tables
+================================================================================
+
+Open: Publish Layers → PostGIS tab
+
+Use this when your geometries already live in a PostgreSQL/PostGIS database
+that GeoServer can reach (not necessarily the same database as Warplan).
+
+1. Choose GIS server.
+2. Fill connection fields GeoServer will use for the datastore:
+     host, port, database, schema (often public), username, password
+     storeName (example: postgis) — name of the datastore on GeoServer
+3. List table names (comma or newline separated).
+4. Set workspace if needed.
+5. Click Publish tables.
+
+Warplan creates/reuses the PostGIS datastore on GeoServer, then publishes each
+table as a layer and registers it in the catalog. Group assignment from the
+Files tab’s items is limited here; after publish you can organize in Layer
+Groups, or use Import/group tools. Prefer the Files wizard’s group step when
+you need many group assignments in one go.
+
+
+================================================================================
+8. Publish jobs — status meanings
+================================================================================
+
+Open: Publish Layers → Job history
+Or stay on the Run step while a job is live.
+
+Job status
+  QUEUED       Waiting to start
+  VALIDATING   Checking items
+  RUNNING      Working through items
+  COMPLETED    Everything succeeded or was skipped cleanly
+  PARTIAL      Some succeeded, some failed — successes are kept
+  FAILED       Nothing useful succeeded / all failed
+  CANCELLED    Stopped by you
+
+Item status
+  QUEUED       Waiting
+  VALIDATING   Checking the file/table
+  UPLOADING    Sending file to GeoServer
+  PUBLISHING   Creating the layer on GeoServer
+  SYNCING      Writing into Warplan’s catalog / groups
+  SUCCEEDED    Done
+  FAILED       See error message on the row
+  SKIPPED      Policy said skip (usually already exists)
+  CANCELLED    Job was cancelled before this item finished
+
+What "PARTIAL" means for you
+  The successful layers are real and usable. Only the failed rows need attention.
+  Click Retry failed — do not re-upload the whole batch unless you want to.
+
+
+================================================================================
+9. Import GeoServer — layers (with groups)
+================================================================================
+
+Open: Application menu → Map → Import GeoServer → Layers tab
+
+Use when layers already exist on GeoServer.
+
+1. Choose GIS server → Refresh (loads what GeoServer has).
+2. Rows marked "(already in app)" are already in Warplan. You can still select
+   them if you want to assign them into a group.
+3. Check the layers you want (one or many).
+4. For EACH selected layer, use the Group field on the right:
+     - Leave empty     → no group (ungrouped)
+     - Pick from list  → existing Warplan group
+     - Type a new name → creates that group (or reuses one with the same name)
+5. Optional bulk helper at the top:
+     "Assign all selected to" → choose/type a group → Apply to selected
+     Then you can still change individual rows if some should differ.
+6. Click Import selected.
+
+Rules about group names
+  - Same name (ignoring capital letters) reuses the existing group.
+  - Warplan will not create two groups with the same name on the same server.
+  - Importing into a group merges members; it does not wipe the group.
+
+What import does NOT do
+  - It does not upload files.
+  - It does not delete anything from GeoServer.
+  - For layer-group import (next section), it does not rewrite the GeoServer
+    group definition (avoids GeoServer update bugs).
+
+
+================================================================================
+10. Import GeoServer — layer groups
+================================================================================
+
+Open: Import GeoServer → Layer groups tab
+
+Use when GeoServer already has a layer group (bundle) you want in Warplan.
+
+1. Refresh the list.
+2. Select one or many GeoServer layer groups.
+3. Import selected.
+
+Warplan will:
+  - Read the group’s member layers from GeoServer
+  - Create any missing member layers in the Warplan catalog
+  - Create a Warplan layer group pointing at that GeoServer group name
+  - NOT push a rewrite back to GeoServer (safe for groups that already exist)
+
+If the group is already in Warplan, it is skipped.
+
+
+================================================================================
+11. Layer Groups — manage bundles
+================================================================================
+
+Open: Application menu → Map → Layer Groups
+
+Here you can:
+  - Create a new group (code, label, members, optional GeoServer name)
+  - Edit members (check which Warplan layers belong)
+  - Sync to GeoServer (creates/updates the GeoServer layer group for groups
+    you manage from Warplan)
+  - Delete the Warplan group (does not automatically delete GeoServer data)
+
+When creating:
+  - Code must be unique.
+  - Label must be unique per GIS server (no duplicate names).
+  - "Sync to GeoServer on save" — turn on when Warplan should create/update
+    the group on GeoServer. Turn off if you only want a Warplan-side folder.
+
+Sync tip
+  Prefer Sync for groups you built in Warplan from published layers.
+  For groups you imported from GeoServer, you usually do not need to Sync
+  them back unless you changed membership on purpose.
+
+
+================================================================================
+12. Styles
+================================================================================
+
+Open: Application menu → Map → Styles
+
+1. Choose GIS server.
+2. Enter a style name.
+3. Paste SLD XML (Styled Layer Descriptor).
+4. Upload SLD.
+
+The style is stored on GeoServer and listed in Warplan. Assigning styles in
+bulk during publish is available via the style name field on publish items
+when used; otherwise bind styles in GeoServer or extend assignments from
+Layer Groups (member style field when editing groups).
+
+If you do not know SLD, ask a GIS colleague for a ready SLD, or publish first
+with GeoServer’s default style and improve styling later.
+
+
+================================================================================
+13. Map Filters — using layers on the live map (everyone with MAP_VIEW)
+================================================================================
+
+Open the map tools → Map Filters.
+
+What you see
+  - Groups appear as nested rows, collapsed by default (same idea as the
+    Application menu sections).
+  - Click the chevron to expand/collapse (this does NOT turn the map on/off).
+  - Use the checkbox or switch to show/hide.
+
+Whole group
+  - Turning a group ON uses one map request for the whole GeoServer layer
+    group when possible (smoother).
+  - Turning a group OFF hides all of its content.
+
+Selected layers inside a group
+  - Expand the group.
+  - Turn individual members on/off.
+  - If only some members are on, the group checkbox looks mixed
+    (indeterminate).
+  - Mixed selection may use separate map requests per layer.
+
+Active WMS budget
+  - The panel shows something like: Active WMS 4/12
+  - Too many individual layers at once can slow the browser.
+  - If you hit the limit, Warplan warns you to use the whole group instead
+    of many single layers.
+
+Opacity
+  - When a layer/group is visible and opacity is enabled, a slider appears.
+  - Drag to fade the layer.
+
+Show all / Hide all
+  - Affects visibility masters; it does not force every section open.
+
+Expand all / Collapse all
+  - Only changes the open/closed UI state.
+
+
+================================================================================
+14. Supported publish file types (summary)
+================================================================================
+
+  Shapefile ZIP     .zip containing a shapefile set
+  GeoJSON           .geojson or .json
+  GeoTIFF           .tif or .tiff
+  PostGIS table     via PostGIS tab (database connection)
+
+Not in this version (examples): GeoPackage, ImageMosaic, arbitrary CAD.
+If you have another format, convert it first or publish it in GeoServer
+outside Warplan, then Import.
+
+
+================================================================================
+15. What errors mean (and what to do)
+================================================================================
+
+Connection / setup
+------------------
+  "This GIS server has no REST URL configured."
+      Edit Map Server → set REST URL → save → Test REST.
+
+  "Connected to GeoServer REST." (Test REST success)
+      You are ready to publish/import.
+
+  Test REST fails / GEOSERVER errors with 401 or 403
+      Wrong username/password, or the user is not allowed to use the REST API.
+      Fix credentials on Map Servers. Password blank on edit keeps the old one —
+      type a new password only when changing it.
+
+  "Could not reach GeoServer…" / status 503
+      GeoServer is down, wrong host/port, firewall, or Warplan cannot see that
+      network address. Confirm GeoServer is running and the REST URL is correct
+      from the machine that runs the Warplan API.
+
+  Dry-run connectionError
+      Same as above — fix connection before publishing.
+
+
+Publish / files
+---------------
+  "Unsupported file: …"
+      Only zip / geojson / json / tif / tiff are accepted in the Files wizard.
+
+  "File exceeds the maximum size"
+      Split data, simplify, or ask an admin to raise the upload limit.
+
+  "Too many items in this job" / "A job may include at most …"
+      Split into smaller batches (default max 100).
+
+  "Missing file for item …"
+      The upload did not attach correctly. Re-add the files and publish again.
+
+  "Layer name is required" / "Layer name is invalid"
+      Enter a simple name (letters, numbers, _ , -).
+
+  Item SKIPPED with "Layer already exists… skipped."
+      Overwrite policy was Skip. Change policy to Rename or Overwrite if you
+      truly want a new/replaced layer, then retry or re-publish.
+
+  Item FAILED with AUTH
+      GeoServer rejected credentials mid-job. Fix Map Server password, then
+      Retry failed.
+
+  Item FAILED with other ERROR text from GeoServer
+      Read the message. Common causes: corrupt shapefile zip, missing .shp/.shx,
+      bad GeoTIFF, table without geometry, workspace problems.
+      Fix the source data, then Retry failed or start a new job for that item.
+
+
+Import / groups
+---------------
+  "Select at least one layer to import."
+      Check at least one row.
+
+  "A layer group with this code/name already exists"
+      Choose a different name, or select the existing group in the dropdown
+      instead of typing a duplicate.
+
+  Import layer group used to fail with:
+  "Unable to move workspaces/…/layergroups/….xml to …"
+      That was GeoServer rejecting a rewrite of an existing group. Current
+      Warplan import no longer rewrites existing GeoServer groups; it only
+      registers them. Update/restart the API if you still see this on import.
+
+  "Remove or reassign map layers before deleting this GIS server."
+      Delete or move layers (and layer groups) first.
+
+  "Remove layer groups before deleting this GIS server."
+      Delete Warplan layer groups first.
+
+
+Map Filters / map display
+-------------------------
+  "Too many single layers on the map (max 12)…"
+      Turn the whole group on, or turn some members off. This protects the
+      browser from freezing.
+
+  Layer switch is on but map looks empty
+      - Wrong WMS name
+      - Layer not actually published on GeoServer
+      - Zoomed outside the layer’s useful extent
+      - Layer is transparent on top of nothing (try a base layer)
+      - GeoServer or network issue (check browser network tools if you can)
+
+  After publish, new layers missing in Map Filters
+      Click Done on the job (session refresh) or sign out/in, or use any
+      screen that refreshes the session. The catalog is updated on the server;
+      your open session needs a refresh.
+
+
+General application messages
+----------------------------
+  "The map catalog is not available…"
+      No layers/groups and/or no view defaults. An admin must configure Map
+      Servers, at least one layer or group, and Map Settings.
+
+  "The map catalog has no layers…"
+      Same idea — add layers via Import, Publish, or Map Layers.
+
+  Permission / FORBIDDEN style messages
+      Your user lacks MANAGE_MAP or MAP_VIEW. Ask an administrator.
+
+
+================================================================================
+16. Recommended daily workflows
+================================================================================
+
+A. New data files arrive (shapefiles / GeoTIFFs)
+  1. Map Servers → Test REST (quick sanity check)
+  2. Publish Layers → add files → assign group codes → dry-run → publish
+  3. Done — open map → Map Filters → turn the new group on
+
+B. GeoServer already has many layers
+  1. Import GeoServer → Layers
+  2. Select what you need
+  3. Assign groups per row (or bulk assign, then tweak)
+  4. Import → open Map Filters
+
+C. GeoServer already has layer groups
+  1. Import GeoServer → Layer groups → import
+  2. Use Map Filters; groups appear collapsed by default
+
+D. Only one known layer name to add quickly
+  1. Map Layers → New Layer → type WMS name → save
+
+E. Something failed in a big job
+  1. Open the job
+  2. Read failed rows
+  3. Fix data or credentials
+  4. Retry failed (do not redo successes)
+
+
+================================================================================
+17. Safety notes
+================================================================================
+
+  - Publish Overwrite can replace data stores on GeoServer. Prefer Skip or
+    Rename unless you intend to replace.
+  - Deleting a Warplan layer/group does not delete GeoServer data.
+  - REST passwords are stored encrypted on the Warplan server and are never
+    returned to the browser after save.
+  - The browser loads map tiles directly from the WMS URL. That URL must be
+    reachable from users’ machines (not only from the API server).
+  - Keep Active WMS count reasonable for a smooth map.
+
+
+================================================================================
+18. Quick menu map
+================================================================================
+
+  Application menu → Map
+    Map Servers       Connect to GeoServer (WMS + REST + password)
+    Map Layers        Manual catalog entries (type WMS names)
+    Publish Layers    Create layers from files / PostGIS (bulk jobs)
+    Import GeoServer  Register existing layers / layer groups (+ assign groups)
+    Layer Groups      Create/edit/sync Warplan groups
+    Styles            Upload SLD styles
+    Map Settings      Home view, CRS, elevation, default server
+
+  Map tools (while looking at the map)
+    Map Filters       Turn groups/layers on/off, opacity, expand/collapse
+
+
+================================================================================
+19. If you are completely new — do this in order
+================================================================================
+
+  1. Get MANAGE_MAP on your user.
+  2. Confirm GeoServer is running (ask IT if needed).
+  3. Create/edit Map Server with WMS URL, REST URL, workspace, username,
+     password → Save → Test REST until it succeeds.
+  4. Set Map Settings home view.
+  5. If sample layers already exist on GeoServer:
+       Import GeoServer → import a few layers into a group → open Map Filters.
+     If you have files instead:
+       Publish Layers → small test (1–2 files) with a group code → Done.
+  6. Only then run large bulk jobs (dozens of layers).
+
+When in doubt: Test REST first, dry-run second, publish third.
+
+
+================================================================================
+End of guide
+================================================================================
+)
