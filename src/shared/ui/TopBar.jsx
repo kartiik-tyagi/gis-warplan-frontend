@@ -47,7 +47,7 @@ export function TopBar({ leading, trailing, menuOpen, onMenuOpenChange, floating
     <Box
       component="header"
       sx={{
-        minHeight: 48,
+        minHeight: 52,
         width: '100%',
         minWidth: 0,
         px: 1,

@@ -52,6 +52,7 @@ export function SearchSelect({
   disableClearable,
   hiddenLabel = false,
   action,
+  optionSx,
   'aria-label': ariaLabel,
 }) {
   const labelOf = (option) => {
@@ -202,6 +203,7 @@ export function SearchSelect({
       ]}
       slotProps={{
         popper: { sx: { zIndex: (theme) => theme.zIndex.modal + 2 } },
+        ...(optionSx ? { listbox: { sx: optionSx } } : {}),
       }}
       renderInput={(params) => (
         <TextField
