@@ -13,6 +13,7 @@ export function canOpenDirectory(functionalities) {
     FunctionalityCodes.MANAGE_ROLES,
     FunctionalityCodes.MANAGE_THEMES,
     FunctionalityCodes.MANAGE_NODE_TYPES,
+    FunctionalityCodes.MANAGE_ENUMS,
   )
 }
 
@@ -71,6 +72,9 @@ export function sectionsForFunctionalities(functionalities) {
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_NODE_TYPES)) {
     sections.push({ id: 'node-types', kicker: 'Standard Data', label: 'Node Types', icon: 'table' })
   }
+  if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_ENUMS)) {
+    sections.push({ id: 'enums', kicker: 'Standard Data', label: 'Enum Management', icon: 'table' })
+  }
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_THEMES)) {
     sections.push({ id: 'themes', kicker: 'Standard Data', label: 'Themes', icon: 'themes' })
   }
@@ -104,6 +108,7 @@ export const SECTION_ROUTE = Object.freeze({
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
+  enums: '/standard/enums',
   audit: '/records/audit',
   users: '/access/users',
   roles: '/access/roles',
@@ -124,6 +129,7 @@ const SECTION_TITLE = Object.freeze({
   teams: 'Sides',
   themes: 'Themes',
   'node-types': 'Node Types',
+  enums: 'Enum Management',
   audit: 'Audit',
   users: 'Users',
   roles: 'Roles',

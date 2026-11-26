@@ -2,6 +2,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Box } from '@mui/material'
 import { RoleEditorPage, RolesListPage, UserEditorPage, UsersListPage } from '../features/admin/AdminPanels'
+import { EnumEditorPage, EnumListsPage, EnumValuesPage } from '../features/admin/EnumPages'
 import { NodeTypeEditorPage, NodeTypesListPage } from '../features/admin/NodeTypePages'
 import { TeamEditorPage, TeamsListPage } from '../features/admin/TeamsPages'
 import { ThemeEditorPage, ThemesListPage } from '../features/admin/ThemesPages'
@@ -108,6 +109,10 @@ export default function Shell() {
         <Route path="/standard/themes/:id" element={<ThemeEditorPage />} />
         <Route path="/standard/node-types" element={<NodeTypesListPage />} />
         <Route path="/standard/node-types/:id" element={<NodeTypeEditorPage />} />
+        <Route path="/standard/enums" element={<EnumListsPage />} />
+        <Route path="/standard/enums/:list/new" element={<EnumEditorPage />} />
+        <Route path="/standard/enums/:list/:code" element={<EnumEditorPage />} />
+        <Route path="/standard/enums/:list" element={<EnumValuesPage />} />
         <Route path="/records/audit" element={<AuditPage />} />
         <Route path="/records/icons" element={<IconsPage />} />
         <Route path="/access/users" element={<UsersListPage />} />
