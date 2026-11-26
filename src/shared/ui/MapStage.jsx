@@ -9,6 +9,7 @@ import { useSituation } from '../../features/situation/useSituation'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { get } from '../api/http'
 import { useLocationPick } from '../map/useLocationPick'
+import { renderUnitsFromFilters } from '../map/renderUnits'
 
 function formatCoordinate(value) {
   return Number(value).toFixed(4)
@@ -16,11 +17,23 @@ function formatCoordinate(value) {
 
 export function pictureLayers(session, directory) {
   if (!session) return []
-  return session.filters.map((filter) => ({
-    ...filter,
-    opacity: directory?.opacity?.[filter.id] ?? 1,
-    visible: filter.visible,
-  }))
+  const withOpacity = (session.filters || []).map((filter) => {
+    if (filter.kind === 'group') {
+      return {
+        ...filter,
+        opacity: directory?.opacity?.[filter.id] ?? filter.opacity ?? 1,
+        members: (filter.members || []).map((member) => ({
+          ...member,
+          opacity: directory?.opacity?.[member.id] ?? member.opacity ?? 1,
+        })),
+      }
+    }
+    return {
+      ...filter,
+      opacity: directory?.opacity?.[filter.id] ?? filter.opacity ?? 1,
+    }
+  })
+  return renderUnitsFromFilters(withOpacity)
 }
 
 export function pictureService(session, directory) {

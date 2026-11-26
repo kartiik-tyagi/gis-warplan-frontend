@@ -1,11 +1,19 @@
+import { useMemo, useState } from 'react'
 import {
   Box,
+  Checkbox,
   Chip,
-  Stack,
+  Collapse,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Slider,
+  Stack,
   Switch,
   Typography,
 } from '@mui/material'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
@@ -13,29 +21,85 @@ import { useCommit, useDirectoryStore } from '../../features/directory/useDirect
 import { useSessionStore } from '../../features/session/useSessionStore'
 import * as api from '../../shared/api/client'
 import { EMPTY_LIST, EMPTY_OBJECT } from '../lib/empty'
+import { ACTIVE_WMS_BUDGET, countActiveWms, wouldExceedBudget } from '../map/renderUnits'
 import { IconAction } from './IconAction'
+import { useToastStore } from '../../features/feedback/useToastStore'
 
-function groupFilters(filters) {
-  const groups = []
-  for (const filter of filters) {
-    const group = groups.find((item) => item.name === filter.group)
-    if (group) group.filters.push(filter)
-    else groups.push({ name: filter.group, filters: [filter] })
-  }
-  return groups
+function groupVisibilityState(filter) {
+  if (filter.kind !== 'group') return filter.visible ? 'all' : 'none'
+  const members = filter.members || []
+  if (!members.length) return filter.visible ? 'all' : 'none'
+  const on = members.filter((member) => member.visible).length
+  if (on === 0) return 'none'
+  if (on === members.length && filter.renderMode !== 'members') return 'all'
+  if (on === members.length) return 'all'
+  return 'mixed'
 }
 
 export function FilterList() {
   const filters = useSessionStore((state) => state.session?.filters ?? EMPTY_LIST)
   const setFilter = useSessionStore((state) => state.setFilter)
+  const setMemberFilter = useSessionStore((state) => state.setMemberFilter)
   const setAllFilters = useSessionStore((state) => state.setAllFilters)
   const opacity = useDirectoryStore((state) => state.data?.opacity ?? EMPTY_OBJECT)
   const opacityEnabled = useDirectoryStore((state) => state.data?.flags?.layerOpacity !== false)
   const commit = useCommit()
+  const push = useToastStore((state) => state.push)
+  const [expanded, setExpanded] = useState(() => new Set())
 
-  const shown = filters.filter((filter) => filter.visible).length
+  const activeWms = useMemo(() => countActiveWms(filters), [filters])
+  const shown = filters.filter((filter) => filter.visible || (filter.members || []).some((m) => m.visible)).length
   const hidden = filters.length - shown
-  const groups = groupFilters(filters)
+
+  const toggleExpanded = (id) => {
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const trySetFilter = (id, visible) => {
+    const next = filters.map((filter) => {
+      if (filter.id !== id) return filter
+      if (filter.kind === 'group') {
+        return {
+          ...filter,
+          visible,
+          renderMode: 'group',
+          members: (filter.members || []).map((member) => ({ ...member, visible })),
+        }
+      }
+      return { ...filter, visible }
+    })
+    if (visible && wouldExceedBudget(filters, next)) {
+      push(`Too many single layers on the map (max ${ACTIVE_WMS_BUDGET}). Turn on a whole group instead.`, 'warning')
+      return
+    }
+    setFilter(id, visible)
+  }
+
+  const trySetMember = (groupId, memberId, visible) => {
+    const next = filters.map((filter) => {
+      if (filter.id !== groupId || filter.kind !== 'group') return filter
+      const members = (filter.members || []).map((member) =>
+        member.id === memberId ? { ...member, visible } : member,
+      )
+      const onCount = members.filter((member) => member.visible).length
+      return {
+        ...filter,
+        members,
+        visible: onCount > 0,
+        renderMode: onCount === members.length ? 'group' : 'members',
+      }
+    })
+    if (visible && wouldExceedBudget(filters, next)) {
+      push(`Too many single layers on the map (max ${ACTIVE_WMS_BUDGET}). Keep the whole group on, or turn some off.`, 'warning')
+      return
+    }
+    setMemberFilter(groupId, memberId, visible)
+  }
 
   if (!filters.length) {
     return (
@@ -88,139 +152,142 @@ export function FilterList() {
       </Stack>
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-        <Chip
-          size="small"
-          icon={<VisibilityOutlinedIcon />}
-          color={shown ? 'primary' : 'default'}
-          variant={shown ? 'filled' : 'outlined'}
-          label={`${shown} shown`}
-        />
-        <Chip
-          size="small"
-          icon={<VisibilityOffOutlinedIcon />}
-          variant="outlined"
-          label={`${hidden} hidden`}
-        />
+        <Chip size="small" icon={<VisibilityOutlinedIcon />} color={shown ? 'primary' : 'default'} variant={shown ? 'filled' : 'outlined'} label={`${shown} shown`} />
+        <Chip size="small" icon={<VisibilityOffOutlinedIcon />} variant="outlined" label={`${hidden} hidden`} />
+        <Chip size="small" variant="outlined" label={`Active WMS ${activeWms}/${ACTIVE_WMS_BUDGET}`} />
         <Box sx={{ flex: 1, minWidth: 8 }} />
         <IconAction label="Show all" icon={<VisibilityOutlinedIcon fontSize="small" />} onClick={() => setAllFilters(true)} />
         <IconAction label="Hide all" icon={<VisibilityOffOutlinedIcon fontSize="small" />} onClick={() => setAllFilters(false)} />
+        <IconAction
+          label="Expand all"
+          icon={<ExpandMoreIcon fontSize="small" />}
+          onClick={() => setExpanded(new Set(filters.map((filter) => filter.id)))}
+        />
+        <IconAction label="Collapse all" icon={<ChevronRightIcon fontSize="small" />} onClick={() => setExpanded(new Set())} />
       </Stack>
 
-      <Stack spacing={1.75}>
-        {groups.map((group) => (
-          <Box
-            key={group.name || 'layers'}
-            sx={{
-              borderRadius: 2,
-              border: 1,
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              overflow: 'hidden',
-            }}
-          >
+      <Stack spacing={0.75}>
+        {filters.map((filter) => {
+          const open = expanded.has(filter.id)
+          const state = groupVisibilityState(filter)
+          const isGroup = filter.kind === 'group'
+          const memberCount = filter.members?.length || 0
+          const onCount = isGroup
+            ? (filter.members || []).filter((member) => member.visible).length
+            : filter.visible
+              ? 1
+              : 0
+
+          return (
             <Box
+              key={filter.id}
               sx={{
-                px: 1.75,
-                py: 1.1,
-                borderBottom: 1,
+                borderRadius: 2,
+                border: 1,
                 borderColor: 'divider',
-                bgcolor: 'action.hover',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
+                bgcolor: 'background.paper',
+                overflow: 'hidden',
               }}
             >
-              <Typography
-                variant="overline"
-                color="text.secondary"
-                sx={{ letterSpacing: '0.1em', lineHeight: 1.2, flex: 1 }}
-              >
-                {group.name || 'Layers'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {group.filters.filter((item) => item.visible).length}/{group.filters.length} on
-              </Typography>
-            </Box>
-
-            <Stack spacing={0} divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
-              {group.filters.map((filter) => {
-                const value = opacity[filter.id] ?? filter.opacity ?? 1
-                const percent = Math.round(value * 100)
-                return (
-                  <Box
-                    key={filter.id}
-                    sx={{
-                      px: 1.5,
-                      py: 1.25,
-                      bgcolor: filter.visible ? 'action.selected' : 'transparent',
-                      transition: 'background-color 120ms ease',
+              <Stack direction="row" alignItems="center" sx={{ pr: 1, bgcolor: 'action.hover' }}>
+                <ListItemButton
+                  onClick={() => (isGroup || filter.kind === 'layer' ? toggleExpanded(filter.id) : null)}
+                  aria-expanded={open}
+                  sx={{ py: 0.75, minHeight: 40, flex: 1 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 28, color: 'text.secondary' }}>
+                    {open ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={filter.label}
+                    secondary={isGroup ? `${onCount}/${memberCount} on` : filter.visible ? 'Visible' : 'Hidden'}
+                    slotProps={{
+                      primary: { variant: 'body2', sx: { fontWeight: 650 } },
+                      secondary: { variant: 'caption' },
                     }}
-                  >
-                    <Stack direction="row" spacing={1.25} alignItems="center">
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: filter.visible ? 650 : 500,
-                            color: 'text.primary',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {filter.label}
+                  />
+                </ListItemButton>
+                <Checkbox
+                  size="small"
+                  checked={state === 'all'}
+                  indeterminate={state === 'mixed'}
+                  onChange={(event) => trySetFilter(filter.id, event.target.checked)}
+                  inputProps={{ 'aria-label': `${filter.label} visibility` }}
+                />
+                <Switch
+                  size="small"
+                  checked={state !== 'none'}
+                  onChange={(event) => trySetFilter(filter.id, event.target.checked)}
+                  inputProps={{ 'aria-label': `${filter.label} switch` }}
+                />
+              </Stack>
+
+              <Collapse in={open} timeout="auto" unmountOnExit>
+                <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+                  {isGroup
+                    ? (filter.members || []).map((member) => {
+                        const value = opacity[member.id] ?? member.opacity ?? 1
+                        return (
+                          <Box key={member.id} sx={{ px: 1.5, py: 1, pl: 4.5, bgcolor: member.visible ? 'action.selected' : 'transparent' }}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" sx={{ fontWeight: member.visible ? 650 : 500 }}>
+                                  {member.label}
+                                </Typography>
+                              </Box>
+                              <Checkbox
+                                size="small"
+                                checked={Boolean(member.visible)}
+                                onChange={(event) => trySetMember(filter.id, member.id, event.target.checked)}
+                                inputProps={{ 'aria-label': `${member.label} visibility` }}
+                              />
+                              <Switch
+                                size="small"
+                                checked={Boolean(member.visible)}
+                                onChange={(event) => trySetMember(filter.id, member.id, event.target.checked)}
+                              />
+                            </Stack>
+                            {opacityEnabled && member.visible ? (
+                              <Slider
+                                size="small"
+                                min={0.15}
+                                max={1}
+                                step={0.05}
+                                value={value}
+                                sx={{ mt: 1 }}
+                                onChangeCommitted={(_, next) =>
+                                  commit((userId) => api.setLayerOpacity(userId, member.id, next))
+                                }
+                              />
+                            ) : null}
+                          </Box>
+                        )
+                      })
+                    : (
+                      <Box sx={{ px: 1.5, py: 1, pl: 4.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {filter.layers}
                         </Typography>
                         {opacityEnabled && filter.visible ? (
-                          <Typography variant="caption" color="text.secondary">
-                            Opacity {percent}%
-                          </Typography>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            {filter.visible ? 'Visible on map' : 'Hidden'}
-                          </Typography>
-                        )}
+                          <Slider
+                            size="small"
+                            min={0.15}
+                            max={1}
+                            step={0.05}
+                            value={opacity[filter.id] ?? filter.opacity ?? 1}
+                            sx={{ mt: 1 }}
+                            onChangeCommitted={(_, next) =>
+                              commit((userId) => api.setLayerOpacity(userId, filter.id, next))
+                            }
+                          />
+                        ) : null}
                       </Box>
-                      <Chip
-                        size="small"
-                        label={filter.visible ? 'On' : 'Off'}
-                        color={filter.visible ? 'primary' : 'default'}
-                        variant={filter.visible ? 'filled' : 'outlined'}
-                        sx={{ fontWeight: 600, minWidth: 44 }}
-                      />
-                      <Switch
-                        size="small"
-                        checked={Boolean(filter.visible)}
-                        onChange={() => setFilter(filter.id, !filter.visible)}
-                        inputProps={{ 'aria-label': `${filter.label} visibility` }}
-                      />
-                    </Stack>
-
-                    {opacityEnabled && filter.visible ? (
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1, px: 0.25 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 28 }}>
-                          Dim
-                        </Typography>
-                        <Slider
-                          size="small"
-                          min={0.15}
-                          max={1}
-                          step={0.05}
-                          value={value}
-                          aria-label={`${filter.label} opacity`}
-                          onChangeCommitted={(_, next) =>
-                            commit((userId) => api.setLayerOpacity(userId, filter.id, next))
-                          }
-                          sx={{ flex: 1 }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 36, textAlign: 'right' }}>
-                          Solid
-                        </Typography>
-                      </Stack>
-                    ) : null}
-                  </Box>
-                )
-              })}
-            </Stack>
-          </Box>
-        ))}
+                      )}
+                </Stack>
+              </Collapse>
+            </Box>
+          )
+        })}
       </Stack>
     </Stack>
   )

@@ -58,6 +58,10 @@ export function sectionsForFunctionalities(functionalities) {
   if (hasFunctionality(functionalities, FunctionalityCodes.MANAGE_MAP)) {
     sections.push({ id: 'map-servers', kicker: 'Map', label: 'Map Servers', icon: 'settings' })
     sections.push({ id: 'map-layers', kicker: 'Map', label: 'Map Layers', icon: 'layers' })
+    sections.push({ id: 'map-publish', kicker: 'Map', label: 'Publish Layers', icon: 'layers' })
+    sections.push({ id: 'map-import', kicker: 'Map', label: 'Import GeoServer', icon: 'layers' })
+    sections.push({ id: 'map-layer-groups', kicker: 'Map', label: 'Layer Groups', icon: 'layers' })
+    sections.push({ id: 'map-styles', kicker: 'Map', label: 'Styles', icon: 'themes' })
     sections.push({ id: 'map-settings', kicker: 'Map', label: 'Map Settings', icon: 'extent' })
   }
   if (canOpenOrbat(functionalities)) sections.push({ id: 'orbat', kicker: 'ORBAT', label: 'ORBAT', icon: 'orbat' })
@@ -91,7 +95,12 @@ export const SECTION_ROUTE = Object.freeze({
   game: '/exercise/games',
   'map-servers': '/map/servers',
   'map-layers': '/map/layers',
+  'map-publish': '/map/publish',
+  'map-import': '/map/import',
+  'map-layer-groups': '/map/layer-groups',
+  'map-styles': '/map/styles',
   'map-settings': '/map/settings',
+  'map-publish-jobs': '/map/publish/jobs',
   teams: '/standard/teams',
   themes: '/standard/themes',
   'node-types': '/standard/node-types',
@@ -106,7 +115,12 @@ const SECTION_TITLE = Object.freeze({
   game: 'Game Management',
   'map-servers': 'Map Servers',
   'map-layers': 'Map Layers',
+  'map-publish': 'Publish Layers',
+  'map-import': 'Import GeoServer',
+  'map-layer-groups': 'Layer Groups',
+  'map-styles': 'Styles',
   'map-settings': 'Map Settings',
+  'map-publish-jobs': 'Publish Jobs',
   teams: 'Sides',
   themes: 'Themes',
   'node-types': 'Node Types',

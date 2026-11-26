@@ -197,12 +197,63 @@ export const useSessionStore = create((set, get) => ({
   },
   setFilter: (id, visible) =>
     set((state) => {
-      if (!state.session?.filters.some((filter) => filter.id === id)) return state
+      if (!state.session?.filters.some((filter) => filter.id === id || filter.members?.some((m) => m.id === id))) {
+        return state
+      }
       return {
         phaseId: null,
         session: {
           ...state.session,
-          filters: state.session.filters.map((filter) => (filter.id === id ? { ...filter, visible } : filter)),
+          filters: state.session.filters.map((filter) => {
+            if (filter.id === id) {
+              if (filter.kind === 'group') {
+                return {
+                  ...filter,
+                  visible: Boolean(visible),
+                  renderMode: 'group',
+                  members: (filter.members || []).map((member) => ({ ...member, visible: Boolean(visible) })),
+                }
+              }
+              return { ...filter, visible: Boolean(visible) }
+            }
+            if (filter.kind === 'group' && filter.members?.some((member) => member.id === id)) {
+              const members = filter.members.map((member) =>
+                member.id === id ? { ...member, visible: Boolean(visible) } : member,
+              )
+              const onCount = members.filter((member) => member.visible).length
+              return {
+                ...filter,
+                members,
+                visible: onCount > 0,
+                renderMode: onCount === 0 || onCount === members.length ? 'group' : 'members',
+              }
+            }
+            return filter
+          }),
+        },
+      }
+    }),
+  setGroupFilter: (groupId, visible) => get().setFilter(groupId, visible),
+  setMemberFilter: (groupId, memberId, visible) =>
+    set((state) => {
+      if (!state.session?.filters?.length) return state
+      return {
+        phaseId: null,
+        session: {
+          ...state.session,
+          filters: state.session.filters.map((filter) => {
+            if (filter.id !== groupId || filter.kind !== 'group') return filter
+            const members = (filter.members || []).map((member) =>
+              member.id === memberId ? { ...member, visible: Boolean(visible) } : member,
+            )
+            const onCount = members.filter((member) => member.visible).length
+            return {
+              ...filter,
+              members,
+              visible: onCount > 0,
+              renderMode: onCount === members.length ? 'group' : 'members',
+            }
+          }),
         },
       }
     }),
@@ -213,7 +264,17 @@ export const useSessionStore = create((set, get) => ({
         phaseId: null,
         session: {
           ...state.session,
-          filters: state.session.filters.map((filter) => ({ ...filter, visible: Boolean(visible) })),
+          filters: state.session.filters.map((filter) => {
+            if (filter.kind === 'group') {
+              return {
+                ...filter,
+                visible: Boolean(visible),
+                renderMode: 'group',
+                members: (filter.members || []).map((member) => ({ ...member, visible: Boolean(visible) })),
+              }
+            }
+            return { ...filter, visible: Boolean(visible) }
+          }),
         },
       }
     }),

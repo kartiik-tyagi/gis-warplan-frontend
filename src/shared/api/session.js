@@ -6,21 +6,72 @@ import { ApiError } from './errors'
 import { get } from './http'
 import { paletteFallback, roleLabel, themeFromEntity } from './mappers'
 
+function memberFromConfig(member) {
+  return {
+    id: member.code,
+    label: member.label,
+    layers: member.wmsLayers,
+    base: Boolean(member.baseLayer),
+    transparent: member.transparent !== false,
+    visible: false,
+    opacity: Number(member.defaultOpacity ?? 1),
+    minZoom: member.minZoom ?? null,
+    maxZoom: member.maxZoom ?? null,
+  }
+}
+
 function filtersFromMapConfig(mapConfig) {
   const layers = Array.isArray(mapConfig?.layers) ? mapConfig.layers : []
-  if (!layers.length) {
+  const groups = Array.isArray(mapConfig?.groups) ? mapConfig.groups : []
+  if (!layers.length && !groups.length) {
     throw new ApiError('The map catalog has no layers. Ask an administrator to configure map layers.', 'UNAVAILABLE')
   }
-  return layers.map((layer) => ({
-    id: layer.code,
-    label: layer.label,
-    group: layer.groupName || '',
-    layers: layer.wmsLayers,
-    base: Boolean(layer.baseLayer),
-    transparent: Boolean(layer.transparent),
-    visible: layer.defaultVisible !== false,
-    opacity: Number(layer.defaultOpacity ?? 1),
-  }))
+
+  const memberCodes = new Set()
+  const filters = []
+
+  for (const group of groups) {
+    const members = (group.members || []).map((member) => {
+      memberCodes.add(member.code)
+      return memberFromConfig(member)
+    })
+    filters.push({
+      id: `group:${group.code}`,
+      kind: 'group',
+      groupCode: group.code,
+      label: group.label || group.code,
+      group: group.label || group.code,
+      layers: group.wmsLayers,
+      base: false,
+      transparent: true,
+      visible: Boolean(group.defaultVisible),
+      opacity: 1,
+      renderMode: 'group',
+      members,
+    })
+  }
+
+  for (const layer of layers) {
+    if (memberCodes.has(layer.code)) continue
+    filters.push({
+      id: layer.code,
+      kind: 'layer',
+      label: layer.label,
+      group: layer.groupName || 'Ungrouped',
+      layers: layer.wmsLayers,
+      base: Boolean(layer.baseLayer),
+      transparent: Boolean(layer.transparent),
+      visible: layer.defaultVisible !== false,
+      opacity: Number(layer.defaultOpacity ?? 1),
+      minZoom: layer.minZoom ?? null,
+      maxZoom: layer.maxZoom ?? null,
+    })
+  }
+
+  if (!filters.length) {
+    throw new ApiError('The map catalog has no layers. Ask an administrator to configure map layers.', 'UNAVAILABLE')
+  }
+  return filters
 }
 
 function mapViewFromConfig(mapConfig) {
@@ -81,7 +132,7 @@ export async function buildSession(me) {
     get('/map/config'),
   ])
 
-  if (!mapConfig?.layers?.length || !mapConfig?.view) {
+  if ((!mapConfig?.layers?.length && !mapConfig?.groups?.length) || !mapConfig?.view) {
     logger.error('session.map_config_missing', { hasConfig: Boolean(mapConfig), layers: mapConfig?.layers?.length || 0 })
     throw new ApiError('The map catalog is not available. Sign-in cannot continue until it is configured.', 'UNAVAILABLE')
   }

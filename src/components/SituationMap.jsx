@@ -23,11 +23,50 @@ function createTileLayer(serviceUrl, filter) {
       },
       serverType: 'geoserver',
       transition: 0,
+      cacheSize: 512,
     }),
     visible: filter.visible !== false,
+    opacity: filter.opacity ?? 1,
+    minZoom: filter.minZoom == null ? undefined : Number(filter.minZoom),
+    maxZoom: filter.maxZoom == null ? undefined : Number(filter.maxZoom),
   })
   layer.set('filterId', filter.id)
+  layer.set('wmsLayers', filter.layers)
   return layer
+}
+
+function syncMapLayers(map, serviceUrl, layers) {
+  const wanted = [...(layers || [])].sort((left, right) => Number(right.base) - Number(left.base))
+  const wantedIds = new Set(wanted.map((item) => item.id))
+  const existing = map.getLayers().getArray().filter((layer) => layer.get('filterId'))
+
+  for (const layer of existing) {
+    const id = layer.get('filterId')
+    if (!wantedIds.has(id)) {
+      map.removeLayer(layer)
+    }
+  }
+
+  const currentById = new Map(
+    map.getLayers().getArray().filter((layer) => layer.get('filterId')).map((layer) => [layer.get('filterId'), layer]),
+  )
+
+  wanted.forEach((filter, index) => {
+    let layer = currentById.get(filter.id)
+    if (!layer || layer.get('wmsLayers') !== filter.layers) {
+      if (layer) map.removeLayer(layer)
+      layer = createTileLayer(serviceUrl, filter)
+      if (layer) {
+        map.getLayers().insertAt(index, layer)
+        currentById.set(filter.id, layer)
+      }
+      return
+    }
+    layer.setVisible(filter.visible !== false)
+    layer.setOpacity(filter.opacity ?? 1)
+    if (filter.minZoom != null) layer.setMinZoom(Number(filter.minZoom))
+    if (filter.maxZoom != null) layer.setMaxZoom(Number(filter.maxZoom))
+  })
 }
 
 export default function SituationMap({ view, serviceUrl, layers, resetToken, onPointer, onZoom, onView, onMap, focusKey = null, showControls = true, label = 'Situation map' }) {
@@ -35,6 +74,7 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
   const mapRef = useRef(null)
   const viewRef = useRef(view)
   const layersRef = useRef(layers)
+  const serviceRef = useRef(serviceUrl)
   const onPointerRef = useRef(onPointer)
   const onZoomRef = useRef(onZoom)
   const onViewRef = useRef(onView)
@@ -42,7 +82,8 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
   const skipReset = useRef(true)
   viewRef.current = view
   layersRef.current = layers
-  const layerKey = (layers || []).map((layer) => layer.id).join('|')
+  serviceRef.current = serviceUrl
+  const layerKey = (layers || []).map((layer) => `${layer.id}:${layer.layers}`).join('|')
   const visibilityKey = (layers || []).map((layer) => `${layer.id}:${layer.visible ? 1 : 0}:${layer.opacity ?? 1}`).join('|')
 
   useEffect(() => {
@@ -54,7 +95,6 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
 
   useEffect(() => {
     const home = viewRef.current || {}
-    const items = [...(layersRef.current || [])].sort((left, right) => Number(right.base) - Number(left.base))
     const map = new Map({
       target: targetRef.current,
       layers: [],
@@ -70,10 +110,7 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
     })
     mapRef.current = map
     onMapRef.current?.(map)
-    for (const filter of items) {
-      const layer = createTileLayer(serviceUrl, filter)
-      if (layer) map.addLayer(layer)
-    }
+    syncMapLayers(map, serviceRef.current, layersRef.current)
 
     map.on('pointermove', (event) => {
       if (event.dragging) return
@@ -104,7 +141,13 @@ export default function SituationMap({ view, serviceUrl, layers, resetToken, onP
       map.setTarget(null)
       mapRef.current = null
     }
-  }, [serviceUrl, layerKey, showControls])
+  }, [serviceUrl, showControls])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    syncMapLayers(map, serviceUrl, layersRef.current)
+  }, [layerKey, serviceUrl])
 
   useEffect(() => {
     const map = mapRef.current

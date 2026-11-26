@@ -110,3 +110,5 @@ export const post = (path, body, options) => http(path, { ...options, method: 'P
 export const put = (path, body, options) => http(path, { ...options, method: 'PUT', body })
 export const patch = (path, body, options) => http(path, { ...options, method: 'PATCH', body })
 export const del = (path, options) => http(path, { ...options, method: 'DELETE' })
+/** Multipart POST (publish uploads). Do not set Content-Type; the browser adds the boundary. */
+export const postForm = (path, formData, options) => http(path, { ...options, method: 'POST', formData })

@@ -29,7 +29,7 @@ import { useToastStore } from '../feedback/useToastStore'
 import { useSessionStore } from '../session/useSessionStore'
 import { ExerciseLayout } from '../scenario/ExerciseLayout'
 
-const EMPTY_SERVER = { code: '', name: '', wmsUrl: '', wfsUrl: '', restUrl: '', workspaceDefault: '', enabled: true, defaultServer: false }
+const EMPTY_SERVER = { code: '', name: '', wmsUrl: '', wfsUrl: '', restUrl: '', workspaceDefault: '', restUsername: '', restPassword: '', enabled: true, defaultServer: false }
 const EMPTY_LAYER = {
   gisServerId: '', code: '', label: '', groupName: '', wmsLayers: '', format: 'image/png', transparent: true, baseLayer: false,
   sortOrder: 0, defaultVisible: false, defaultOpacity: 1, minZoom: '', maxZoom: '', cqlFilter: '', attribution: '', active: true,
@@ -39,7 +39,7 @@ const EMPTY_VIEW = {
   dataCrs: 'EPSG:4326', viewCrs: 'EPSG:3857', elevationLayerId: '', elevationAttribute: '', elevationPositiveUp: true,
 }
 
-const SERVER_TEXT = [['code', 'Code'], ['name', 'Name'], ['wmsUrl', 'WMS URL'], ['wfsUrl', 'WFS URL'], ['restUrl', 'REST URL'], ['workspaceDefault', 'Default workspace']]
+const SERVER_TEXT = [['code', 'Code'], ['name', 'Name'], ['wmsUrl', 'WMS URL'], ['wfsUrl', 'WFS URL'], ['restUrl', 'REST URL'], ['workspaceDefault', 'Default workspace'], ['restUsername', 'REST username'], ['restPassword', 'REST password']]
 const LAYER_TEXT = [['code', 'Code'], ['label', 'Label'], ['groupName', 'Group'], ['wmsLayers', 'WMS layers'], ['format', 'Format'], ['cqlFilter', 'CQL filter'], ['attribution', 'Attribution']]
 const LAYER_NUMBER = [['sortOrder', 'Sort order'], ['defaultOpacity', 'Default opacity (0-1)'], ['minZoom', 'Min zoom'], ['maxZoom', 'Max zoom']]
 const LAYER_FLAGS = [['transparent', 'Transparent'], ['baseLayer', 'Base layer'], ['defaultVisible', 'Visible by default'], ['active', 'Active']]
@@ -54,7 +54,7 @@ const orEmpty = (record, fallback) => {
   return next
 }
 
-function Field({ name, label, form, errors, onChange, ...rest }) {
+function Field({ name, label, form, errors, onChange, helperText, ...rest }) {
   return (
     <TextField
       size="small"
@@ -63,7 +63,7 @@ function Field({ name, label, form, errors, onChange, ...rest }) {
       value={form[name] ?? ''}
       onChange={(event) => onChange(name, event.target.value)}
       error={Boolean(errors[name])}
-      helperText={errors[name] || undefined}
+      helperText={errors[name] || helperText || undefined}
       {...rest}
     />
   )
@@ -202,9 +202,22 @@ function ServerFields({ form, errors, change }) {
       </Stack>
       <SectionLabel>Endpoints</SectionLabel>
       <Stack spacing={1.5}>
-        {SERVER_TEXT.slice(2).map(([name, label]) => (
+        {SERVER_TEXT.slice(2, 6).map(([name, label]) => (
           <Field key={name} name={name} label={label} form={form} errors={errors} onChange={change} />
         ))}
+      </Stack>
+      <SectionLabel>GeoServer REST</SectionLabel>
+      <Stack spacing={1.5}>
+        <Field name="restUsername" label="REST username" form={form} errors={errors} onChange={change} />
+        <Field
+          name="restPassword"
+          label="REST password"
+          form={form}
+          errors={errors}
+          onChange={change}
+          type="password"
+          helperText={form.restConfigured ? 'Password is set. Leave blank to keep it.' : 'Required for publish / import.'}
+        />
       </Stack>
       <SectionLabel>Options</SectionLabel>
       <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
@@ -237,7 +250,7 @@ function ServerEditor() {
         if (!live) return
         const found = (rows || []).find((row) => String(row.id) === String(id))
         if (!found) setMissing(true)
-        else setForm(orEmpty(found, EMPTY_SERVER))
+        else setForm({ ...orEmpty(found, EMPTY_SERVER), restPassword: '' })
         setReady(true)
       })
       .catch((error) => {
@@ -255,7 +268,16 @@ function ServerEditor() {
     setErrors({})
     setMessage('')
     try {
-      const body = { ...form, code: form.code.trim(), name: form.name.trim(), enabled: Boolean(form.enabled), defaultServer: Boolean(form.defaultServer) }
+      const body = {
+        ...form,
+        code: form.code.trim(),
+        name: form.name.trim(),
+        enabled: Boolean(form.enabled),
+        defaultServer: Boolean(form.defaultServer),
+        restUsername: form.restUsername || null,
+        restPassword: form.restPassword || null,
+      }
+      delete body.restConfigured
       if (isNew) await post('/map/servers', body)
       else await put(`/map/servers/${id}`, body)
       logger.info(isNew ? 'map.admin.created' : 'map.admin.updated', { path: '/map/servers', id })
@@ -266,6 +288,22 @@ function ServerEditor() {
       setErrors(error?.fieldErrors || {})
       setMessage(error?.message || 'The server could not be saved.')
       push(error?.message || 'The server could not be saved.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const testConnection = async () => {
+    if (isNew) {
+      push('Save the server before testing the connection.', 'warning')
+      return
+    }
+    setBusy(true)
+    try {
+      const result = await post(`/map/servers/${id}/test-connection`)
+      push(result?.message || (result?.ok ? 'Connected.' : 'Connection failed.'), result?.ok ? 'success' : 'error')
+    } catch (error) {
+      push(error?.message || 'Connection test failed.', 'error')
     } finally {
       setBusy(false)
     }
@@ -305,6 +343,7 @@ function ServerEditor() {
       <ServerFields form={form} errors={errors} change={change} />
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <IconAction label={busy ? 'Saving…' : isNew ? 'Create Server' : 'Save Server'} icon={<SaveOutlinedIcon fontSize="small" />} onClick={save} disabled={busy || !form.code.trim() || !form.name.trim()} variant="contained" />
+        {!isNew ? <IconAction label="Test REST" icon={<SaveOutlinedIcon fontSize="small" />} disabled={busy} onClick={testConnection} /> : null}
         {!isNew ? <IconAction label="Delete" icon={<DeleteOutlinedIcon fontSize="small" />} color="error" disabled={busy} onClick={() => setConfirmDelete(true)} /> : null}
       </Stack>
       <ConfirmDialog open={confirmDelete} title="Delete This Server?" message="Delete this server? This cannot be undone." confirmLabel="Delete" busy={busy} onClose={() => { if (!busy) setConfirmDelete(false) }} onConfirm={remove} />

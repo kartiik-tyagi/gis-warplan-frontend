@@ -8,6 +8,15 @@ import { ThemeEditorPage, ThemesListPage } from '../features/admin/ThemesPages'
 import { AuditPage } from '../features/audit/AuditPanel'
 import { IconsPage } from '../features/icons/IconsAdminPanel'
 import { MapLayerEditorPage, MapLayersPage, MapServerEditorPage, MapServersPage, MapSettingsPage } from '../features/map/MapAdminPanel'
+import {
+  MapImportPage,
+  MapLayerGroupEditorPage,
+  MapLayerGroupsPage,
+  MapPublishJobDetailPage,
+  MapPublishJobsPage,
+  MapPublishPage,
+  MapStylesPage,
+} from '../features/map/MapPublishPanel'
 import LoginPage from '../features/login/LoginPage'
 import { GameEditorPage, GameListPage } from '../features/scenario/GamePages'
 import { ScenarioEditorPage, ScenarioListPage, ScenarioPreviewPage } from '../features/scenario/ScenarioPages'
@@ -84,6 +93,13 @@ export default function Shell() {
         <Route path="/map/servers/:id" element={<MapServerEditorPage />} />
         <Route path="/map/layers" element={<MapLayersPage />} />
         <Route path="/map/layers/:id" element={<MapLayerEditorPage />} />
+        <Route path="/map/publish" element={<MapPublishPage />} />
+        <Route path="/map/publish/jobs" element={<MapPublishJobsPage />} />
+        <Route path="/map/publish/jobs/:id" element={<MapPublishJobDetailPage />} />
+        <Route path="/map/import" element={<MapImportPage />} />
+        <Route path="/map/layer-groups" element={<MapLayerGroupsPage />} />
+        <Route path="/map/layer-groups/:id" element={<MapLayerGroupEditorPage />} />
+        <Route path="/map/styles" element={<MapStylesPage />} />
         <Route path="/map/settings" element={<MapSettingsPage />} />
         <Route path="/map/catalog" element={<MapSettingsPage />} />
         <Route path="/standard/teams" element={<TeamsListPage />} />
