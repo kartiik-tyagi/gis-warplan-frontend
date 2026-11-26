@@ -15,8 +15,11 @@ export function loadMoonPhases() {
   return pending
 }
 
+export function moonPhaseOf(phases, code) {
+  if (!code) return null
+  return (phases || []).find((phase) => phase.code === code) || null
+}
+
 export function moonPhaseLabel(phases, code) {
-  if (!code) return ''
-  const match = (phases || []).find((phase) => phase.code === code)
-  return match?.label || code
+  return moonPhaseOf(phases, code)?.label || ''
 }

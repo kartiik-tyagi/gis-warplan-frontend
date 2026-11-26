@@ -15,13 +15,12 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
-import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
 import { SearchSelect } from './SearchSelect'
 import { IconAction } from './IconAction'
-import { loadMoonPhases, moonPhaseLabel } from '../api/moonPhases'
+import { loadMoonPhases, moonPhaseOf } from '../api/moonPhases'
 
 function Mark({ label, children }) {
   return (
@@ -122,7 +121,7 @@ export function ScenarioContext() {
   )
   const scenario = scenarios.find((item) => item.id === session.activeScenarioId)
   const game = games.find((item) => item.id === session.activeGame.id) || session.activeGame
-  const moonLabel = moonPhaseLabel(phases, game?.moonphases)
+  const moonPhase = moonPhaseOf(phases, game?.moonphases)
   function askScenario(id) {
     if (busy) return
     if (!id) {
@@ -253,12 +252,23 @@ export function ScenarioContext() {
             </Typography>
           </Fact>
         ) : null}
-        {moonLabel ? (
-          <Fact label="Moon Phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
-            <Typography noWrap title={moonLabel} sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 16, lineHeight: '20px', fontWeight: 700 }}>
-              {moonLabel}
-            </Typography>
-          </Fact>
+        {moonPhase?.icon ? (
+          <Tooltip title={moonPhase.label}>
+            <Box
+              component="span"
+              role="img"
+              aria-label={moonPhase.label}
+              sx={{
+                width: 22,
+                height: 22,
+                display: 'inline-flex',
+                flexShrink: 0,
+                color: 'text.primary',
+                '& svg': { width: 22, height: 22, display: 'block' },
+              }}
+              dangerouslySetInnerHTML={{ __html: moonPhase.icon }}
+            />
+          </Tooltip>
         ) : null}
       </Stack>
       <Dialog open={Boolean(pending)} onClose={close} fullWidth maxWidth="xs">
