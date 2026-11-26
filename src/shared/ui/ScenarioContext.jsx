@@ -65,15 +65,15 @@ function barField() {
       minHeight: 40,
       pl: 1,
       pr: '30px !important',
-      fontSize: 20,
+      fontSize: 16,
       bgcolor: 'background.paper',
     },
     '& .MuiOutlinedInput-input, & .MuiAutocomplete-input': {
       py: '0 !important',
       minWidth: '0 !important',
       textOverflow: 'ellipsis',
-      fontSize: 20,
-      lineHeight: '24px',
+      fontSize: 16,
+      lineHeight: '20px',
       fontWeight: 700,
     },
     '& .MuiAutocomplete-endAdornment': { right: 4 },
@@ -206,13 +206,13 @@ export function ScenarioContext() {
               getOptionLabel={(item) => `${item.name}${item.active || item.id === session.activeScenarioId ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
               action={{ label: 'New Scenario', onSelect: () => navigate('/exercise/scenarios/new') }}
-              optionSx={{ fontSize: 20, fontWeight: 700 }}
+              optionSx={{ fontSize: 16, fontWeight: 700 }}
               sx={barField()}
             />
           </Fact>
         ) : (
           <Fact label="Scenario" icon={<FlagOutlinedIcon fontSize="small" />}>
-            <Typography noWrap sx={{ fontSize: 20, lineHeight: '24px', fontWeight: 700 }} color={scenario?.name ? 'text.primary' : 'text.secondary'}>
+            <Typography noWrap sx={{ fontSize: 16, lineHeight: '20px', fontWeight: 700 }} color={scenario?.name ? 'text.primary' : 'text.secondary'}>
               {scenario?.name || 'None active'}
             </Typography>
           </Fact>
@@ -235,27 +235,27 @@ export function ScenarioContext() {
               getOptionLabel={(item) => `${item.open === false ? `${item.name} · Closed` : item.name}${item.active || item.id === session.activeGame.id ? ' · active' : ''}`}
               getOptionValue={(item) => item.id}
               action={session.activeScenarioId ? { label: 'New Game', onSelect: () => navigate(`/exercise/games/new?scenarioId=${session.activeScenarioId}`) } : undefined}
-              optionSx={{ fontSize: 20, fontWeight: 700 }}
+              optionSx={{ fontSize: 16, fontWeight: 700 }}
               sx={barField()}
             />
           </Fact>
         ) : (
           <Fact label="Game" icon={<SportsEsportsOutlinedIcon fontSize="small" />}>
-            <Typography noWrap sx={{ fontSize: 20, lineHeight: '24px', fontWeight: 700 }} color={session.activeGame.name ? 'text.primary' : 'text.secondary'}>
+            <Typography noWrap sx={{ fontSize: 16, lineHeight: '20px', fontWeight: 700 }} color={session.activeGame.name ? 'text.primary' : 'text.secondary'}>
               {session.activeGame.name || 'None active'}
             </Typography>
           </Fact>
         )}
         {game?.dateTime ? (
           <Fact label="Game Time" icon={<AccessTimeOutlinedIcon fontSize="small" />}>
-            <Typography noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 20, lineHeight: '24px', fontWeight: 700 }}>
+            <Typography noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 16, lineHeight: '20px', fontWeight: 700 }}>
               {new Date(game.dateTime).toLocaleString()}
             </Typography>
           </Fact>
         ) : null}
         {moonLabel ? (
           <Fact label="Moon Phase" icon={<NightlightOutlinedIcon fontSize="small" />}>
-            <Typography noWrap title={moonLabel} sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 20, lineHeight: '24px', fontWeight: 700 }}>
+            <Typography noWrap title={moonLabel} sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 16, lineHeight: '20px', fontWeight: 700 }}>
               {moonLabel}
             </Typography>
           </Fact>
