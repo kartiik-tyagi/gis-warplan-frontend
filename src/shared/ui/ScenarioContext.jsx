@@ -13,16 +13,12 @@ import {
 } from '@mui/material'
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
-import Brightness1Icon from '@mui/icons-material/Brightness1'
-import Brightness4Icon from '@mui/icons-material/Brightness4'
-import Brightness6Icon from '@mui/icons-material/Brightness6'
 import CloseIcon from '@mui/icons-material/Close'
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
-import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SportsEsportsOutlinedIcon from '@mui/icons-material/SportsEsportsOutlined'
 import { useSessionStore } from '../../features/session/useSessionStore'
+import { IconPreview } from './IconPicker'
 import { SearchSelect } from './SearchSelect'
 import { IconAction } from './IconAction'
 import { loadMoonPhases, moonPhaseOf } from '../api/moonPhases'
@@ -35,25 +31,6 @@ function Mark({ label, children }) {
       </Box>
     </Tooltip>
   )
-}
-
-/** Standard Material icons, same weight as the clock. Waning phases mirror the waxing glyph. */
-const MOON_ICON = {
-  NEW_MOON: DarkModeOutlinedIcon,
-  WAXING_CRESCENT: NightlightOutlinedIcon,
-  FIRST_QUARTER: Brightness4Icon,
-  WAXING_GIBBOUS: Brightness6Icon,
-  FULL_MOON: Brightness1Icon,
-  WANING_GIBBOUS: Brightness6Icon,
-  LAST_QUARTER: Brightness4Icon,
-  WANING_CRESCENT: NightlightOutlinedIcon,
-}
-
-const MOON_MIRROR = new Set(['WANING_GIBBOUS', 'LAST_QUARTER', 'WANING_CRESCENT'])
-
-function MoonPhaseIcon({ code }) {
-  const Icon = MOON_ICON[code] || NightlightOutlinedIcon
-  return <Icon sx={{ fontSize: 24, transform: MOON_MIRROR.has(code) ? 'scaleX(-1)' : 'none' }} />
 }
 
 function Fact({ label, icon, children, grow = false, compact = false }) {
@@ -278,10 +255,10 @@ export function ScenarioContext() {
                 </Typography>
               </Fact>
             ) : null}
-            {game?.moonphases ? (
-              <Tooltip title={moonPhase?.label || 'Moon phase'}>
-                <Box component="span" role="img" aria-label={moonPhase?.label || 'Moon phase'} sx={{ display: 'inline-flex', flexShrink: 0, color: 'text.primary' }}>
-                  <MoonPhaseIcon code={game.moonphases} />
+            {moonPhase?.icon ? (
+              <Tooltip title={moonPhase.label}>
+                <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}>
+                  <IconPreview path={moonPhase.icon} size={28} alt={moonPhase.label} />
                 </Box>
               </Tooltip>
             ) : null}
